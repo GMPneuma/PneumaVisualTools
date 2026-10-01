@@ -1,0 +1,18 @@
+{
+  "PNEUMA_VISUALTOOLS": {
+    "Title": "Pneuma's Visual Tools"
+  },
+  "PNEUMA_VISUALTOOLS.ChatCardsName": "Compact chat cards",
+  "PNEUMA_VISUALTOOLS.ChatCardsHint": "Portraits and compact action/result sections on chat messages. Reload to apply.",
+  "PNEUMA_VISUALTOOLS.ChatPortraitSourceName": "Chat portrait image",
+  "PNEUMA_VISUALTOOLS.ChatPortraitSourceHint": "GM setting for everyone. Prefer the token or actor image for attacker and defender portraits, then the other available image. Reload to apply.",
+  "PNEUMA_VISUALTOOLS.ChatTokenImage": "Token image",
+  "PNEUMA_VISUALTOOLS.ChatActorImage": "Actor image",
+  "PNEUMA_VISUALTOOLS.ChatFallbackImageName": "Fallback chat portrait",
+  "PNEUMA_VISUALTOOLS.ChatFallbackImageHint": "GM setting for everyone. Image path or URL for messages without token or actor artwork. Leave empty for a blank portrait. Reload to apply.",
+  "PNEUMA_VISUALTOOLS.ChatRecipients": "Show or hide recipients",
+  "PNEUMA_VISUALTOOLS.ChatSkinName": "Chat card skin",
+  "PNEUMA_VISUALTOOLS.ChatSkinHint": "Pneuma Hub uses the custom dark cyan/amber palette. Cyberpunk Minimal uses the same layout with colors inherited from the active native theme. Applies immediately on this client.",
+  "PNEUMA_VISUALTOOLS.ChatSkinCyberpunk": "Pneuma Hub",
+  "PNEUMA_VISUALTOOLS.ChatSkinTechnical": "Cyberpunk Minimal"
+}

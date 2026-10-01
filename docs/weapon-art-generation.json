@@ -1,0 +1,128 @@
+[
+  {
+    "key": "medPistol",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-70568445-fe3e-41f7-a35c-739c7cc87fa7.png",
+    "file": "weapon-med-pistol.webp",
+    "prompt": "One isolated compact medium semiautomatic pistol, practical modern service handgun, short slide, defined trigger guard, ergonomic grip. Production inventory HUD silhouette for a Cyberpunk RED chat card. Detailed realistic recognizable outer contour and genuine negative-space cutouts only. SINGLE SOLID flat black shape, absolutely NO internal linework, no shading, texture, gradients or highlights. Transparent background. Side profile, barrel pointing right. Complete object centered within landscape 2:1 canvas, small safe margins, substantial size, no clipping. No text, labels, border, decoration or ground shadow. Must read clearly at 160 pixels wide."
+  },
+  {
+    "key": "heavyPistol",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-c26af0ec-3d40-4417-850a-209ef7efbab3.png",
+    "file": "weapon-heavy-pistol.webp",
+    "prompt": "One isolated heavy full-size semiautomatic pistol, substantial slide and barrel, robust grip, distinct trigger guard. Production inventory HUD silhouette for a Cyberpunk RED chat card. Detailed realistic recognizable outer contour and genuine negative-space cutouts only. SINGLE SOLID flat black shape, absolutely NO internal linework, no shading, texture, gradients or highlights. Transparent background. Side profile, barrel pointing right. Complete object centered within landscape 2:1 canvas, small safe margins, substantial size, no clipping. No text, labels, border, decoration or ground shadow. Must read clearly at 160 pixels wide."
+  },
+  {
+    "key": "vHeavyPistol",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-e9e821ef-b2dd-45ad-87dc-b32b4226f288.png",
+    "file": "weapon-v-heavy-pistol.webp",
+    "prompt": "One isolated very heavy oversized semiautomatic handgun, long heavy slide and muzzle, large grip, convincingly massive but realistic. Production inventory HUD silhouette for a Cyberpunk RED chat card. Detailed realistic recognizable outer contour and genuine negative-space cutouts only. SINGLE SOLID flat black shape, absolutely NO internal linework, no shading, texture, gradients or highlights. Transparent background. Side profile, barrel pointing right. Complete object centered within landscape 2:1 canvas, small safe margins, substantial size, no clipping. No text, labels, border, decoration or ground shadow. Must read clearly at 160 pixels wide."
+  },
+  {
+    "key": "smg",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-a944a571-c077-4bd6-9f74-1e713399e328.png",
+    "file": "weapon-smg.webp",
+    "prompt": "One isolated compact submachine gun, folding shoulder stock, short barrel, pistol grip, straight magazine. Production inventory HUD silhouette for a Cyberpunk RED chat card. Detailed realistic recognizable outer contour and genuine negative-space cutouts only. SINGLE SOLID flat black shape, absolutely NO internal linework, no shading, texture, gradients or highlights. Transparent background. Side profile, barrel pointing right. Complete object centered within landscape 2:1 canvas, small safe margins, substantial size, no clipping. No text, labels, border, decoration or ground shadow. Must read clearly at 160 pixels wide."
+  },
+  {
+    "key": "heavySmg",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-f9e07e64-40ab-4f67-b430-80fa14f77583.png",
+    "file": "weapon-heavy-smg.webp",
+    "prompt": "One isolated heavy submachine gun, stout receiver, extended shoulder stock, large magazine, tactical handguard. Production inventory HUD silhouette for a Cyberpunk RED chat card. Detailed realistic recognizable outer contour and genuine negative-space cutouts only. SINGLE SOLID flat black shape, absolutely NO internal linework, no shading, texture, gradients or highlights. Transparent background. Side profile, barrel pointing right. Complete object centered within landscape 2:1 canvas, small safe margins, substantial size, no clipping. No text, labels, border, decoration or ground shadow. Must read clearly at 160 pixels wide."
+  },
+  {
+    "key": "sniperRifle",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-85978308-0883-43e7-95b0-7715fc99dfe5.png",
+    "file": "weapon-sniper-rifle.webp",
+    "prompt": "One isolated long precision sniper rifle, long barrel with muzzle brake, telescopic scope, adjustable shoulder stock, pistol grip and box magazine. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. Side profile, front pointing right where applicable. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "shotgun",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-a1078b3a-e5c1-4592-90db-1ffd0837b263.png",
+    "file": "weapon-shotgun.webp",
+    "prompt": "One isolated pump-action shotgun, shoulder stock, distinct ribbed pump fore-end outline, tubular magazine below long barrel. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. Side profile, front pointing right where applicable. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "grenadeLauncher",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-b6e22ea7-9eef-4fa7-ae46-8224a19b945e.png",
+    "file": "weapon-grenade-launcher.webp",
+    "prompt": "One isolated standalone rotary grenade launcher, large six-round cylinder, short broad barrel, shoulder stock and pistol grip. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. Side profile, front pointing right where applicable. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "rocketLauncher",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-e9917f88-cbf8-440d-b828-0b1be0bef5ab.png",
+    "file": "weapon-rocket-launcher.webp",
+    "prompt": "One isolated shoulder-fired rocket launcher, long thick launch tube, flared rear opening, two grips and raised sight. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. Side profile, front pointing right where applicable. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "bow",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-76fa98d0-e1fe-456e-922c-8e1148fafd6b.png",
+    "file": "weapon-bow.webp",
+    "prompt": "One isolated modern compound bow, recognizable limbs, cams and taut string, no arrows, side profile rotated diagonally enough to fit the landscape frame. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. Side profile, front pointing right where applicable. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "crossbow",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-b2fb7604-e9cd-4056-af19-759785b83519.png",
+    "file": "weapon-crossbow.webp",
+    "prompt": "One isolated modern tactical crossbow, stock, pistol grip, clear bow limbs and taut string, side profile with enough slight angle to recognize the bow assembly. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "lightMelee",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-f0e5db22-53e8-4121-a05d-6d1c51d6b67f.png",
+    "file": "weapon-light-melee.webp",
+    "prompt": "One isolated light melee combat knife, single clean blade pointing right, guard and textured grip silhouette outline, realistic proportions. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "medMelee",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-02950fdd-4444-47b7-90e9-6f4ba0db51f8.png",
+    "file": "weapon-med-melee.webp",
+    "prompt": "One isolated medium melee machete, broad short blade pointing right, curved tip and sturdy ergonomic handle. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "heavyMelee",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-74a788ec-9bcc-4aa4-9a0a-48846413b9fe.png",
+    "file": "weapon-heavy-melee.webp",
+    "prompt": "One isolated heavy melee katana sword, long gently curved blade pointing right, small round guard and long wrapped handle, silhouette only. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "vHeavyMelee",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-c0847a6c-ff05-4fb0-b199-e10dba8859a9.png",
+    "file": "weapon-v-heavy-melee.webp",
+    "prompt": "One isolated very heavy melee two-handed combat sledgehammer, substantial block head at right, long handle horizontal to left, reinforced collar. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour, genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with small margins, not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "unarmed",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-1b55cb28-0839-468d-aa48-f4aaad92ff9c.png",
+    "file": "weapon-unarmed.webp",
+    "prompt": "One isolated one clenched human fist in side profile facing right, short wrist entering from left, accurate curled fingers and thumb exterior contour. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour and genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with generous safe margins, substantial but not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "martialArts",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-322e399c-c219-47ed-8c89-0d1e8dfacffb.png",
+    "file": "weapon-martial-arts.webp",
+    "prompt": "One isolated one wrapped martial artist's clenched fist striking right, short wrapped wrist entering from left, distinctive cloth wrap ends on exterior contour, no internal lines. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour and genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with generous safe margins, substantial but not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "thrownWeapon",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-7eae6b9c-3a6d-4a14-9768-74d9d019749d.png",
+    "file": "weapon-thrown-weapon.webp",
+    "prompt": "One isolated balanced throwing knife, blade pointing right, long narrow point and skeletonized handle with genuine cutout holes, horizontal. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour and genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with generous safe margins, substantial but not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "grenade",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-8b7f4bee-defb-4212-9df2-612fe9682425.png",
+    "file": "weapon-grenade.webp",
+    "prompt": "One isolated one compact fragmentation hand grenade, recognizable oval body, safety lever and pull ring, upright centered, no surface linework. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour and genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with generous safe margins, substantial but not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "flamethrower",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-ac746d6e-71d4-401c-85de-a64d7760e21a.png",
+    "file": "weapon-flamethrower.webp",
+    "prompt": "One isolated handheld flamethrower projector, shoulder stock and pistol grip, broad forward barrel with small igniter muzzle, compact attached cylindrical fuel vessel underneath, NO flame or smoke. High-quality inventory silhouette for a Cyberpunk tabletop chat card. Detailed realistic outer contour and genuine cutout holes. PURE SOLID BLACK silhouette, NO shading, internal lines, textures or gradients. Transparent background. Complete object centered within landscape 2:1 canvas with generous safe margins, substantial but not clipped. No text, labels, frames, shadows or decoration. Clear at 160 pixels wide."
+  },
+  {
+    "key": "assaultRifle",
+    "path": "C:\\Users\\Jerem\\.codex\\generated_images\\01a0e5f2-50f2-7bf2-a2d9-667742d44a38\\exec-5824967f-9d5b-44c3-8f87-f23abc56661b.png",
+    "file": "weapon-assault-rifle.webp",
+    "prompt": "Previously approved rifle silhouette; preserve source artwork, export at 512x256."
+  }
+]

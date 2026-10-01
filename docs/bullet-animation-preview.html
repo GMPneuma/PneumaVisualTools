@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Visual Tools — Bullet animation</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111619;color:#d9e1e5;font:14px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh}main{width:min(960px,94vw)}h1{font-size:20px;font-weight:600;margin:0 0 8px}p{color:#93a0a8;margin:0 0 20px}canvas{display:block;width:100%;border:1px solid #39434b;border-radius:4px;background:#1b2328}nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:16px}button{background:#26343d;color:#e3edf2;border:1px solid #5b707e;border-radius:3px;padding:9px 16px;font:inherit;cursor:pointer}button:hover{background:#354b59}label{margin-left:auto;color:#aab8c0;display:flex;gap:8px;align-items:center}small{display:block;margin-top:15px;color:#7f919d}
+</style>
+<main>
+<h1>Bullet animation</h1>
+<p>Muzzle flash · amber tracer · impact spark</p>
+<canvas width="960" height="460" aria-label="Bullet animation between two tokens on a tabletop grid"></canvas>
+<nav><button id="single">Single shot</button><button id="burst">3-round burst</button><label><input id="slow" type="checkbox"> Slow motion</label></nav>
+<small>Visual Tools concept preview. No damage or attack resolution.</small>
+</main>
+<script>
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+const start={x:210,y:250},end={x:750,y:190};
+const dx=end.x-start.x,dy=end.y-start.y,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len;
+let shots=[],frame=0;
+function token(x,y,label,color){ctx.save();ctx.translate(x,y);ctx.fillStyle='#10171c';ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,33,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle=color;ctx.beginPath();ctx.arc(0,-8,8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.roundRect(-15,5,30,15,6);ctx.fill();ctx.fillStyle='#bdcbd3';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText(label,0,58);ctx.restore()}
+function base(){ctx.clearRect(0,0,960,460);ctx.strokeStyle='#ffffff09';ctx.lineWidth=1;for(let x=0;x<960;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,460);ctx.stroke()}for(let y=0;y<460;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(960,y);ctx.stroke()}ctx.fillStyle='#263137';ctx.fillRect(410,40,180,65);ctx.fillRect(450,350,240,65);token(start.x,start.y,'SHOOTER','#71bdcc');token(end.x,end.y,'TARGET','#d17b7b')}
+function flash(x,y,size,alpha,rotation){ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.globalAlpha=alpha;ctx.shadowColor='#ffb64c';ctx.shadowBlur=14;ctx.fillStyle='#ffe6a0';ctx.beginPath();for(let i=0;i<12;i++){const a=i*Math.PI/6,r=i%2?size*.25:size;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.restore()}
+function draw(now){base();let active=false;for(const shot of shots){const t=(now-shot.time)/shot.scale;if(t<0){active=true;continue}if(t>430)continue;active=true;const sx=start.x+ux*38,sy=start.y+uy*38,ex=end.x-ux*34,ey=end.y-uy*34;
+if(t<65)flash(sx,sy,19*(1-t/90),1-t/65,0.2);
+if(t<170){const p=Math.min(1,t/170),x=sx+(ex-sx)*p,y=sy+(ey-sy)*p,tail=Math.min(48,(len-72)*p);ctx.save();ctx.lineCap='round';ctx.shadowColor='#ffb23d';ctx.shadowBlur=10;const g=ctx.createLinearGradient(x-ux*Math.max(1,tail),y-uy*Math.max(1,tail),x,y);g.addColorStop(0,'#ffc24d00');g.addColorStop(.7,'#ffc24d');g.addColorStop(1,'#fff5cf');ctx.strokeStyle=g;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x-ux*tail,y-uy*tail);ctx.lineTo(x,y);ctx.stroke();ctx.restore()}
+if(t>=170){const a=(t-170)/260;flash(ex,ey,13*(1-a),1-a,.5);ctx.save();ctx.globalAlpha=1-a;ctx.strokeStyle='#ffc476';ctx.lineWidth=1.5;for(let i=0;i<7;i++){const angle=i*2.399+shot.seed,r=7+a*38;ctx.beginPath();ctx.moveTo(ex+Math.cos(angle)*r,ey+Math.sin(angle)*r);ctx.lineTo(ex+Math.cos(angle)*(r+5*(1-a)),ey+Math.sin(angle)*(r+5*(1-a)));ctx.stroke()}ctx.restore()}}
+if(active)frame=requestAnimationFrame(draw);else{shots=[];frame=0}}
+function fire(count){const now=performance.now(),scale=document.querySelector('#slow').checked?4:1;shots=Array.from({length:count},(_,i)=>({time:now+i*95*scale,scale,seed:i*.8}));if(frame)cancelAnimationFrame(frame);frame=requestAnimationFrame(draw)}
+document.querySelector('#single').onclick=()=>fire(1);document.querySelector('#burst').onclick=()=>fire(3);base();fire(1);
+</script>
+</html>

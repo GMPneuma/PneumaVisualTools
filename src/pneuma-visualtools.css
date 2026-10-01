@@ -1,0 +1,18 @@
+/* Neural Intrusion screen feedback, supplied by Combat Tools state. */
+#pneuma-visual-neural-glitch { position:fixed; inset:0; pointer-events:none; z-index:10000; overflow:hidden; --neural-cyan:#59fff0; --neural-red:#ff335e; }
+#pneuma-visual-neural-glitch > svg { position:absolute; }
+#pneuma-visual-neural-glitch .pneuma-neural-region { position:absolute; overflow:hidden; pointer-events:none; }
+#pneuma-visual-neural-glitch .pneuma-neural-signal { position:absolute; inset:0; backdrop-filter:url("#pneuma-visual-neural-distortion"); animation:pneuma-neural-signal 1800ms linear both; }
+#pneuma-visual-neural-glitch .pneuma-neural-region::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg,#0003 0 1px,transparent 1px 4px); box-shadow:inset 0 0 35px #002e3980; animation:pneuma-neural-signal 1800ms linear both; }
+#pneuma-visual-neural-glitch .pneuma-neural-tear { position:absolute; left:-24px; right:-24px; background:linear-gradient(90deg,#ff335e15,transparent 35%,#59fff018); border-top:1px solid #59fff060; box-shadow:0 -2px 0 #ff335e50; animation:pneuma-neural-tear 900ms steps(1,end) 2; }
+@keyframes pneuma-neural-signal { 0%,100% { opacity:0; } 8%,35% { opacity:1; } 42%,50% { opacity:.15; } 58%,82% { opacity:.9; } 94% { opacity:.2; } }
+@keyframes pneuma-neural-tear { 0%,100% { opacity:0; transform:translate(0,0); } 12% { opacity:.9; transform:translate(18px,-14px); } 30% { opacity:.5; transform:translate(-22px,5px); } 46% { opacity:0; } 68% { opacity:.8; transform:translate(12px,22px); } 85% { opacity:.3; transform:translate(-8px,-4px); } }
+@media (prefers-reduced-motion:reduce) { #pneuma-visual-neural-glitch { display:none; } }
+#pneuma-visual-neural-glitch.pneuma-neural-echo .pneuma-neural-signal { animation-name:pneuma-neural-echo; }
+#pneuma-visual-neural-glitch.pneuma-neural-echo .pneuma-neural-tear { border:0; box-shadow:none; opacity:.3; }
+#pneuma-visual-neural-glitch.pneuma-neural-dropout .pneuma-neural-tear { background:linear-gradient(90deg,#02080bd9,#091a2088,#02080bbf); border-top-color:#b4ffff90; }
+#pneuma-visual-neural-glitch.pneuma-neural-scan .pneuma-neural-tear { background:repeating-linear-gradient(0deg,#59fff030 0 1px,transparent 1px 3px); animation-name:pneuma-neural-scan; }
+#pneuma-visual-neural-glitch[data-severity="mild"] .pneuma-neural-region::after { box-shadow:inset 0 0 20px #002e3940; }
+#pneuma-visual-neural-glitch[data-severity="strong"] .pneuma-neural-region::after { box-shadow:inset 0 0 50px #002e39aa; }
+@keyframes pneuma-neural-echo { 0%,100% { opacity:0; } 12%,32% { opacity:.85; } 45% { opacity:.1; } 60%,78% { opacity:1; } 90% { opacity:.2; } }
+@keyframes pneuma-neural-scan { 0%,100% { opacity:0; transform:translateY(-80%); } 15% { opacity:.8; transform:translateY(-30%); } 40% { opacity:.5; transform:translateY(40%); } 65% { opacity:.9; transform:translateY(120%); } 85% { opacity:.2; transform:translateY(180%); } }

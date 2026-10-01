@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.zip
+!src/chat-dice-template.zip
+.DS_Store
+Thumbs.db

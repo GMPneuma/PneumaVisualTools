@@ -1,0 +1,41 @@
+{
+  "id": "pneuma-visualtools",
+  "title": "Pneuma's Visual Tools",
+  "description": "Visual utilities for Cyberpunk RED in Foundry Virtual Tabletop.",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "GMPneuma"
+    }
+  ],
+  "compatibility": {
+    "minimum": "12",
+    "maximum": "12"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "cyberpunk-red-core",
+        "type": "system"
+      }
+    ]
+  },
+  "esmodules": [
+    "main.js"
+  ],
+  "styles": [
+    "pneuma-visualtools.css",
+    "chat-cards.css",
+    "chat-hub.css",
+    "chat-theme.css",
+    "chat-dice.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "en.json"
+    }
+  ],
+  "url": "https://github.com/GMPneuma/PneumaVisualTools"
+}
