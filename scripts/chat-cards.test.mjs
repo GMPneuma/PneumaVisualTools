@@ -509,7 +509,9 @@ try {
     card.querySelector('.message-content').innerHTML='<div class="rollcard pneuma-quickhack-card"><div class="rollcard-top"><div class="cpr-block pneuma-quickhack-heading"><h3>Jack In</h3><p class="pneuma-quickhack-participants">Unknown Netrunner → Yam</p></div></div><p>Connection failed</p></div>';
     window.hooks.renderChatMessage(window.msg,[card]);
   });
-  assert.equal(await page.locator('#grapple-Grab .pneuma-rail-action').innerText(),'Grabs');
+  for (const action of ['Grab','Break Grapple','Release','Choke','Throw']) {
+    assert.equal(await page.locator('#grapple-'+action.replaceAll(' ','-')+' .pneuma-rail-action').innerText(),action);
+  }
   assert.equal(await page.locator('#grapple-Grab .message-sender').innerText(),'Rage');
   assert.equal(await page.locator('#grapple-Grab .pneuma-exchange-defender').innerText(),'Yam');
   assert.equal(await page.locator('#grapple-Grab .pneuma-grapple-card .rollcard-top').isVisible(),false);
@@ -622,6 +624,7 @@ try {
     assert.equal(await page.locator('#complete-exchange .pneuma-applied-details').isVisible(),false);
   }
   await page.evaluate(()=>window.registered.chatSkin.onChange('cyberpunk'));
+  await page.addStyleTag({content:'.chat-message .d10-number-div, .chat-message .d10-number-div > span {color:#b90202 !important;}'});
   const frameColors=await page.locator('#complete-exchange').evaluate(el=>['.pneuma-roll-winner','.pneuma-roll-loser'].map(sel=>{
     const total=el.querySelector(sel+' .d10-number-div');return [getComputedStyle(total,'::before').backgroundColor,getComputedStyle(total).color];
   }));
@@ -631,8 +634,8 @@ try {
     for(const [state,label,fill] of [['winner','WINNER','rgb(23, 107, 66)'],['loser','LOSER','rgb(161, 43, 58)']]) {
       const total=page.locator('#complete-exchange .pneuma-roll-'+state+' .d10-number-div');
       assert.notEqual(await total.evaluate(el=>getComputedStyle(el,'::after').content),JSON.stringify(label));
-      assert.equal(await total.evaluate(el=>getComputedStyle(el,el.closest('.pneuma-theme-technical')?'::after':'::before').backgroundColor),skin==='technical'?fill:state==='winner'?'rgb(69, 203, 131)':'rgb(230, 93, 109)');
-      assert.equal(await total.evaluate(el=>getComputedStyle(el).color),skin==='technical'?'rgb(255, 255, 255)':'rgb(85, 220, 231)');
+      assert.equal(await total.evaluate(el=>getComputedStyle(el,el.closest('.pneuma-theme-technical')?'::after':'::before').backgroundColor),skin==='technical'?'rgb(238, 238, 238)':state==='winner'?'rgb(69, 203, 131)':'rgb(230, 93, 109)');
+      assert.equal(await total.evaluate(el=>getComputedStyle(el).color),skin==='technical'?'rgb(25, 25, 25)':'rgb(85, 220, 231)');
     }
   }
   await page.evaluate(()=>registered.chatSkin.onChange('cyberpunk'));
@@ -697,6 +700,38 @@ try {
   await page.evaluate(()=>window.registered.chatSkin.onChange('cyberpunk'));
   await page.mouse.move(0,0);await damage.evaluate(el=>el.blur());
   await page.locator('#mini-results').screenshot({path:new URL('../docs/mini-results-check.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1')});
+  // Multiple native receipts stay separated from the shared roll, with notes
+  // attached to their recipient and native Undo on the same result row.
+  await page.evaluate(() => {
+    const card=window.fixture('damage-receipts',true);
+    const applications=document.createElement('div');
+    applications.className='pneuma-damage-applications pneuma-aoe-applications';
+    applications.innerHTML=['Rage','Smitty','Yamm itation','Calli'].map((name,index)=>
+      `<div class="rollcard pneuma-damage-applied"><div class="pneuma-damage-applied-row"><span class="pneuma-applied-name">${name}</span><span class="pneuma-applied-number" data-action="toggleVisibility" data-visible-element="receipt-${index}">${22-index}</span><span class="pneuma-applied-location">Body</span></div><div class="pneuma-applied-details receipt-${index} hide">Armor SP 9<a data-action="reverseDamage">↶</a></div></div>`
+      +(index>1?'<p class="pneuma-cover-up-damage">Cover Up: armor SP ×2; all worn head and body armor ablates ×2, including blocked damage.</p>':'' )).join('');
+    card.querySelector('.message-content').append(applications);
+    window.hooks.renderChatMessage(window.exchangeMessage,[card]);
+    window.installRollPopovers(card);window.installRollPopovers(card);
+  });
+  for(const skin of ['cyberpunk','technical']) {
+    await page.evaluate(skin=>window.registered.chatSkin.onChange(skin),skin);
+    for(const width of [260,300,400]) {
+      await page.locator('#damage-receipts').evaluate((el,w)=>el.style.width=w+'px',width);
+      const geometry=await page.locator('#damage-receipts').evaluate(card=>{
+        const applications=card.querySelector('.pneuma-aoe-applications');
+        return {border:getComputedStyle(applications).borderTopWidth,overflow:card.scrollWidth>card.clientWidth,
+          notes:applications.querySelectorAll(':scope > .pneuma-cover-up-damage').length,
+          rows:Array.from(applications.querySelectorAll('.pneuma-damage-applied-row')).map(row=>{
+            const total=row.querySelector('.pneuma-applied-number').getBoundingClientRect();
+            const undo=row.querySelector('[data-action="reverseDamage"]').getBoundingClientRect();
+            return undo.top>=total.top&&undo.bottom<=total.bottom;
+          })};
+      });
+      assert.equal(geometry.border,'1px');assert.equal(geometry.overflow,false);
+      assert.equal(geometry.notes,0);assert.ok(geometry.rows.every(Boolean),'Undo stays beside its receipt total');
+    }
+  }
+  await page.locator('#damage-receipts').screenshot({path:new URL('../docs/damage-receipts-check.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1')});
   console.log('Mini result rows, outcome colors, saved damage dice, armor hover, controls and two-skin widths passed.');
   await page.evaluate(()=>{
     const chat=document.createElement('section');chat.id='composer-check';chat.style.cssText='width:300px;padding:8px;background:#080f14';
@@ -823,7 +858,8 @@ try {
   for(const [id,label] of [['stat-header','Stat'],['role-header','Role Ability'],['initiative-header','Initiative'],['damage-header','Suppression']]) {
     assert.equal(await page.locator('#'+id+' .pneuma-rail-action').innerText(),label);
   }
-  assert.equal(await page.locator('#private-netrunner .pneuma-exchange-defender').count(),0);
+  assert.equal(await page.locator('#private-netrunner .pneuma-exchange-defender').innerText(),'Yam');
+  assert.equal(await page.locator('#private-netrunner .pneuma-exchange-defender-image').count(),1);
   assert.equal(await page.locator('#skill-header .pneuma-rail-action').innerText(),'Skill');
   assert.match(await page.locator('#skill-header .pneuma-chat-action').innerText(),/Resist Torture\/Drugs/i);
   assert.equal(await page.locator('#private-netrunner .pneuma-heading-net .pneuma-card-title h3').innerText(),'JACK IN');
@@ -831,7 +867,7 @@ try {
   for(const id of ['text','skill-header','private-netrunner','complete-exchange','release-portrait']) {
     const order=await page.locator('#'+id+' .pneuma-participant-rail').evaluate(el=>Array.from(el.children).map(child=>['pneuma-chat-portrait','pneuma-chat-identity','pneuma-rail-arrow','pneuma-rail-action','pneuma-exchange-defender','pneuma-exchange-defender-image'].find(cls=>child.classList.contains(cls))));
     const expected=id==='text'?['pneuma-chat-portrait','pneuma-chat-identity']:['pneuma-chat-portrait','pneuma-chat-identity','pneuma-rail-arrow','pneuma-rail-action'];
-    if(['complete-exchange','release-portrait'].includes(id)) expected.push('pneuma-rail-arrow','pneuma-exchange-defender','pneuma-exchange-defender-image');
+    if(['complete-exchange','release-portrait','private-netrunner'].includes(id)) expected.push('pneuma-rail-arrow','pneuma-exchange-defender','pneuma-exchange-defender-image');
     assert.deepEqual(order,expected,id+' rail order');
     assert.equal(await page.locator('#'+id+' .pneuma-action-header').count(),id==='text'?0:1);
     assert.equal(await page.locator('#'+id+' .pneuma-action-header :is(.pneuma-header-symbol,.pneuma-exchange-weapon-image)').count(),id==='text'?0:1);
@@ -1066,4 +1102,24 @@ try {
     await page.locator('#structure-review').screenshot({path:new URL('../docs/structure-'+skin+'.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1')});
   }
   console.log('Theme ownership, exclusive classes, nested opposed rows and native grapple section boundaries passed.');
+  // Load the actual Green Theme after VisualTools: its direct chat overrides
+  // must leave Hub unchanged while Minimal continues to inherit its palette.
+  await page.evaluate(()=>{
+    const log=document.createElement('div');log.id='chat-log';document.body.append(log);
+    log.append(document.querySelector('#complete-exchange'));
+  });
+  const palette=()=>page.locator('#complete-exchange').evaluate(card=>
+    [card,card.querySelector('.message-sender, .pneuma-exchange-attacker'),card.querySelector('.rollcard'),card.querySelector('.d10-number-div')]
+      .map(el=>{const s=getComputedStyle(el);return [s.backgroundColor,s.color,s.borderTopColor,s.borderTopWidth,s.padding,s.borderRadius];}));
+  await page.evaluate(()=>registered.chatSkin.onChange('cyberpunk'));
+  const hubBefore=await palette();
+  await page.evaluate(()=>registered.chatSkin.onChange('technical'));
+  const minimalBefore=await palette();
+  await page.evaluate(()=>registered.chatSkin.onChange('cyberpunk'));
+  const greenStyle=await page.addStyleTag({content:await readFile(new URL('../../PneumaGreenTheme/styles/pneuma-green-theme.css',import.meta.url),'utf8')});
+  assert.deepEqual(await palette(),hubBefore,'actual Green Theme must not repaint Hub');
+  await page.evaluate(()=>registered.chatSkin.onChange('technical'));
+  assert.notDeepEqual(await palette(),minimalBefore,'Minimal should follow Green Theme');
+  await greenStyle.evaluate(el=>el.remove());
+  console.log('Actual Green Theme preserves Hub and recolors Minimal.');
 } finally { await browser.close(); }

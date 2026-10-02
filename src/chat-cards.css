@@ -252,12 +252,13 @@
   display: flex; align-items: center; justify-content: center;
   width: var(--pvt-total-size); height: var(--pvt-total-size); flex: 0 0 var(--pvt-total-size);
   min-height: 0; padding: 2px; border: 0; margin: 0; background: transparent;
-  color: var(--pvt-result-ink, var(--pvt-total-ink)); font-family: inherit;
+  /* Native CPR total-color rules can be important. Keep the chosen palette. */
+  color: var(--pvt-result-ink, var(--pvt-total-ink)) !important; font-family: inherit;
   font-size: var(--pvt-total-font); font-weight: 700; line-height: 1; letter-spacing: -.04em;
   font-variant-numeric: tabular-nums; text-shadow: var(--pvt-total-shadow);
   white-space: nowrap; overflow-wrap: normal; word-break: normal;
 }
-.chat-message.pneuma-chat-card :is(.d10-number-div, .d6-number-div, .generic-number-div) > :is(a, span, strong) { color: inherit; font-size: inherit; line-height: inherit; white-space: nowrap; }
+.chat-message.pneuma-chat-card :is(.d10-number-div, .d6-number-div, .generic-number-div) > :is(a, span, strong) { color: inherit !important; font-size: inherit; line-height: inherit; white-space: nowrap; }
 .chat-message.pneuma-chat-card :is(.d10-number-div, .d6-number-div, .generic-number-div)::before,
 .chat-message.pneuma-chat-card :is(.d10-number-div, .d6-number-div, .generic-number-div)::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -338,6 +339,23 @@
 .chat-message.pneuma-chat-card .pneuma-mini-result-row > :first-child { min-width: 0; }
 .chat-message.pneuma-chat-card .pneuma-mini-result-row > .pneuma-inline-roll { justify-self: end; }
 .chat-message.pneuma-chat-card .pneuma-mini-result-row > .pneuma-damage-undo { grid-column: 1 / -1; justify-self: end; }
+.chat-message.pneuma-chat-card :is(.pneuma-resolution-damage-apply, .pneuma-aoe-applications) {
+  border-top: 1px solid var(--pvt-line); margin-top: 8px; padding-top: 8px;
+}
+.chat-message.pneuma-chat-card .pneuma-damage-applications > .pneuma-damage-applied {
+  padding: 8px 0; margin: 0; border-bottom: 1px solid var(--pvt-line);
+}
+.chat-message.pneuma-chat-card .pneuma-damage-applications > .pneuma-damage-applied:last-child { border-bottom: 0; }
+.chat-message.pneuma-chat-card .pneuma-damage-applied-row.pneuma-mini-result-row {
+  grid-template-columns: minmax(0, 1fr) var(--pvt-mini-size) 20px;
+}
+.chat-message.pneuma-chat-card .pneuma-damage-applied-row > .pneuma-applied-number { grid-column: 2; grid-row: 1; }
+.chat-message.pneuma-chat-card .pneuma-damage-applied-row > .pneuma-damage-undo {
+  grid-column: 3; grid-row: 1; justify-self: center; margin: 0;
+}
+.chat-message.pneuma-chat-card .pneuma-damage-applied > :is(.pneuma-cover-up-damage, .pneuma-injury-damage) {
+  margin: 4px 0 0; font-size: 12px; line-height: 1.35; color: var(--pvt-muted);
+}
 .chat-message.pneuma-chat-card .pneuma-aoe-target > .pneuma-mini-result-row { grid-column: 1 / -1; }
 .chat-message.pneuma-chat-card .inline-roll.inline-result > i { display: none; }
 

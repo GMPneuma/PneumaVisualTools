@@ -40,9 +40,9 @@
   --pvt-total-clip: none;
   --pvt-win-frame: #45cb83;
   --pvt-lose-frame: #e65d6d;
-  --pvt-win-fill: #176b42;
-  --pvt-lose-fill: #a12b3a;
-  --pvt-outcome-ink: #fff;
+  --pvt-win-fill: var(--pvt-panel);
+  --pvt-lose-fill: var(--pvt-panel);
+  --pvt-outcome-ink: var(--pvt-ink);
   --pvt-win-tint: color-mix(in srgb, var(--pvt-win-frame) 12%, transparent);
   --pvt-lose-tint: color-mix(in srgb, var(--pvt-lose-frame) 12%, transparent);
   --pvt-stripe-opacity: 1;

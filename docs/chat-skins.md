@@ -30,7 +30,7 @@ Annotations refresh through the existing child-list observer, including section 
 
 Only one class is active: `pneuma-theme-cyberpunk` or `pneuma-theme-technical`. Theme files set appearance variables only. Layout variables such as rail width, spacing and total dimensions belong to the shared file. Do not introduce per-theme padding, margins, fonts or selector overrides to fix a layout issue.
 
-Hub uses fixed dark surfaces and cyan/amber accents. Opposed totals keep cyan text and cropped red/green outlines. Minimal reads `--cpr-background-chat-card`, `--cpr-text-chat-normal`, `--cpr-background-chat-card-block`, `--cpr-background-chat-card-block-before`, and native success/failure variables, with fallbacks. Third-party skins participate by supplying these variables. Minimal never overwrites those native variables. Its tinted opposed rows and filled totals use stable semantic green/red colors for legibility.
+Hub uses fixed dark surfaces and cyan/amber accents. Opposed totals keep cyan text and cropped red/green outlines. Minimal reads `--cpr-background-chat-card`, `--cpr-text-chat-normal`, `--cpr-background-chat-card-block`, `--cpr-background-chat-card-block-before`, and native success/failure variables, with fallbacks. Third-party skins participate by supplying these variables. Minimal never overwrites those native variables. Its tinted opposed rows and outcome outlines use stable semantic green/red colors for legibility.
 
 Common major totals are 46×46px with 32px text, and compact receipts/effects use 32×32px wells. Digit count cannot change either size. No Winner/Loser labels are generated.
 

@@ -190,7 +190,6 @@ function arrangeCardHeader(root: HTMLElement): void {
     const originalTitle = adHocDamage.querySelector<HTMLElement>(':scope > h3');
     if (originalTitle) { title.title = originalTitle.textContent?.trim() ?? ''; originalTitle.classList.add('pneuma-relocated-heading'); }
   }
-  if (net) rail.querySelectorAll('.pneuma-exchange-defender, .pneuma-exchange-defender-image').forEach(node => node.remove());
   rail.querySelectorAll('.pneuma-rail-arrow').forEach(node => node.remove());
   const arrow = () => {
     const node = document.createElement('span'); node.className = 'pneuma-rail-arrow';
@@ -283,7 +282,7 @@ function arrangeRailAction(root: HTMLElement, message?: ChatMessage): void {
   const grapple = grappleHeading?.textContent?.trim().match(/^(Grab|Break Grapple|Release|Choke|Throw):\s*(.+?)\s*→\s*(.+)$/);
   if (grapple) {
     setName(grapple[2]!);
-    setAction(({Grab: 'Grabs', 'Break Grapple': 'Breaks grapple', Release: 'Releases', Choke: 'Chokes', Throw: 'Throws'} as Record<string,string>)[grapple[1]!]!);
+    setAction(grapple[1]!);
     setTarget(grapple[3]!); grappleHeading!.classList.add('pneuma-relocated-heading');
     return;
   }
@@ -316,7 +315,7 @@ function arrangeRailAction(root: HTMLElement, message?: ChatMessage): void {
     } else if (aoe?.kind === 'suppression') setAction('Suppress');
     else setAction('Attack');
   } else if (root.querySelector('.pneuma-exchange-header')) {
-    setAction('Attacks');
+    setAction('Attack');
   } else {
     const subtitle = heading?.querySelector<HTMLElement>('.rollcard-subtitle-center');
     if (subtitle && !subtitle.querySelector('a, button') && subtitle.textContent?.trim()) {
@@ -392,6 +391,13 @@ function normalDamageDice(copy: HTMLElement): void {
 
 /** Compact only already-rendered results; never reconstruct hidden roll data. */
 function arrangeMiniResults(root: HTMLElement): void {
+  // Published receipt notes follow their native card. Keep each note with its
+  // recipient while preserving the actual receipt and actionable descendants.
+  for (const receipt of Array.from(root.querySelectorAll<HTMLElement>('.pneuma-damage-applied'))) {
+    while (receipt.nextElementSibling?.matches('.pneuma-cover-up-damage, .pneuma-injury-damage')) {
+      receipt.append(receipt.nextElementSibling);
+    }
+  }
   const row = (label: HTMLElement, result: HTMLElement, color?: string) => {
     const wrapper = document.createElement('div'); wrapper.className = 'pneuma-mini-result-row';
     result.before(wrapper); wrapper.append(label, result);

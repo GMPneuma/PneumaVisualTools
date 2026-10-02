@@ -21,7 +21,7 @@ await mkdir(output, { recursive: true });
 for (const file of ["module.json", "README.md", "CHANGELOG.md"]) {
   await cp(resolve(root, file), resolve(output, file));
 }
-for (const file of ["pneuma-visualtools.css", "chat-cards.css", "chat-hub.css", "chat-theme.css", "chat-dice.css", "chat-dice-settings.hbs", "chat-dice-template.zip", "en.json"]) {
+for (const file of ["pneuma-visualtools.css", "chat-cards.css", "chat-hub.css", "chat-theme.css", "chat-dice.css", "chat-dice-settings.hbs", "chat-dice-template.zip", "en.json", "fire-loop.webm", "fire-loop-poster.png"]) {
   await cp(resolve(root, "src", file), resolve(output, file));
 }
 for (const file of (await readdir(resolve(root, "src"))).filter(name => /^(?:weapon-[a-z-]+|dice-pneuma-[a-z0-9_]+)\.webp$/.test(name))) {

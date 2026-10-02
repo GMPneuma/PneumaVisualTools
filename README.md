@@ -4,6 +4,8 @@ Planned work and editable statuses: [backlog.md](backlog.md).
 
 Foundry VTT v12 module for Cyberpunk RED.
 
+Version 0.2.0 enables only chat-card skinning and dice replacement. Attack effects, neural intrusion glitches, and On Fire flames remain in the project but are release-gated: no settings, hooks, sounds, or animations initialize. Gates are defined in `src/release-features.ts`; there is no user-facing experimental switch.
+
 ## Development
 
 Requires Node.js 22 or newer and pnpm 11.19.0.
@@ -31,9 +33,23 @@ Edit source under `src/`; never edit generated output.
 
 Build, then copy the contents of `dist/` into `Data/modules/pneuma-visualtools/` in your Foundry data directory. Enable the module in a Cyberpunk RED world running Foundry v12. Package the contents of `dist/` at the ZIP root.
 
-No release has been published. Live Foundry verification is pending.
+Install manifest: https://github.com/GMPneuma/PneumaVisualTools/releases/latest/download/module.json
 
-## Chat cards
+Release 0.2.0 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
+
+## Development only: procedural attack effects
+
+Newly resolved Combat Tools attacks play local procedural visuals and synthesized audio on the current scene. Pistol, SMG, Rifle, Sniper Rifle, Shotgun, Bow/Crossbow, thrown grenades, rockets, melee/blades, unarmed/martial attacks, grapple, and netrunning results are supported. SMG/Rifle Autofire and Suppression use representative bursts. Area attacks play once after their saved attack is revealed, rather than once per damage recipient.
+
+Under Visual Tools settings, each client controls **Show procedural attack effects**, **Play procedural attack sounds**, **Attack sound volume**, and **Attack visual intensity**. Sounds unlock after a click or keypress. Reduced motion keeps stationary contact cues. Scene teardown, hidden tabs, and disabled settings stop local effects.
+
+Message privacy, hidden tokens, concealed netrunners, and Combat Tools' hidden-weapon setting are respected. Concealed-source netrunning effects are GM-only. Hidden weapon effects are limited to the GM and source owner. Old chat history and later damage/recovery updates do not replay attacks. Native CPR cards without Combat Tools action metadata do not automatically animate.
+
+Ammo colors cover Basic, Armor Piercing, Incendiary, Expansive, Rubber, and Smart; other types use Basic. Saved area ammo takes priority; ordinary weapons use accessible native installed ammunition. No combat rolls, damage, conditions, or token documents are changed. Blade and Crossbow variants use the accessible item name when the category alone does not distinguish them.
+
+After building, run `node scripts/weapon-effects.test.mjs` with Playwright available. Browser fixtures verify event routing and rendering; multiplayer timing and canvas placement still require a live Foundry check.
+
+## Chat card settings
 
 In Configure Settings → Pneuma's Visual Tools:
 
@@ -48,7 +64,7 @@ Browser checks: after building, run node scripts/chat-cards.test.mjs with Playwr
 
 These settings now use the Visual Tools namespace. Reapply any custom portrait preference, fallback image or disabled master switch under Visual Tools after enabling it.
 
-Neural Intrusion screen glitches are configured per player in Visual Tools settings. They require the matching Combat Tools integration for detected Jack-In state; Combat Tools remains usable without this visual module.
+Neural Intrusion screen glitches are disabled in 0.2.0; their settings are not registered. They require the matching Combat Tools integration for detected Jack-In state; Combat Tools remains usable without this visual module.
 
 
 
@@ -74,3 +90,5 @@ Chat dice replacement is now built into Visual Tools and works independently of 
 - Your existing purple/green standard dice, red/blue critical dice and PREEM D6 are bundled. Missing custom images fall back to these, then to native images if needed.
 
 See [custom set specification](docs/chat-dice-sets.md). A template ZIP is included in the menu. Keep custom images in a world or other shared Foundry data folder outside the Visual Tools module directory so updates do not overwrite them.
+
+Development only (disabled in 0.2.0): On Fire screen flames use a bundled transparent 900×270, 30 FPS WebM loop instead of live procedural simulation. The preview is docs/fire-animation-preview.html. Reduced motion uses the bundled still image.
