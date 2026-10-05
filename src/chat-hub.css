@@ -1,5 +1,7 @@
 /* PNEUMA HUB: palette and decoration. Geometry belongs to chat-cards.css. */
 .pneuma-theme-cyberpunk {
+  --pneuma-effect-icon-filter: brightness(0) invert(75%) sepia(80%) saturate(350%) hue-rotate(140deg);
+  --pneuma-effect-symbol-color: var(--pvt-accent);
   /* Surfaces and semantic colors */
   --pvt-bg: #0c141a;
   --pvt-panel: #101e26;

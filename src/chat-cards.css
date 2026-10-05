@@ -340,10 +340,10 @@
 .chat-message.pneuma-chat-card .pneuma-mini-result-row > .pneuma-inline-roll { justify-self: end; }
 .chat-message.pneuma-chat-card .pneuma-mini-result-row > .pneuma-damage-undo { grid-column: 1 / -1; justify-self: end; }
 .chat-message.pneuma-chat-card :is(.pneuma-resolution-damage-apply, .pneuma-aoe-applications) {
-  border-top: 1px solid var(--pvt-line); margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--pvt-line); margin-top: 0; padding-top: 4px;
 }
 .chat-message.pneuma-chat-card .pneuma-damage-applications > .pneuma-damage-applied {
-  padding: 8px 0; margin: 0; border-bottom: 1px solid var(--pvt-line);
+  padding: 3px 0; margin: 0; border-bottom: 1px solid var(--pvt-line);
 }
 .chat-message.pneuma-chat-card .pneuma-damage-applications > .pneuma-damage-applied:last-child { border-bottom: 0; }
 .chat-message.pneuma-chat-card .pneuma-damage-applied-row.pneuma-mini-result-row {
@@ -395,3 +395,59 @@
 .pneuma-chat-composer #chat-controls select :is(option, optgroup) { background-color: var(--pvt-compose-bg); color: var(--pvt-compose-ink); text-shadow: none; }
 .pneuma-chat-composer #chat-controls select option:disabled { color: var(--pvt-compose-muted); }
 .pneuma-chat-composer #chat-controls select option:checked { background-color: var(--pvt-compose-line); color: var(--pvt-compose-ink); }
+/* Protect the shared structure from native/sidebar and portrait-module layout rules.
+ * These declarations apply only while Visual Tools owns the card. */
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card {
+ display: grid !important; grid-template-columns: var(--pvt-rail-width) minmax(0, 1fr) !important;
+ padding: 0 !important; border-radius: 0;
+}
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card > .message-header {
+ display: contents !important;
+}
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card .pneuma-chat-portrait img {
+ width: 100% !important; height: 100% !important; margin: 0 !important;
+ border: 0 !important; border-radius: 0 !important;
+}
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card img.chat-portrait-message-portrait-generic:not(.pneuma-chat-portrait img) {
+ display: none !important;
+}
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card .rollcard {
+ background: transparent !important; padding: 0 !important; margin: 0 !important; border-radius: 0;
+}
+/* Hub owns its paint; Minimal continues inheriting the host palette. */
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-theme-cyberpunk {
+ background: var(--pvt-bg) !important; color: var(--pvt-ink) !important;
+ border: 1px solid var(--pvt-frame) !important;
+}
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-theme-cyberpunk :is(.message-sender, .pneuma-exchange-attacker, .pneuma-exchange-defender) {
+ color: var(--pvt-ink) !important;
+}
+
+/* Compact area workflow; participant rail metrics remain unchanged. */
+.chat-message.pneuma-chat-card .pneuma-aoe-target { min-height: 34px; padding-block: 2px; gap: 4px; }
+.chat-message.pneuma-chat-card .pneuma-aoe-target > img { width: 24px; height: 24px; }
+.chat-message.pneuma-chat-card .pneuma-aoe-response { gap: 4px; }
+.chat-message.pneuma-chat-card .pneuma-aoe-target .pneuma-chat-button { min-height: 28px !important; height: auto !important; padding: 3px 5px !important; }
+.chat-message.pneuma-chat-card .pvt-target-controls { display: inline-block; }
+.chat-message.pneuma-chat-card .pvt-target-controls > summary { cursor: pointer; list-style: none; padding: 3px 6px; font-weight: 700; }
+.chat-message.pneuma-chat-card .pvt-target-controls > summary::-webkit-details-marker { display: none; }
+.chat-message.pneuma-chat-card .pvt-target-controls[open] { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.chat-message.pneuma-chat-card .pvt-target-controls > summary:focus-visible { outline: 2px solid var(--pvt-accent); }
+.chat-message.pneuma-chat-card .pneuma-aoe-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; padding-block: 4px; }
+.chat-message.pneuma-chat-card .pneuma-aoe-card > p { margin: 0; padding-block: 4px; font-size: 12px; line-height: 1.3; }
+.chat-message.pneuma-chat-card .pneuma-aoe-card .pneuma-resolution-result { padding-block: 4px; }
+
+/* Attack/defense roll spacing and secondary Evasion heading. */
+.chat-message.pneuma-chat-card :is(.pneuma-resolution-attack, .pneuma-attack-result, .pneuma-resolution-evade).pvt-opening-row { padding-block: 2px 4px; }
+.chat-message.pneuma-chat-card :is(.pneuma-resolution-attack, .pneuma-attack-result, .pneuma-resolution-evade) .cpr-block { padding-block: 2px; }
+.chat-message.pneuma-chat-card .pneuma-resolution-evade .rollcard-top .text-normal:not(.pneuma-exchange-weapon),
+.chat-message.pneuma-chat-card .rollcard-top .text-normal.pneuma-evasion-heading { font-size: 12px; line-height: 1.2; }
+
+/* Combat Tools owns the combined lower AoE recipient row. */
+.chat-message.pneuma-chat-card .pneuma-aoe-resolution-target .pneuma-damage-applied-row.pneuma-mini-result-row { display:flex; width:auto; gap:3px; margin:0; }
+.chat-message.pneuma-chat-card .pneuma-aoe-resolution-target .pneuma-damage-applied { padding:0; border:0; }
+.chat-message.pneuma-chat-card .pneuma-aoe-resolution-target .pneuma-chat-button { min-height:26px !important; height:26px !important; padding:2px 4px !important; margin:0; }
+.chat-message.pneuma-chat-card .pneuma-aoe-resolution-target .pneuma-inline-roll { margin:0; }
+.chat-message.pneuma-chat-card .pneuma-aoe-resolution-target .pneuma-inline-roll > summary { min-height:26px; font-size:17px; }
+.chat-message.pneuma-chat-card .pneuma-aoe-inline-effect > strong:first-of-type { font-size:12px; line-height:1.25; }
+.chat-message.pneuma-chat-card .pneuma-attached-target > .pneuma-attached-effects { margin:0; padding:0; border-top:0; }

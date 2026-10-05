@@ -89,3 +89,23 @@ The client toggle, status removal, hidden tabs, and canvas teardown stop playbac
 The procedural source is retained only for offline regeneration through scripts/render-fire-loop.mjs (FFmpeg path argument), and is not used by the runtime effect.
 
 Headless Edge at 3840×2160 measured main-thread task time over ten seconds: procedural 0.319 s, video 0.018 s. These measurements exclude media-decoder and GPU work and do not establish total client CPU savings. The video is approximately 4 MB.
+
+## Compact area chat cards
+
+Tighter target rows, area toolbar, rules notes and damage receipts. Reset/exclude controls expand through a keyboard-accessible Target controls disclosure; pending responses and recovery controls remain visible. Receipt labels omit the repeated Damage prefix. Application boundaries, totals, undo and recipient notes remain. Damage dice use available width without a five-die cap. Participant rail dimensions remain unchanged.
+
+Attack and defense opening sections use tighter vertical padding; the Evasion heading uses 12px text. Participant rail and dice dimensions remain unchanged.
+
+Combat Tools owns lower damage/application/effects sections. The adapter supports effect-generated damage rows inside `.pneuma-instant-damage`, preserving roll breakdowns and native controls.
+
+Combined AoE recipient rows retain inline effect results/actions and compact damage receipts without repeating the recipient name. Shared styles keep portrait/name/damage on the first line and individual named, color-bordered effect rows underneath; native roll/undo details remain available.
+
+Combat Tools compact effect rows retain effect glyphs in labeled Apply buttons and plain completion icons. Resistance/application and the far-right GM menu have reserved positions; Visual Tools preserves this structure and the existing participant rail. Effect-selection locks and extinguishing placement remain Combat Tools behavior.
+
+Target effect rows (2026-10-04, unreleased): Combat Tools owns the stacked damage/effect structure and separate GM overrides. Both skins preserve visible effect names, colored left borders, labeled Resist/Apply buttons and completion icons. Attached effects share one recipient heading; the participant rail is unchanged. Browser geometry and source checks do not establish live Foundry verification.
+Direct GM actions and icon contrast (2026-10-04, unreleased): target controls no longer gain a submenu; saved disclosure wrappers are flattened while preserving handlers. Minimal uses dark effect images, Hub uses a cyan tint. Glyph, selection and completion images remain the original status assets. Supersedes the earlier disclosure behavior; live Foundry verification pending.
+RTD resistance expansion (2026-10-04, unreleased): compact effect resistance retains native click-to-expand behavior and full-width saved calculation text beneath its effect row. These totals are excluded from hover-popover conversion. Dice artwork and framed roll panels stay hidden only within that text breakdown. Both skins and native sidebar checks pass; live Foundry verification pending.
+
+Applied-damage disclosure cleanup (unreleased, 2026-10-04): `.pneuma-applied-number` and compact effect roll summaries retain native click expansion rather than hover conversion. Combat Tools supplies full-width AoE receipt breakdowns beneath the target line and effect damage beneath the named effect. The adapter keeps native Undo beside its applied total, moves existing receipt notes with their recipient, and preserves all live descendants and disclosure attributes. Undo positioning is idempotent for the child-list observer. Participant rails retain their existing dimensions. Live Foundry verification pending.
+- Right-aligned resolution actions (2026-10-04, unreleased): Combat Tools now collapses empty GM slots and sizes action groups to their contents; visible GM controls are right-most, and completed effect icons/applied totals reach the right edge. Both skins retain the Combat Tools layout and full-width expansion contract. Automated browser verification; live Foundry verification pending.
+- Effect selection icon correction (2026-10-04, unreleased): Combat Tools selection images are transparent glyphs, with tinting applied independently of the normal themed button surface. Minimal uses dark glyphs; Hub retains cyan tint. Nested image wells no longer render as solid rectangles. Automated browser checks; live Foundry verification pending.

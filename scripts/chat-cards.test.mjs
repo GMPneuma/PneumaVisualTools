@@ -619,7 +619,7 @@ try {
     await page.locator('#complete-exchange .pneuma-applied-number').scrollIntoViewIfNeeded();
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     await page.locator('#complete-exchange .pneuma-applied-number').hover();
-    assert.match(await page.locator('#pneuma-roll-popover').innerText(),/Armor SP 9/);
+    assert.equal(await page.locator('#complete-exchange .pneuma-applied-number').getAttribute('data-pvt-popover'),null,'receipt keeps native click expansion');
     assert.equal(await page.locator('#complete-exchange [data-action="reverseDamage"]').isVisible(),true,'undo remains usable');
     assert.equal(await page.locator('#complete-exchange .pneuma-applied-details').isVisible(),false);
   }
@@ -659,7 +659,7 @@ try {
   await page.locator('#native-application .d6-number-div').hover();
   assert.match(await page.locator('#pneuma-roll-popover').innerText(),/Armor SP 9/);
   assert.equal(await page.locator('#native-application [data-action="reverseDamage"]').isVisible(),true);
-  console.log('Full-width effects including AoE, scoped evasion/native/applied-damage hovers, undo preservation, equal dice, outcome frames and ammo stage visibility passed.');
+  console.log('Full-width effects including AoE, scoped evasion/native hovers, native applied-damage disclosure preservation, undo, equal dice, outcome frames and ammo stage visibility passed.');
 
   await page.route('**/icons/dice/**',route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42"><rect width="42" height="42" fill="purple"/></svg>'}));
   await page.evaluate(()=>{
@@ -696,6 +696,8 @@ try {
   await page.evaluate(()=>{window.values.chatDiceEnabled=true;window.values.chatDiceSet='pneuma';});
   await page.mouse.move(0,0);await damage.focus();
   assert.match(await page.locator('#pneuma-roll-popover img').first().getAttribute('src'),/dice-pneuma-d6_1.webp$/);
+  assert.equal(await page.locator('#mini-results [data-aoe-action="reset"]').isVisible(), true);
+  assert.equal(await page.locator('#mini-results .pvt-target-controls').count(),0);
   await page.locator('#mini-results [data-aoe-action="reset"]').click();
   await page.evaluate(()=>window.registered.chatSkin.onChange('cyberpunk'));
   await page.mouse.move(0,0);await damage.evaluate(el=>el.blur());

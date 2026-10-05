@@ -1,5 +1,6 @@
 /* CYBERPUNK MINIMAL: native palette, shared Hub geometry. Read the active CPR skin variables without replacing them. */
 .pneuma-theme-technical {
+  --pneuma-effect-icon-filter: brightness(0);
   /* Surfaces and semantic colors */
   --pvt-bg: var(--cpr-background-chat-card, var(--color-bg-option, #eaeaea));
   --pvt-panel: var(--cpr-background-chat-card-block-before, var(--cpr-background-box, var(--pvt-bg)));

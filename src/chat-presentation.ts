@@ -334,12 +334,12 @@ let listening = false;
 let damageDiceObserver: ResizeObserver | undefined;
 const observedCards = new WeakSet<HTMLElement>();
 /** Balance rows rather than letting flex-wrap leave a single die on its own.
- * Five 40–48px dice per row at most; smaller areas use fewer columns. */
+ * Use available width; smaller areas retain balanced rows. */
 function balanceDamageDice(group: HTMLElement): void {
   const dice = Array.from(group.children).filter((node): node is HTMLImageElement => node instanceof HTMLImageElement);
   const width = group.clientWidth;
   if (!dice.length || !width) return;
-  const capacity = Math.max(1, Math.min(5, Math.floor((width + 4) / 44)));
+  const capacity = Math.max(1, Math.floor((width + 2) / 46));
   const rows = Math.ceil(dice.length / capacity);
   const perRow = Math.floor(dice.length / rows), extra = dice.length % rows;
   const columns = perRow + (extra ? 1 : 0);
@@ -397,6 +397,12 @@ function arrangeMiniResults(root: HTMLElement): void {
     while (receipt.nextElementSibling?.matches('.pneuma-cover-up-damage, .pneuma-injury-damage')) {
       receipt.append(receipt.nextElementSibling);
     }
+    const undo=receipt.querySelector<HTMLElement>('[data-action="reverseDamage"]');
+    if(undo){
+      undo.title ||= 'Reverse damage';undo.classList.add('pneuma-damage-undo');
+      const row=receipt.querySelector('.pneuma-damage-applied-row');
+      if(row&&undo.parentElement!==row)row.append(undo);
+    }
   }
   const row = (label: HTMLElement, result: HTMLElement, color?: string) => {
     const wrapper = document.createElement('div'); wrapper.className = 'pneuma-mini-result-row';
@@ -405,10 +411,10 @@ function arrangeMiniResults(root: HTMLElement): void {
     return wrapper;
   };
   for (const effect of Array.from(root.querySelectorAll<HTMLElement>('.pneuma-instant-effect'))) {
-    if (effect.dataset.pvtMini) continue;
+    if (effect.dataset.pvtMini || effect.classList.contains('pneuma-aoe-inline-effect')) continue;
     effect.dataset.pvtMini = 'true';
     const heading = effect.querySelector<HTMLElement>(':scope > strong');
-    const rolls = Array.from(effect.querySelectorAll<HTMLElement>(':scope > .pneuma-inline-roll, :scope > strong + strong'));
+    const rolls = Array.from(effect.querySelectorAll<HTMLElement>(':scope > .pneuma-inline-roll, :scope > strong + strong, :scope > .pneuma-instant-damage > .pneuma-inline-roll'));
     for (const roll of rolls) {
       const summary = roll.querySelector('summary');
       const isDamage = summary?.getAttribute('aria-label')?.startsWith('Damage roll');
@@ -440,17 +446,27 @@ function arrangeMiniResults(root: HTMLElement): void {
     response.after(wrapper);
   }
   for (const applied of Array.from(root.querySelectorAll<HTMLElement>('.pneuma-damage-applied-row'))) {
-    if (applied.dataset.pvtMini) continue;
+    if (applied.dataset.pvtMini || applied.closest('.pneuma-aoe-resolution-target')) continue;
     applied.dataset.pvtMini = 'true';
     const total = applied.querySelector<HTMLElement>('.pneuma-applied-number');
     if (!total) continue;
-    const label = document.createElement('span'); label.textContent = 'Damage';
-    for (const part of Array.from(applied.querySelectorAll('.pneuma-applied-name, .pneuma-applied-location'))) label.append(' · ', part);
+    const label = document.createElement('span');
+    const parts='.pneuma-applied-name, .pneuma-applied-location';
+    for (const part of Array.from(applied.querySelectorAll(parts))) {
+      if (label.childNodes.length) label.append(' · ');
+      label.append(part);
+    }
+    if (!label.childNodes.length) label.textContent = 'Damage';
     applied.prepend(label); applied.classList.add('pneuma-mini-result-row');
   }
 }
 
 export function installRollPopovers(root: HTMLElement): void {
+  // Saved cards may have the former target-controls disclosure. Keep live
+  // controls and their handlers while restoring direct GM actions.
+  for (const menu of Array.from(root.querySelectorAll('.pvt-target-controls'))) {
+    menu.replaceWith(...Array.from(menu.querySelectorAll('button')));
+  }
   arrangeCardSections(root);
   arrangeMiniResults(root);
   // MIGRATION: Combat Tools appends effects/application results after render.
@@ -492,6 +508,8 @@ export function installRollPopovers(root: HTMLElement): void {
     } catch { /* Malformed or unsupported saved rolls remain native. */ }
   }
   for (const trigger of Array.from(root.querySelectorAll<HTMLElement>('.d10-number-div, .d6-number-div, .generic-number-div, .dice-total, .pneuma-applied-number, .pneuma-inline-roll > summary, [data-pvt-inline-source]'))) {
+    // Resolution receipts and effect rolls expand beneath their own rows.
+    if (trigger.matches('.pneuma-applied-number') || trigger.closest('.pneuma-aoe-inline-effect')) continue;
     const inline = trigger.closest('.pneuma-inline-roll');
     // The summary owns the entire compact roll; ignore its concealed totals.
     if (inline && trigger.tagName !== 'SUMMARY') continue;
