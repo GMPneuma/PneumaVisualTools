@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
+
+- Add Ultra Compact and Ultra Compact — Pneuma Hub skins, side-by-side opposed rolls, compact damage/ammo rows, smaller controls, and roll-grid overlap fixes.
+- Refine chat portraits, interaction gestures, hover details, damage receipts, effect rows, and skin switching.
+- Add theme customization with light/dark palettes and personal presets.
+- Add scene previews, native audio seeking and soundboard tools, and Escape behavior improvements.
+- Keep Neural Intrusion and On Fire full-screen effects disabled.
 
 - Integrate procedural attack visuals and synthesized sounds for resolved Combat Tools weapon, AoE, grapple, and netrunning actions, with client controls, privacy guards, and history/replay protection.
 

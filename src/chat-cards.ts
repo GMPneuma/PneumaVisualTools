@@ -1,5 +1,6 @@
 import { decorateExchangeHeader, decorateRailDefender } from "./exchange-header.js";
-import { arrangeChatCard, installRollPopovers } from "./chat-presentation.js";
+import { arrangeChatCard, arrangeDamageSections, installRollPopovers } from "./chat-presentation.js";
+import { bindChatPortraitControls } from "./chat-portrait-controls.js";
 const MODULE_ID = "pneuma-visualtools";
 declare global {
   interface SettingConfig {
@@ -15,10 +16,12 @@ const localize = (key: string) => game.i18n!.localize(key);
 /** Visual Tools owns skin selection; update presentation without re-rendering
  * chat or disturbing Combat Tools handlers and expanded roll details. */
 function applyChatSkin(root: HTMLElement, skin: string): void {
-  const nativePalette = skin === "technical" || skin === "redline";
+  const nativePalette = skin === "technical" || skin === "redline" || skin === "compact";
   root.classList.toggle("pneuma-theme-technical", nativePalette);
+  root.classList.toggle("pneuma-skin-compact", skin === "compact" || skin === "compact-hub");
   root.classList.remove("pneuma-theme-redline", "pneuma-theme-header");
   root.classList.toggle("pneuma-theme-cyberpunk", !nativePalette);
+  arrangeDamageSections(root);
 }
 
 /** Ignore unresolved wildcard textures and Foundry's default placeholder. */
@@ -33,17 +36,24 @@ export function choosePortrait(preference: string, token: string | null | undefi
     : portraitPath(token) || portraitPath(actor)) || fallback.trim();
 }
 
-function portraitFor(message: ChatMessage): string {
+function portraitFor(message: ChatMessage): {src: string; actor?: string; token?: string} {
   const speaker = message.speaker;
   const token = speaker.scene && speaker.token
     ? game.scenes?.get(speaker.scene)?.tokens.get(speaker.token) : undefined;
-  const actor = token?.actor ?? (speaker.actor ? game.actors?.get(speaker.actor) : undefined);
-  return choosePortrait(game.settings!.get(MODULE_ID, "chatPortraitSource"),
+  const ordinary = !message.isRoll && [CONST.CHAT_MESSAGE_STYLES.OOC,
+    CONST.CHAT_MESSAGE_STYLES.IC, CONST.CHAT_MESSAGE_STYLES.EMOTE].some(style => style === message.style);
+  // OOC chat and whispers commonly save only an alias. Use the author, never
+  // the viewing client's selected token or assigned character.
+  const actor = token?.actor ?? (speaker.actor ? game.actors?.get(speaker.actor) : undefined)
+    ?? (ordinary ? message.author?.character : undefined);
+  const src = choosePortrait(game.settings!.get(MODULE_ID, "chatPortraitSource"),
     token?.texture.src ?? actor?.prototypeToken.texture.src, actor?.img,
-    game.settings!.get(MODULE_ID, "chatFallbackImage"));
+    (ordinary ? portraitPath(message.author?.avatar) : "") || game.settings!.get(MODULE_ID, "chatFallbackImage"));
+  return {src, actor: actor?.uuid, token: token?.uuid};
 }
 
 export function renderChatCard(message: ChatMessage, root: HTMLElement): void {
+  if (game.settings!.get(MODULE_ID, 'chatSkin') === 'off') return;
   const header = root.querySelector<HTMLElement>(".message-header");
   // Never reconstruct a header or content removed by native visibility handling.
   if (!header || root.classList.contains("pneuma-chat-card") || root.style.display === "none") return;
@@ -55,7 +65,7 @@ export function renderChatCard(message: ChatMessage, root: HTMLElement): void {
   const portrait = document.createElement("div");
   portrait.className = "pneuma-chat-portrait";
   portrait.setAttribute("aria-hidden", "true");
-  const src = portraitFor(message);
+  const {src, actor, token} = portraitFor(message);
   if (src) {
     const img = document.createElement("img");
     img.alt = "";
@@ -66,6 +76,7 @@ export function renderChatCard(message: ChatMessage, root: HTMLElement): void {
       else img.remove();
     });
     portrait.append(img);
+    if (actor) bindChatPortraitControls(portrait, {actor, token});
   }
   header.prepend(portrait);
   // Joining these two surfaces creates a stepped outline without covering the action.
@@ -132,20 +143,43 @@ export function renderChatCard(message: ChatMessage, root: HTMLElement): void {
   }
 }
 
-const chatSkinOrder = ["cyberpunk", "technical"] as const;
+const chatSkinOrder = ["cyberpunk", "technical", "compact", "compact-hub", "off"] as const;
+let appliedSkin = 'cyberpunk';
 let skinChanges: Promise<unknown> = Promise.resolve();
+let skinRefresh: Promise<void> = Promise.resolve();
+
+/** ChatLog.render deliberately skips an already rendered v12 log. Rebuild only
+ * mounted messages with native getHTML, leaving the composer and scroll intact. */
+async function refreshMountedChatCards(): Promise<void> {
+  const roots = Array.from(document.querySelectorAll<HTMLElement>('.chat-message[data-message-id]'));
+  const scroll = Array.from(document.querySelectorAll<HTMLElement>('#chat-log, #chat-log-popout'))
+    .map(root => ({root, top: root.scrollTop}));
+  try {
+    for (const root of roots) {
+      const message = game.messages?.get(root.dataset.messageId!);
+      if (!message || !root.isConnected) continue;
+      const html = await message.getHTML();
+      if (root.isConnected) root.replaceWith(...Array.from(html));
+    }
+  } finally {
+    for (const {root, top} of scroll) if (root.isConnected) root.scrollTop = top;
+  }
+}
 export function registerChatCards(): void {
   game.keybindings!.register(MODULE_ID, "cycleChatSkin", {
-    name: "Cycle chat styles (1 → 2)",
-    hint: "Cycle Pneuma Hub and Cyberpunk Minimal on this client. Existing cards update immediately.",
+    name: "Cycle chat styles (Hub → Minimal → OFF)",
+    hint: "Cycle Pneuma Hub, Cyberpunk Minimal and Visual Tools OFF on this client. Existing cards update immediately.",
     editable: [{key:"KeyC", modifiers:["Alt", "Shift"]}],
     restricted: false, repeat: false,
+    precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY,
+    onUp: () => !!game.settings!.get(MODULE_ID, "chatCards"),
     onDown: () => {
       if (!game.settings!.get(MODULE_ID, "chatCards")) return false;
       skinChanges = skinChanges.catch(() => {}).then(async () => {
         const current = game.settings!.get(MODULE_ID, "chatSkin");
         const index = chatSkinOrder.indexOf(current as typeof chatSkinOrder[number]);
         await game.settings!.set(MODULE_ID, "chatSkin", chatSkinOrder[(index + 1) % chatSkinOrder.length]!);
+        await skinRefresh;
       }).catch(error => { console.error(MODULE_ID, error); ui.notifications!.error("Could not change chat style."); });
       return true;
     },
@@ -153,12 +187,25 @@ export function registerChatCards(): void {
   game.settings!.register(MODULE_ID, "chatSkin", {
     name: "PNEUMA_VISUALTOOLS.ChatSkinName", hint: "PNEUMA_VISUALTOOLS.ChatSkinHint",
     scope: "client", config: true, type: String, default: "cyberpunk",
-    choices: { cyberpunk: "PNEUMA_VISUALTOOLS.ChatSkinCyberpunk", technical: "PNEUMA_VISUALTOOLS.ChatSkinTechnical" },
+    choices: { cyberpunk: "PNEUMA_VISUALTOOLS.ChatSkinCyberpunk", technical: "PNEUMA_VISUALTOOLS.ChatSkinTechnical", compact: "PNEUMA_VISUALTOOLS.ChatSkinCompact", "compact-hub": "PNEUMA_VISUALTOOLS.ChatSkinCompactHub", off: 'Visual Tools OFF' },
     onChange: (skin: string) => {
+      const rebuild = skin === 'off' || appliedSkin === 'off';
+      appliedSkin = skin;
+      if (rebuild) {
+        document.getElementById('pneuma-roll-popover')?.remove();
+        document.querySelectorAll<HTMLElement>('.pneuma-chat-composer, #chat, #chat-popout').forEach(root => {
+          root.classList.toggle('pneuma-chat-composer', skin !== 'off');
+          if (skin === 'off') root.classList.remove('pneuma-theme-technical', 'pneuma-theme-cyberpunk', 'pneuma-skin-compact');
+          else applyChatSkin(root, skin);
+        });
+        skinRefresh = skinRefresh.catch(() => {}).then(refreshMountedChatCards);
+        return skinRefresh;
+      }
       document.querySelectorAll<HTMLElement>(".chat-message.pneuma-chat-card, .pneuma-chat-composer")
         .forEach(root => applyChatSkin(root, skin));
     },
   });
+  appliedSkin = game.settings!.get(MODULE_ID, 'chatSkin') || 'cyberpunk';
   game.settings!.register(MODULE_ID, "chatCards", {
     name: "PNEUMA_VISUALTOOLS.ChatCardsName", hint: "PNEUMA_VISUALTOOLS.ChatCardsHint",
     scope: "client", config: true, type: Boolean, default: true, requiresReload: true,
@@ -176,12 +223,12 @@ export function registerChatCards(): void {
   // Register during init: saved chat history is rendered before the ready hook.
   Hooks.on("renderChatLog", (_app: unknown, html: JQuery) => {
     const root = html[0];
-    if (!root || !game.settings!.get(MODULE_ID, "chatCards")) return;
+    if (!root || !game.settings!.get(MODULE_ID, "chatCards") || game.settings!.get(MODULE_ID, 'chatSkin') === 'off') return;
     root.classList.add('pneuma-chat-composer');
     applyChatSkin(root, game.settings!.get(MODULE_ID, "chatSkin"));
   });
   Hooks.on("renderChatMessage", (message: ChatMessage, html: JQuery) => {
-    if (game.settings!.get(MODULE_ID, "chatCards") && html[0]) {
+    if (game.settings!.get(MODULE_ID, "chatCards") && game.settings!.get(MODULE_ID, 'chatSkin') !== 'off' && html[0]) {
       renderChatCard(message, html[0]);
       if (html[0].classList.contains('pneuma-chat-card')) {
         if (!html[0].classList.contains('pneuma-layout-participants')) arrangeChatCard(html[0], message);

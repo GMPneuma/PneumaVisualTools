@@ -20,8 +20,8 @@ try {
   const headerSource = await readFile(new URL("../dist/exchange-header.js", import.meta.url), "utf8");
   const presentationSource = await readFile(new URL("../dist/chat-presentation.js", import.meta.url), "utf8");
   const silhouettes = await readFile(new URL("../dist/weapon-silhouettes.js", import.meta.url), "utf8");
-  const stripSilhouetteImport = text => text.replace('import { weaponSilhouette } from "./weapon-silhouettes.js";', "");
-  const source = (await readFile(new URL("../dist/chat-dice.js",import.meta.url),"utf8")) + silhouettes + stripSilhouetteImport(presentationSource).replace("import { replaceChatDice } from './chat-dice.js';", "") + stripSilhouetteImport(headerSource) + (await readFile(new URL("../dist/chat-cards.js", import.meta.url), "utf8")).replace('import { decorateExchangeHeader, decorateRailDefender } from "./exchange-header.js";', "").replace('import { arrangeChatCard, installRollPopovers } from "./chat-presentation.js";', "");
+  const stripSilhouetteImport = text => text.replace('import { weaponSilhouette } from "./weapon-silhouettes.js";', "").replace('import { bindChatPortraitControls } from "./chat-portrait-controls.js";', '');
+  const source = (await readFile(new URL('../dist/chat-portrait-controls.js',import.meta.url),'utf8')) + (await readFile(new URL("../dist/chat-dice.js",import.meta.url),"utf8")) + silhouettes + stripSilhouetteImport(presentationSource).replace("import { replaceChatDice } from './chat-dice.js';", "") + stripSilhouetteImport(headerSource) + stripSilhouetteImport(await readFile(new URL("../dist/chat-cards.js", import.meta.url), "utf8")).replace('import { decorateExchangeHeader, decorateRailDefender } from "./exchange-header.js";', "").replace('import { arrangeChatCard, arrangeDamageSections, installRollPopovers } from "./chat-presentation.js";', "");
   const css = (await Promise.all(["pneuma-visualtools.css", "chat-cards.css", "chat-hub.css"].map(file => readFile(new URL("../dist/" + file, import.meta.url), "utf8")))).join("\n");
   await page.setContent('<style>:root{--cpr-background-chat-card-block:#c00000;--cpr-background-chat-card-block-before:#eee}*{box-sizing:border-box}body{font:14px sans-serif}.chat-message{list-style:none;width:300px;background:#ddd;margin:8px;padding:6px;border:1px solid #555}.hide{display:none}.d10-rollcard-data{display:grid;grid-template-areas:"dice total" "details details"}.d10-dice-div{grid-area:dice}.d10-number-div{grid-area:total}.d10-data-div{grid-area:details}.rollcard-subtitle{display:grid}.rollcard-subtitle-center{grid-area:subtitle-center}.rollcard-subtitle-right{grid-area:subtitle-right}</style>');
   await page.addStyleTag({ content: css });
@@ -34,6 +34,7 @@ try {
       i18n:{localize:k=>k.split(".").pop()},user:{isGM:true},scenes:new Map(),actors:new Map()
     };
     window.registered = {};
+    window.CONST = {KEYBINDING_PRECEDENCE:{PRIORITY:0}, CHAT_MESSAGE_STYLES:{OTHER:0,OOC:1,IC:2,EMOTE:3}};
     window.hooks = {};
     window.Hooks = {once:(n,f)=>{window.hooks[n]=f;},on:(n,f)=>{window.hooks[n]=f;}};
   });
@@ -70,7 +71,8 @@ try {
     const tab=el.querySelector('.pneuma-chat-privacy').getBoundingClientRect();
     const rail=el.querySelector('.pneuma-participant-rail').getBoundingClientRect();
     const audience=el.querySelector('.whisper-to').getBoundingClientRect();
-    return Math.abs(tab.width-rail.width)<=1 && Math.abs(audience.left-tab.right)<=1;
+    const card=el.getBoundingClientRect();
+    return Math.abs(tab.width-rail.width)<=1 && Math.abs(audience.left-tab.right)<=1 && tab.bottom>=card.top && tab.bottom<=card.top+1;
   }),'privacy fills rail and audience opens to its right');
   await page.locator("#roll .pneuma-chat-privacy").click();
   assert.equal(await page.locator("#roll .whisper-to").isVisible(),true);
@@ -263,7 +265,7 @@ try {
   console.log('Contained rail and prominent compact Blind/Self/Whisper badges passed.');
   await page.addStyleTag({content:await readFile(new URL('../../PneumaCombatTools/src/styles/pneuma-combattools.css',import.meta.url),'utf8')});
   await page.locator('#split-top .pneuma-resolution-result').evaluate(el=>{
-    el.innerHTML='<p class="pneuma-combat-outcome"><button class="pneuma-result-damage pneuma-chat-button pneuma-chat-icon" data-action="rollDamage" data-chat-kind="action" aria-label="Roll damage"><i aria-hidden="true">♦</i></button><strong class="pneuma-result-summary">Pex <span class="pneuma-hit">hits</span> Rage</strong></p>';
+    el.innerHTML='<p class="pneuma-combat-outcome"><button class="pneuma-result-damage pneuma-chat-button pneuma-chat-icon" data-action="rollDamage" data-chat-role="action" data-chat-kind="action" aria-label="Roll damage"><i aria-hidden="true">♦</i></button><strong class="pneuma-result-summary">Pex <span class="pneuma-hit">hits</span> Rage</strong></p>';
   });
   const damageButton=page.locator('#split-top .pneuma-result-damage');
   assert.ok((await damageButton.evaluate(el=>getComputedStyle(el,'::after').content)).includes('Roll damage'));
@@ -393,12 +395,12 @@ try {
     values.chatSkin='cyberpunk';registered.chatSkin.onChange('cyberpunk');
     const binding=bindings.cycleChatSkin,root=document.querySelector('#exchange'),node=root.querySelector('.pneuma-exchange-header');
     if(binding.repeat!==false||binding.restricted!==false)throw Error('Hotkey must be client accessible and not repeat while held');
-    for(const expected of ['technical','cyberpunk']){
+    for(const expected of ['technical','compact','compact-hub','off','cyberpunk']){
       if(!binding.onDown())throw Error('Hotkey not handled');
       await new Promise(resolve=>setTimeout(resolve,0));
       if(values.chatSkin!==expected||root.querySelector('.pneuma-exchange-header')!==node)throw Error('Cycle order or DOM preservation failed');
     }
-    binding.onDown();binding.onDown();binding.onDown();binding.onDown();await new Promise(resolve=>setTimeout(resolve,0));
+    for(let i=0;i<10;i++)binding.onDown();await new Promise(resolve=>setTimeout(resolve,0));
     if(values.chatSkin!=='cyberpunk')throw Error('Rapid hotkey presses lost a step');
     values.chatCards=false;if(binding.onDown()!==false)throw Error('Disabled chat styling consumed hotkey');values.chatCards=true;
   });
@@ -450,11 +452,10 @@ try {
     window.installRollPopovers(card);
   });
   await page.locator('#damage-complete .d6-number-div').hover();
-  assert.equal(await page.locator('#pneuma-roll-popover').count(),0);
-  assert.equal(await page.locator('#damage-complete [data-action="toggleVisibility"]').count(),0);
+  assert.match(await page.locator('#pneuma-roll-popover').innerText(),/3 \+ 4/);
   assert.equal(await page.locator('#damage-complete .d6-data-div').isVisible(),true);
   await page.locator('#damage-modified .d6-number-div').hover();
-  assert.equal(await page.locator('#pneuma-roll-popover').innerText(),'Damage modifier: +2');
+  assert.equal(await page.locator('#pneuma-roll-popover .pneuma-popover-body').innerText(),'Damage modifier: +2');
   assert.equal(await page.locator('#damage-modified .d6-data-div').isVisible(),true);
   await page.evaluate(()=>{document.querySelector('#damage-complete').remove();document.querySelector('#damage-modified').remove()});
   for(const skin of ['cyberpunk','technical']) {
@@ -540,7 +541,7 @@ try {
   assert.equal(await page.locator('#private-netrunner .message-sender').innerText(),'Unknown Netrunner');
   assert.equal(await page.locator('#private-netrunner .pneuma-rail-action').innerText(),'Jack In');
   assert.equal(await page.locator('#grapple-Grab .pneuma-exchange-defender-image').count(),1);
-  assert.equal(await page.locator('#grapple-Grab .pneuma-rail-arrow').count(),2);
+  assert.equal(await page.locator('#grapple-Grab .pneuma-rail-arrow').count(),1);
   assert.equal(await page.locator('#grapple-Grab .pneuma-exchange-defender').evaluate(el=>el.nextElementSibling.classList.contains('pneuma-exchange-defender-image')),true);
   assert.equal(await page.locator('#grenade-true .pneuma-exchange-defender-image').count(),0,'grenade is not a defending actor');
   await page.evaluate(()=>{
@@ -685,7 +686,8 @@ try {
       assert.ok(await page.locator('#mini-results').evaluate(el=>el.scrollWidth<=el.clientWidth));
     }
   }
-  assert.match(await page.locator('#mini-results').innerText(),/Resist Poison DV13/);
+  assert.match(await page.locator('#mini-results').innerText(),/Poison DV13/);
+  assert.doesNotMatch(await page.locator('#mini-results').innerText(),/Resist Poison/);
   assert.doesNotMatch(await page.locator('#mini-results').innerText(),/armor unchanged/);
   const damage=page.locator('#mini-results [data-effect="poison"] .pneuma-mini-result-row').nth(1).locator('summary');
   await damage.scrollIntoViewIfNeeded();await damage.hover();
@@ -869,7 +871,7 @@ try {
   for(const id of ['text','skill-header','private-netrunner','complete-exchange','release-portrait']) {
     const order=await page.locator('#'+id+' .pneuma-participant-rail').evaluate(el=>Array.from(el.children).map(child=>['pneuma-chat-portrait','pneuma-chat-identity','pneuma-rail-arrow','pneuma-rail-action','pneuma-exchange-defender','pneuma-exchange-defender-image'].find(cls=>child.classList.contains(cls))));
     const expected=id==='text'?['pneuma-chat-portrait','pneuma-chat-identity']:['pneuma-chat-portrait','pneuma-chat-identity','pneuma-rail-arrow','pneuma-rail-action'];
-    if(['complete-exchange','release-portrait','private-netrunner'].includes(id)) expected.push('pneuma-rail-arrow','pneuma-exchange-defender','pneuma-exchange-defender-image');
+    if(['complete-exchange','release-portrait','private-netrunner'].includes(id)) expected.push('pneuma-exchange-defender','pneuma-exchange-defender-image');
     assert.deepEqual(order,expected,id+' rail order');
     assert.equal(await page.locator('#'+id+' .pneuma-action-header').count(),id==='text'?0:1);
     assert.equal(await page.locator('#'+id+' .pneuma-action-header :is(.pneuma-header-symbol,.pneuma-exchange-weapon-image)').count(),id==='text'?0:1);
@@ -1016,7 +1018,7 @@ try {
       assert.deepEqual(await measure('technical'),await measure('cyberpunk'),`shared geometry ${id}/${width}`);
     }
   }
-  assert.deepEqual(await page.evaluate(()=>Object.keys(registered.chatSkin.choices)),['cyberpunk','technical']);
+  assert.deepEqual(await page.evaluate(()=>Object.keys(registered.chatSkin.choices)),['cyberpunk','technical','off']);
   await page.evaluate(()=>{
     registered.chatSkin.onChange('technical');
     const theme=document.querySelector('#theme-light');

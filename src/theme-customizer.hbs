@@ -1,0 +1,27 @@
+<form autocomplete="off">
+  <div class="form-group"><label>Saved theme</label><div class="form-fields">{{#if enabled}}Custom colors{{else}}System colors{{/if}} <button type="button" data-disable-theme>Use system colors</button></div></div>
+  <div class="form-group"><label for="pvt-theme-mode">Appearance</label><div class="form-fields"><select id="pvt-theme-mode" name="mode">{{#each modes}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div></div>
+  <p class="notes">Live preview is active for this player. Open any real sheet or roll dialog to inspect your colors. Apply Theme saves them; Cancel or closing this editor restores your saved theme. Neutral surfaces stay fixed for each mode. Hub keeps its own palette.</p>
+  <div class="pvt-theme-toolbar" role="group" aria-label="Pneuma presets">{{#each pneumaPresets}}<button type="button" data-pneuma-preset="{{index}}">{{name}}</button>{{/each}}</div>
+  <details><summary>My presets · 3 personal slots</summary>{{#each personalPresets}}<div class="pvt-personal-preset"><input type="text" value="{{name}}" maxlength="32" data-preset-name="{{index}}" aria-label="Preset name"><button type="button" data-load-preset="{{index}}" {{#if empty}}disabled{{/if}}>Load</button><button type="button" data-save-preset="{{index}}">Save to slot {{slot}}</button></div>{{/each}}</details>
+  {{#if legacyActive}}<p class="notes">The separate Green Theme module is active. Disable it for consistent color-only styling; it also changes spacing and sizing.</p>{{/if}}
+  <div class="pvt-theme-toolbar" role="group" aria-label="Customization method">
+    <button type="button" data-function="simple" aria-pressed="{{#if manual}}false{{else}}true{{/if}}">Simple Recolor</button>
+    <button type="button" data-function="manual" aria-pressed="{{#if manual}}true{{else}}false{{/if}}">Manual Colors</button>
+  </div>
+  {{#unless manual}}<div class="form-group"><label for="pvt-theme-seed">Theme color</label><div class="form-fields"><input id="pvt-theme-seed" type="color" value="{{seed}}" data-seed></div></div><p class="notes">Choose a color to generate all eight shades for both modes. Brightness is adjusted for light and dark surfaces. Manual Colors lets you refine the result.</p>{{/unless}}
+  <div class="pvt-theme-toolbar" role="group" aria-label="Palette to preview or edit">
+    <button type="button" data-edit-mode="light" aria-pressed="{{#if light}}true{{else}}false{{/if}}">Light palette</button>
+    <button type="button" data-edit-mode="dark" aria-pressed="{{#if dark}}true{{else}}false{{/if}}">Dark palette</button>
+  </div>
+  {{#if manual}}<div class="pvt-theme-colors">
+    {{#each colors}}<div class="pvt-theme-color">
+      <label for="pvt-color-{{key}}">{{label}}<small>{{hint}}</small></label>
+      <input type="color" value="{{value}}" data-picker="{{key}}" aria-label="{{label}} color picker">
+      <input id="pvt-color-{{key}}" name="{{key}}" data-hex type="text" value="{{value}}" pattern="#[0-9a-fA-F]{6}" maxlength="7" required aria-label="{{label}} hex color">
+    </div>{{/each}}
+  </div>
+  <div class="pvt-theme-toolbar"><button type="button" data-generate>Generate from main color</button><button type="button" data-reset>Reset this palette</button></div>{{/if}}
+  <p class="notes pvt-theme-status" data-status role="status" aria-live="polite"></p>
+  <footer class="sheet-footer flexrow"><button type="button" data-cancel>Cancel</button><button type="submit"><i class="fas fa-check"></i>Apply Theme</button></footer>
+</form>

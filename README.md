@@ -4,7 +4,17 @@ Planned work and editable statuses: [backlog.md](backlog.md).
 
 Foundry VTT v12 module for Cyberpunk RED.
 
-Version 0.2.0 enables only chat-card skinning and dice replacement. Attack effects, neural intrusion glitches, and On Fire flames remain in the project but are release-gated: no settings, hooks, sounds, or animations initialize. Gates are defined in `src/release-features.ts`; there is no user-facing experimental switch.
+The current build enables chat-card skinning, dice replacement, and procedural combat visuals/audio, including the upgraded close-combat effects. Neural intrusion glitches and On Fire flames remain disabled by the code-only gates in `src/release-features.ts`.
+
+## Chat skins
+
+Choose Pneuma Hub, Cyberpunk Minimal, Ultra Compact, or Ultra Compact — Pneuma Hub. Shift–Alt–C cycles those skins and OFF. Compact skins keep dice left of results, opposed rolls side-by-side, and damage dice right of ammo with no Damage collapse control.
+
+## Custom color theme
+
+Open **Visual Tools → Customize colors** in module settings. **Simple Recolor** generates both light/dark palettes from one color; **Manual Colors** exposes eight colors per mode. Open any real sheet or roll dialog while editing to see the live preview. **Apply Theme** enables and saves the colors; **Cancel** or closing the editor restores the saved theme.
+
+Choose Pneuma Green, Cyan or Violet, or save both palettes into one of three named personal preset slots. Personal presets belong to your Foundry User record. Saving a slot does not apply it. **Use system colors** disables the custom theme. Hub chat keeps its own palette.
 
 ## Development
 
@@ -35,9 +45,9 @@ Build, then copy the contents of `dist/` into `Data/modules/pneuma-visualtools/`
 
 Install manifest: https://github.com/GMPneuma/PneumaVisualTools/releases/latest/download/module.json
 
-Release 0.2.0 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
+Release 0.4.0 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
 
-## Development only: procedural attack effects
+## Procedural attack effects
 
 Newly resolved Combat Tools attacks play local procedural visuals and synthesized audio on the current scene. Pistol, SMG, Rifle, Sniper Rifle, Shotgun, Bow/Crossbow, thrown grenades, rockets, melee/blades, unarmed/martial attacks, grapple, and netrunning results are supported. SMG/Rifle Autofire and Suppression use representative bursts. Area attacks play once after their saved attack is revealed, rather than once per damage recipient.
 

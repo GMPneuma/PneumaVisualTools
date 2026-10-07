@@ -12,7 +12,9 @@
   "PNEUMA_VISUALTOOLS.ChatFallbackImageHint": "GM setting for everyone. Image path or URL for messages without token or actor artwork. Leave empty for a blank portrait. Reload to apply.",
   "PNEUMA_VISUALTOOLS.ChatRecipients": "Show or hide recipients",
   "PNEUMA_VISUALTOOLS.ChatSkinName": "Chat card skin",
-  "PNEUMA_VISUALTOOLS.ChatSkinHint": "Pneuma Hub uses the custom dark cyan/amber palette. Cyberpunk Minimal uses the same layout with colors inherited from the active native theme. Applies immediately on this client.",
+  "PNEUMA_VISUALTOOLS.ChatSkinHint": "Pneuma Hub uses the custom dark cyan/amber palette. Cyberpunk Minimal inherits native theme colors. Visual Tools OFF restores the default cards and dice. Ultra Compact uses native colors with smaller portraits, dice and spacing, and hides target portraits. Ultra Compact — Pneuma Hub uses the same compact layout with the dark cyan/amber palette. Shift-Alt-C cycles all five on this client.",
   "PNEUMA_VISUALTOOLS.ChatSkinCyberpunk": "Pneuma Hub",
-  "PNEUMA_VISUALTOOLS.ChatSkinTechnical": "Cyberpunk Minimal"
+  "PNEUMA_VISUALTOOLS.ChatSkinTechnical": "Cyberpunk Minimal",
+  "PNEUMA_VISUALTOOLS.ChatSkinCompact": "Ultra Compact",
+  "PNEUMA_VISUALTOOLS.ChatSkinCompactHub": "Ultra Compact — Pneuma Hub"
 }

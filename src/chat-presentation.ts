@@ -21,7 +21,7 @@ export function arrangeChatCard(root: HTMLElement, message?: ChatMessage): void 
       const attacker = exchange.querySelector('.pneuma-exchange-attacker');
       if (attacker) { identity.querySelector('.message-sender')?.remove(); identity.prepend(attacker); }
       const action = document.createElement('span'); action.className = 'pneuma-rail-action';
-      action.textContent = 'Attack ↓'; rail.append(action);
+      action.textContent = 'Attack'; rail.append(action);
       const image = exchange.querySelector('.pneuma-exchange-defender-image');
       const name = exchange.querySelector('.pneuma-exchange-defender');
       if (image) rail.append(image); if (name) rail.append(name);
@@ -54,12 +54,6 @@ export function arrangeChatCard(root: HTMLElement, message?: ChatMessage): void 
   }
   arrangeRailAction(root, message);
   const rail = root.querySelector('.pneuma-participant-rail');
-  const action = rail?.querySelector('.pneuma-rail-action');
-  if (action) {
-    const arrow = () => { const node = document.createElement('span'); node.className = 'pneuma-rail-arrow'; node.textContent = '↓'; node.setAttribute('aria-hidden', 'true'); return node; };
-    action.before(arrow());
-    if (rail?.querySelector('.pneuma-exchange-defender')) action.after(arrow());
-  }
   const target = rail?.querySelector('.pneuma-exchange-defender');
   const targetImage = rail?.querySelector('.pneuma-exchange-defender-image');
   if (target && targetImage) target.after(targetImage);
@@ -74,12 +68,12 @@ export function arrangeChatCard(root: HTMLElement, message?: ChatMessage): void 
       const text = name.textContent?.trim() ?? '';
       name.title = text; name.classList.add('pneuma-rail-name');
       const style = getComputedStyle(name);
-      const width = root.querySelector('.pneuma-participant-rail')?.clientWidth || 54;
+      const width = (root.querySelector('.pneuma-participant-rail')?.clientWidth || 54) - 10;
       let size = 13;
       const measure = () => { context.font = `${style.fontWeight || '700'} ${size}px ${style.fontFamily || 'sans-serif'}`; return context.measureText(text).width; };
-      while (size > 11 && measure() > width - 10) size--;
+      while (size > 11 && measure() > width) size--;
       name.style.fontSize = `${size}px`;
-      name.classList.toggle('pneuma-rail-name-wrap', /\s/.test(text) && measure() > width - 10);
+      name.classList.toggle('pneuma-rail-name-wrap', /\s/.test(text) && measure() > width);
     }
   };
   fitNames();
@@ -123,6 +117,12 @@ export function arrangeCardSections(root: HTMLElement): void {
     opening(content);
   }
   root.style.setProperty('--pvt-opening-end', String(row));
+  // Save the primary row for the optional side-by-side density layout.
+  const attack = sections?.querySelector<HTMLElement>(':scope > .pneuma-resolution-attack, :scope > .pneuma-attack-result');
+  const defense = sections?.querySelector<HTMLElement>(':scope > .pneuma-resolution-evade');
+  root.classList.toggle('pvt-opposed-opening', Boolean(attack && defense));
+  if (attack && defense) root.style.setProperty('--pvt-opposed-row', attack.style.getPropertyValue('--pvt-row'));
+  else root.style.removeProperty('--pvt-opposed-row');
   root.querySelectorAll('.pvt-opening-row').forEach(node => {
     if (node.querySelector('.pneuma-grapple-rolls, .pneuma-quickhack-roll')) node.classList.add('pvt-opening-stack');
   });
@@ -203,7 +203,7 @@ function arrangeCardHeader(root: HTMLElement): void {
   if (identity) rail.append(identity);
   if (!plain && !generic) rail.append(arrow(), action);
   else action.remove();
-  if (target) { rail.append(arrow(), target); if (targetPortrait) rail.append(targetPortrait); }
+  if (target) { rail.append(target); if (targetPortrait) rail.append(targetPortrait); }
 
   if (critical) arrangeCriticalResult(root, title);
   title.classList.add('pneuma-action-header', 'pneuma-silhouette-header');
@@ -333,19 +333,22 @@ let owner: HTMLElement | undefined;
 let listening = false;
 let damageDiceObserver: ResizeObserver | undefined;
 const observedCards = new WeakSet<HTMLElement>();
+const installedPopoverTriggers = new WeakSet<HTMLElement>();
 /** Balance rows rather than letting flex-wrap leave a single die on its own.
  * Use available width; smaller areas retain balanced rows. */
 function balanceDamageDice(group: HTMLElement): void {
   const dice = Array.from(group.children).filter((node): node is HTMLImageElement => node instanceof HTMLImageElement);
   const width = group.clientWidth;
   if (!dice.length || !width) return;
-  const capacity = Math.max(1, Math.floor((width + 2) / 46));
+  const compact = !!group.closest(".pneuma-skin-compact");
+  const capacity = compact ? Math.min(5, dice.length) : Math.max(1, Math.floor((width + 2) / 46));
   const rows = Math.ceil(dice.length / capacity);
   const perRow = Math.floor(dice.length / rows), extra = dice.length % rows;
   const columns = perRow + (extra ? 1 : 0);
-  const size = Math.min(48, (width - (columns - 1) * 4) / columns);
+  const size = Math.min(compact ? 32 : 48, (width - (columns - 1) * 4) / columns);
+  const trackSize = compact ? size + 2 : size;
   group.style.setProperty('--pvt-damage-size', `${size}px`);
-  group.style.gridTemplateColumns = `repeat(${columns * 2}, ${size / 2}px)`;
+  group.style.gridTemplateColumns = `repeat(${columns * 2}, ${trackSize / 2}px)`;
   // Half-width tracks allow odd short rows to be centered exactly.
   group.style.columnGap = '0px';
   let index = 0;
@@ -397,6 +400,8 @@ function arrangeMiniResults(root: HTMLElement): void {
     while (receipt.nextElementSibling?.matches('.pneuma-cover-up-damage, .pneuma-injury-damage')) {
       receipt.append(receipt.nextElementSibling);
     }
+    const breakdown = receipt.querySelector('.pneuma-applied-details, .d6-data-details');
+    if (breakdown) receipt.querySelectorAll(':scope > .pneuma-cover-up-damage').forEach(note => breakdown.append(note));
     const undo=receipt.querySelector<HTMLElement>('[data-action="reverseDamage"]');
     if(undo){
       undo.title ||= 'Reverse damage';undo.classList.add('pneuma-damage-undo');
@@ -426,13 +431,21 @@ function arrangeMiniResults(root: HTMLElement): void {
         if (effect.dataset.state === 'applied' && receipt && receipt !== label) {
           roll.querySelector('.pneuma-inline-roll-details')?.prepend(receipt);
         }
-        row(label, roll);
+        const details = roll.querySelector('.pneuma-inline-roll-details');
+        if (details) {
+          const spacer = document.createElement('span');
+          row(spacer, roll); details.prepend(label);
+        } else row(label, roll);
       } else if (heading) {
         if (!summary) roll.classList.add('pneuma-mini-value');
-        heading.textContent = `Resist ${heading.textContent?.trim() ?? ''}`;
+        if (summary) summary.dataset.pvtRollLabel = summary.getAttribute('aria-label') || 'Resist';
         const state = effect.dataset.state;
         row(heading, roll, state === 'resisted' ? 'var(--pvt-success, #20ee79)' : ['failed', 'applied', 'applying', 'review'].includes(state ?? '') ? 'var(--pvt-failure, #ff354d)' : undefined);
       }
+    }
+    const resistance = effect.querySelector('.pneuma-mini-result-row .pneuma-inline-roll-details');
+    if (resistance && ['resisted', 'applied', 'skipped'].includes(effect.dataset.state ?? '')) {
+      for (const note of Array.from(effect.querySelectorAll(':scope > span:not([class])'))) resistance.append(note);
     }
   }
   for (const response of Array.from(root.querySelectorAll<HTMLElement>('.pneuma-aoe-response'))) {
@@ -461,6 +474,29 @@ function arrangeMiniResults(root: HTMLElement): void {
   }
 }
 
+/** Compact only the copied tooltip DOM; saved card breakdowns stay intact. */
+function tidyPopoverDetails(copy: HTMLElement): void {
+  for (const element of [copy, ...Array.from(copy.querySelectorAll<HTMLElement>('*'))]) {
+    element.style.removeProperty('text-align');
+    if (element.matches('.pneuma-calculation-text, pre')) {
+      element.textContent = element.textContent?.split(/\r?\n/).map(line => line.trim()).filter(Boolean).join('\n') ?? '';
+    }
+  }
+  for (const element of Array.from(copy.querySelectorAll('div, p, span, section, header, footer')).reverse()) {
+    if (!element.textContent?.trim() && !element.querySelector('img, svg, i, hr')) element.remove();
+  }
+  const adjacent = (node: Node, direction: 'previousSibling' | 'nextSibling'): Node | null => {
+    let sibling = node[direction];
+    while (sibling?.nodeType === Node.TEXT_NODE && !sibling.textContent?.trim()) sibling = sibling[direction];
+    return sibling;
+  };
+  const isBlock = (node: Node | null) => node instanceof Element && node.matches('div, p, section, header, footer, ul, ol, hr, h1, h2, h3, h4');
+  for (const br of Array.from(copy.querySelectorAll('br'))) {
+    const before = adjacent(br, 'previousSibling'), after = adjacent(br, 'nextSibling');
+    if (!before || !after || before instanceof HTMLBRElement || after instanceof HTMLBRElement || isBlock(before) || isBlock(after)) br.remove();
+  }
+}
+
 export function installRollPopovers(root: HTMLElement): void {
   // Saved cards may have the former target-controls disclosure. Keep live
   // controls and their handlers while restoring direct GM actions.
@@ -469,6 +505,18 @@ export function installRollPopovers(root: HTMLElement): void {
   }
   arrangeCardSections(root);
   arrangeMiniResults(root);
+  arrangeDamageSections(root);
+  root.querySelectorAll<HTMLElement>('.pneuma-effect-resistance > strong, .pneuma-instant-damage > strong').forEach(total => {
+    total.classList.add('pneuma-mini-value');
+  });
+  for (const section of Array.from(root.querySelectorAll<HTMLElement>('.pneuma-resolution-damage-roll, .pneuma-resolution-damage-apply, .pneuma-resolution-effects, .pneuma-damage-result, .pneuma-attached-effects'))) {
+    if (section.closest('.pvt-section-rail') || section.classList.contains('pvt-section-rail')) continue;
+    const heading = section.querySelector<HTMLElement>(':scope > .pneuma-resolution-label, :scope > .pneuma-damage-heading, :scope > h4');
+    if (!heading) continue;
+    if (section.classList.contains('pneuma-resolution-damage-roll')) heading.textContent = 'Damage';
+    else if (section.classList.contains('pneuma-resolution-damage-apply')) heading.textContent = 'Apply';
+    section.classList.add('pvt-section-rail'); heading.classList.add('pvt-section-rail-label');
+  }
   // MIGRATION: Combat Tools appends effects/application results after render.
   // Observe child-list changes only; never modify message documents or combat state.
   if (!observedCards.has(root)) {
@@ -507,21 +555,38 @@ export function installRollPopovers(root: HTMLElement): void {
       }).catch(() => { /* Keep native behavior if the saved roll cannot render. */ });
     } catch { /* Malformed or unsupported saved rolls remain native. */ }
   }
-  for (const trigger of Array.from(root.querySelectorAll<HTMLElement>('.d10-number-div, .d6-number-div, .generic-number-div, .dice-total, .pneuma-applied-number, .pneuma-inline-roll > summary, [data-pvt-inline-source]'))) {
-    // Resolution receipts and effect rolls expand beneath their own rows.
-    if (trigger.matches('.pneuma-applied-number') || trigger.closest('.pneuma-aoe-inline-effect')) continue;
+  for (const trigger of Array.from(root.querySelectorAll<HTMLElement>('.d10-number-div, .d6-number-div, .generic-number-div, .dice-total, .pneuma-applied-number, .pneuma-mini-value, .pneuma-inline-roll > summary, [data-pvt-inline-source]'))) {
     const inline = trigger.closest('.pneuma-inline-roll');
     // The summary owns the entire compact roll; ignore its concealed totals.
     if (inline && trigger.tagName !== 'SUMMARY') continue;
-    const scope = inline ?? trigger.closest('.d10-rollcard-data, .d6-rollcard-data, .generic-rollcard-data, .dice-roll, .pneuma-damage-applied, .cpr-block');
+    const effect = trigger.closest('.pneuma-instant-effect');
+    const isEffectDamage = !!trigger.closest('.pneuma-instant-damage') || (trigger.dataset.pvtRollLabel || trigger.getAttribute('aria-label') || '').startsWith('Damage roll');
+    if (effect) {
+      trigger.classList.add(isEffectDamage ? 'pvt-effect-damage-total' : 'pvt-effect-resist-total');
+      if (!trigger.querySelector(':scope > .pvt-effect-roll-icon')) {
+        const icon = document.createElement('i');
+        icon.className = `pvt-effect-roll-icon fas ${isEffectDamage ? 'fa-droplet' : 'fa-shield-halved'}`;
+        icon.setAttribute('aria-hidden', 'true'); trigger.prepend(icon);
+      }
+    }
+    const scope = inline ?? trigger.closest('.d10-rollcard-data, .d6-rollcard-data, .generic-rollcard-data, .dice-roll, .pneuma-damage-applied, .pneuma-instant-effect, .cpr-block');
     const disclosure = trigger.matches('[data-visible-element]') ? trigger : trigger.querySelector<HTMLElement>('[data-visible-element]');
     const detailClass = disclosure?.dataset.visibleElement;
     // Follow the actual disclosure contract, including uniquely scoped defense
     // and applied-damage classes, without interpolating untrusted CSS selectors.
     const linkedDetails = detailClass ? Array.from(scope?.querySelectorAll<HTMLElement>('[class]') ?? []).find(el => el.classList.contains(detailClass)) : undefined;
-    const details = trigger.dataset.pvtInlineSource ? trigger.nextElementSibling as HTMLElement : inline?.querySelector<HTMLElement>('.pneuma-inline-roll-details')
+    const controlledId = trigger.getAttribute('aria-controls');
+    const controlledDetails = controlledId ? Array.from(root.querySelectorAll<HTMLElement>('[id]')).find(el => el.id === controlledId) : undefined;
+    let details = trigger.dataset.pvtInlineSource ? trigger.nextElementSibling as HTMLElement : inline?.querySelector<HTMLElement>('.pneuma-inline-roll-details') ?? controlledDetails
       ?? linkedDetails ?? scope?.querySelector<HTMLElement>('.d10-data-details, .d6-data-details, .generic-data-details, .pneuma-applied-details, .dice-tooltip');
-    if (!details || trigger.dataset.pvtPopover) continue;
+    // Combat Tools uses the same DOM marker for native click disclosures.
+    // Only this adapter's actual listener registration proves a hover exists.
+    if (installedPopoverTriggers.has(trigger)) continue;
+    if (!details) {
+      details = document.createElement('div');
+      details.textContent = trigger.getAttribute('aria-label') || `Roll total: ${trigger.textContent?.trim()}`;
+      details.className = 'pneuma-popover-source'; trigger.after(details);
+    }
     // Keep native undo actionable outside the now-hover-only breakdown.
     const undo = details.querySelector<HTMLElement>('[data-action="reverseDamage"]');
     if (undo) {
@@ -532,17 +597,9 @@ export function installRollPopovers(root: HTMLElement): void {
     const dice = scope?.querySelector<HTMLElement>('.d10-dice-div, .d6-dice-div, .generic-dice-div');
     const diceShown = !!dice && isShown(dice);
     const detailsShown = isShown(details);
-    // Damage/base rolls often have an empty modifier disclosure. Preserve
-    // visible critical/autofire rows and never create a redundant empty popup.
-    if (!inline && !trigger.dataset.pvtInlineSource && (detailsShown || !details.textContent?.trim())) {
-      if (diceShown || (detailsShown && !dice)) {
-        trigger.querySelectorAll('[data-action="toggleVisibility"]').forEach(el => {
-          el.removeAttribute('data-action'); el.classList.remove('clickable');
-        });
-        trigger.classList.add('pneuma-roll-complete');
-        continue;
-      }
-    }
+    // Every saved total remains inspectable, including base rolls without modifiers.
+    const rollLabel = trigger.dataset.pvtRollLabel || trigger.getAttribute('aria-label') || (effect ? isEffectDamage ? 'Damage roll' : 'Resistance roll' : undefined);
+    installedPopoverTriggers.add(trigger);
     trigger.dataset.pvtPopover = 'true'; trigger.tabIndex = 0; trigger.removeAttribute('title');
     trigger.setAttribute('aria-label', `Roll ${trigger.textContent?.trim()}. Show roll details`);
     if (!detailsShown) details.classList.add('pneuma-popover-source');
@@ -556,13 +613,30 @@ export function installRollPopovers(root: HTMLElement): void {
       const cardStyle = getComputedStyle(root);
       for (const key of ['--pvt-bg', '--pvt-panel', '--pvt-ink', '--pvt-muted', '--pvt-line', '--cpr-text-chat-success', '--cpr-text-chat-failure']) popup.style.setProperty(key, cardStyle.getPropertyValue(key));
       popup.style.fontFamily = cardStyle.fontFamily;
+      const effectName = effect?.querySelector(':scope > strong, :scope > .pneuma-mini-result-row > strong:not(.pneuma-mini-value)')?.textContent?.trim();
+      const shortRollLabel = rollLabel?.replace(/\s*[—.]?\s*show roll details.*$/i, '').trim();
+      const description = trigger.matches('.pneuma-applied-number') ? 'Applied damage'
+        : effect ? `${effectName ? effectName + ' — ' : ''}${isEffectDamage ? 'Damage' : 'Resistance'}`
+        : shortRollLabel
+          || (trigger.closest('.pneuma-resolution-evade, .pneuma-defense-result') ? 'Evasion roll'
+            : trigger.matches('.d6-number-div') ? 'Damage roll' : 'Roll details');
+      const label = document.createElement('div'); label.className = 'pneuma-popover-heading';
+      label.textContent = description;
+      const divider = document.createElement('hr'); divider.className = 'pneuma-popover-divider';
+      popup.append(label, divider);
+      const body = document.createElement('div'); body.className = 'pneuma-popover-body'; popup.append(body);
+      if (effect && !isEffectDamage && shortRollLabel && !/^Resistance roll$/i.test(shortRollLabel) && !details.textContent?.includes(shortRollLabel)) {
+        const skill = document.createElement('div'); skill.textContent = shortRollLabel; body.append(skill);
+      }
       if (!inline && dice && !isShown(dice)) {
         const hiddenDice = dice.cloneNode(true) as HTMLElement;
         hiddenDice.classList.remove('hide'); hiddenDice.hidden = false; hiddenDice.style.removeProperty('display');
-        popup.append(hiddenDice);
+        body.append(hiddenDice);
       }
       const copy = details.cloneNode(true) as HTMLElement; copy.classList.remove('pneuma-popover-source');
+      if (details.dataset.pneumaRollHtml) copy.innerHTML = details.dataset.pneumaRollHtml;
       normalDamageDice(copy);
+      if (copy.querySelector('img')) replaceChatDice(copy);
       copy.querySelectorAll('.d10-number-div, .d6-number-div, .generic-number-div, .dice-total, .rollcard-top').forEach(el => el.remove());
       if (diceShown) copy.querySelectorAll('.d10-dice-div, .d6-dice-div, .generic-dice-div, .dice-rolls').forEach(el => el.remove());
       for (const el of [copy, ...Array.from(copy.querySelectorAll<HTMLElement>('*'))]) {
@@ -570,8 +644,12 @@ export function installRollPopovers(root: HTMLElement): void {
         if (el.style.display === 'none') el.style.removeProperty('display');
         el.removeAttribute('data-action');
       }
-      if (!detailsShown) popup.append(copy);
-      if (!popup.textContent?.trim() && !popup.querySelector('img')) { closePopup(); return; }
+      tidyPopoverDetails(copy);
+      body.append(copy);
+      if (!body.textContent?.trim() && !body.querySelector('img')) {
+        if (dice) body.append(dice.cloneNode(true));
+        const total = document.createElement('div'); total.textContent = `Roll total: ${trigger.textContent?.trim()}`; body.append(total);
+      }
       document.body.append(popup); trigger.setAttribute('aria-describedby', popup.id);
       const rect = trigger.getBoundingClientRect(); const box = popup.getBoundingClientRect();
       popup.style.left = `${Math.max(8, Math.min(rect.right - box.width, innerWidth - box.width - 8))}px`;
@@ -584,5 +662,81 @@ export function installRollPopovers(root: HTMLElement): void {
       if (event.key === 'Escape') closePopup();
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopImmediatePropagation(); show(); }
     }, true);
+  }
+}
+
+/** Retain native controls and calculations while compacting completed sections. */
+export function arrangeDamageSections(root: HTMLElement): void {
+  const compact = root.classList.contains("pneuma-skin-compact");
+  for (const section of Array.from(root.querySelectorAll<HTMLElement>('.pneuma-resolution-damage-roll'))) {
+    const sectionLabel = section.querySelector<HTMLElement>(':scope > .pneuma-resolution-label');
+    const sectionBody = section.querySelector<HTMLElement>(':scope > .pneuma-resolution-body');
+    if (compact) {
+      section.classList.remove("pvt-damage-collapsed");
+      section.querySelector(":scope > .pvt-damage-toggle")?.remove();
+    }
+    if (!compact && sectionLabel && sectionBody && !section.querySelector(':scope > .pvt-damage-toggle')) {
+      const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'pvt-damage-toggle';
+      toggle.textContent = '▾';
+      toggle.setAttribute('aria-expanded', 'true'); toggle.title = 'Collapse damage roll';
+      toggle.setAttribute('aria-label', toggle.title);
+      section.append(toggle);
+      toggle.addEventListener('click', event => {
+        event.preventDefault(); event.stopPropagation(); closePopup();
+        const collapsed = section.classList.toggle('pvt-damage-collapsed');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        toggle.title = collapsed ? 'Expand damage roll' : 'Collapse damage roll';
+        toggle.setAttribute('aria-label', toggle.title); toggle.textContent = collapsed ? '▸' : '▾';
+      });
+    }
+    for (const heading of Array.from(section.querySelectorAll<HTMLElement>('.pneuma-damage-heading'))) {
+      const ammo = heading.querySelector<HTMLElement>('.pneuma-damage-ammo');
+      const body = section.querySelector<HTMLElement>('.pneuma-resolution-damage-roll-body, .pneuma-resolution-body') ?? section;
+      let footer = body.querySelector<HTMLElement>(':scope > .pvt-damage-footer');
+      if (!footer) {
+        footer = document.createElement('div'); footer.className = 'pvt-damage-footer'; body.append(footer);
+      }
+      const picker = body.querySelector('.pneuma-aoe-effects-picker, .pneuma-damage-effects-slot');
+      if (picker && picker.parentElement !== footer) footer.append(picker);
+      if (ammo) {
+        ammo.hidden = /^basic$/i.test(ammo.textContent?.trim() ?? '');
+        footer.prepend(ammo);
+      }
+      heading.classList.add('pvt-damage-heading-hidden');
+      const top = heading.closest('.rollcard-top');
+      if (top && !top.querySelector('button, a')) top.classList.add('pvt-damage-heading-hidden');
+    }
+    const footer = section.querySelector<HTMLElement>('.pvt-damage-footer');
+    const roll = section.querySelector<HTMLElement>('.d6-rollcard-data');
+    const ammo = section.querySelector<HTMLElement>('.pneuma-damage-ammo');
+    if (ammo && compact && roll && ammo.parentElement !== roll) roll.prepend(ammo);
+    else if (ammo && !compact && footer && ammo.parentElement !== footer) footer.prepend(ammo);
+    section.querySelectorAll<HTMLElement>('.pneuma-damage-ammo').forEach(ammo => {
+      ammo.hidden = /^basic$/i.test(ammo.textContent?.trim() ?? '');
+    });
+  }
+  for (const card of Array.from(root.querySelectorAll<HTMLElement>('.pneuma-aoe-card'))) {
+    const rolled = !!card.querySelector('.pneuma-resolution-damage-roll :is(.d6-number-div, .dice-total, .generic-number-div)');
+    const list = card.querySelector<HTMLElement>('.pneuma-aoe-targets');
+    if (!list) continue;
+    const existing = list.closest<HTMLDetailsElement>('.pvt-aoe-defenders');
+    if (!rolled) {
+      if (existing) {
+        const extras = Array.from(existing.children).filter(child => child !== list && child.tagName !== 'SUMMARY');
+        let anchor: Element = existing.closest('.pneuma-resolution-result') ?? existing;
+        for (const extra of extras) { anchor.after(extra); anchor = extra; }
+        existing.replaceWith(list);
+      }
+      continue;
+    }
+    if (!existing) {
+      const disclosure = document.createElement('details'); disclosure.className = 'pvt-aoe-defenders';
+      const summary = document.createElement('summary');
+      summary.textContent = `Defenders (${list.querySelectorAll('.pneuma-aoe-target').length})`;
+      list.before(disclosure); disclosure.append(summary, list);
+    }
+    const disclosure = list.closest('.pvt-aoe-defenders')!;
+    // Area controls and its cover/terrain note belong to the same response stage.
+    card.querySelectorAll(':scope > .pneuma-aoe-actions, :scope > p').forEach(node => disclosure.append(node));
   }
 }

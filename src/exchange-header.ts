@@ -1,4 +1,5 @@
 import { weaponSilhouette } from "./weapon-silhouettes.js";
+import { bindChatPortraitControls } from "./chat-portrait-controls.js";
 /** MIGRATION: Combat Tools presentation adapter, not combat logic.
  * Move this renderer with the marked CSS block if Combat Tools takes ownership.
  * Contract: flags.pneuma-combattools.exchange (names, title, defender UUIDs).
@@ -34,21 +35,21 @@ function weaponImage(data: ExchangeHeaderData): string {
   } catch { return ""; }
 }
 
-function defenderImage(data: ExchangeHeaderData, options: PortraitOptions): string {
+function defenderImage(data: ExchangeHeaderData, options: PortraitOptions): {src: string; actor?: Actor | null; token?: TokenDocument} {
   try {
     const token = data.defender ? fromUuidSync(data.defender as Parameters<typeof fromUuidSync>[0]) : null;
     if (token?.documentName === "Token") {
       const doc = token as TokenDocument;
-      if (doc.hidden && !game.user!.isGM) return "";
-      return options.choose(options.preference, doc.texture.src, doc.actor?.img, options.fallback);
+      if (doc.hidden && !game.user!.isGM) return {src: ""};
+      return {src: options.choose(options.preference, doc.texture.src, doc.actor?.img, options.fallback), actor: doc.actor, token: doc};
     }
     const actor = data.defenderActor ? fromUuidSync(data.defenderActor as Parameters<typeof fromUuidSync>[0]) : null;
     if (actor?.documentName === "Actor" && (actor as Actor).testUserPermission(game.user!, "LIMITED")) {
       const doc = actor as Actor;
-      return options.choose(options.preference, doc.prototypeToken.texture.src, doc.img, options.fallback);
+      return {src: options.choose(options.preference, doc.prototypeToken.texture.src, doc.img, options.fallback), actor: doc};
     }
   } catch { /* Deleted or unavailable documents must not break chat history. */ }
-  return "";
+  return {src: ""};
 }
 
 export function decorateExchangeHeader(message: ChatMessage, root: HTMLElement, options: PortraitOptions): void {
@@ -77,11 +78,12 @@ export function decorateExchangeHeader(message: ChatMessage, root: HTMLElement, 
     }
     row.append(label);
   }
-  const src = defenderImage(data, options);
+  const {src, actor, token} = defenderImage(data, options);
   if (src) {
     const img = document.createElement("img");
     img.className = "pneuma-exchange-defender-image"; img.alt = "";
     img.src = src; img.addEventListener("error", () => img.remove(), {once: true}); row.append(img);
+    if (actor?.uuid) bindChatPortraitControls(img, {actor: actor.uuid, token: token?.uuid});
   }
   content.prepend(row);
   root.classList.add("pneuma-has-exchange-header");
@@ -109,7 +111,9 @@ export function decorateRailDefender(message: ChatMessage, root: HTMLElement, op
       defenderActor: flags?.grapple?.target?.actor ?? flags?.grappleParticipants?.target?.actor ?? (['jackIn', 'quickhack', 'breach'].includes(flags?.quickhack?.type ?? '') ? flags?.quickhack?.targetActorUuid : undefined),
     };
     image = document.createElement('img'); image.className = 'pneuma-exchange-defender-image'; image.alt = '';
-    image.src = defenderImage(data, options) || 'icons/svg/mystery-man.svg';
+    const {src, actor, token} = defenderImage(data, options);
+    image.src = src || 'icons/svg/mystery-man.svg';
+    if (actor?.uuid) bindChatPortraitControls(image, {actor: actor.uuid, token: token?.uuid});
     image.addEventListener('error', () => { if (!image!.src.endsWith('/icons/svg/mystery-man.svg')) image!.src = 'icons/svg/mystery-man.svg'; });
   }
   name.after(image);

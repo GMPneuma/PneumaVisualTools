@@ -1,0 +1,7 @@
+<div class="pvt-simple-soundboard directory">
+  <ol class="directory-list">
+    {{#each folders}}{{> "modules/pneuma-visualtools/soundboard-folder.hbs"}}{{/each}}
+  </ol>
+  {{#if loose.length}}<div class="pvt-sound-grid">{{#each loose}}{{> "modules/pneuma-visualtools/soundboard-tile.hbs"}}{{/each}}</div>{{/if}}
+  {{#unless hasSounds}}<p class="pvt-soundboard-empty">Enable “Include in VT-Soundboard” in a playlist's configuration.</p>{{/unless}}
+</div>

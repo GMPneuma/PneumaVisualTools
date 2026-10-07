@@ -1,0 +1,5 @@
+<div class="pvt-sound-cell" data-track="{{id}}" data-playlist="{{playlist}}">
+  <button type="button" class="pvt-sound-tile {{#if playing}}playing{{/if}}" data-action="play" title="{{description}}" data-tooltip="{{description}}" aria-label="Play {{name}}" {{#unless isGM}}disabled{{/unless}} {{#if missing}}disabled{{/if}}>
+    {{#if image}}<img src="{{image}}" alt="">{{else}}<i class="fas fa-volume-up" aria-hidden="true"></i>{{/if}}<span>{{name}}</span>
+  </button>
+</div>

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { cp, lstat, mkdir, realpath, rm, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { check, root } from "./check.mjs";
 
 await check();
@@ -18,6 +19,10 @@ if (existing) {
   await rm(output, { recursive: true });
 }
 await mkdir(output, { recursive: true });
+
+await cp(resolve(root, 'src', 'soundboard.hbs'), resolve(output, 'soundboard.hbs'));
+for (const file of ['theme-customizer.css', 'theme-customizer.hbs']) await cp(resolve(root, 'src', file), resolve(output, file));
+for (const file of ['soundboard-folder.hbs', 'soundboard-tile.hbs']) await cp(resolve(root, 'src', file), resolve(output, file));
 for (const file of ["module.json", "README.md", "CHANGELOG.md"]) {
   await cp(resolve(root, file), resolve(output, file));
 }
@@ -28,5 +33,10 @@ for (const file of (await readdir(resolve(root, "src"))).filter(name => /^(?:wea
   await cp(resolve(root, "src", file), resolve(output, file));
 }
 execFileSync(process.execPath, [tsc], { cwd: root, stdio: "inherit" });
+const { RELEASE_FEATURES } = await import(pathToFileURL(resolve(output, 'release-features.js')).href);
+const excluded = [];
+if (!RELEASE_FEATURES.neuralIntrusion) excluded.push('intrusion-effects.js', 'neural-glitch.js');
+if (!RELEASE_FEATURES.fireEffects) excluded.push('fire-effects.js', 'fire-overlay.js', 'fire-procedural.js', 'fire-loop.webm', 'fire-loop-poster.png');
+for (const file of excluded) await rm(resolve(output, file), { force: true });
 await check(output);
 console.log("Built " + output);

@@ -3,6 +3,6 @@ export const RELEASE_FEATURES = Object.freeze({
  chatCards: true,
  chatDice: true,
  neuralIntrusion: false,
- weaponEffects: false,
+ weaponEffects: true,
  fireEffects: false
 });

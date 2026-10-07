@@ -44,13 +44,13 @@ function setImage(image: HTMLImageElement, native: string, file: string): void {
     });
   }
   const custom = selectedDiceSet();
-  const enabled = game.settings!.get(MODULE, 'chatDiceEnabled');
+  const enabled = game.settings!.get(MODULE, 'chatDiceEnabled') && game.settings!.get(MODULE, 'chatSkin') !== 'off';
   state.candidates = enabled ? [...(custom ? [customDicePath(custom, file)] : []), bundledDicePath(file), state.native].filter(path => !failed.has(path) || path === state!.native) : [state.native];
   state.index = 0;
   if (image.getAttribute('src') !== state.candidates[0]) image.setAttribute('src', state.candidates[0]!);
 }
 export function replaceChatDice(root: HTMLElement): void {
-  root.classList.toggle('pvt-chat-dice', game.settings!.get(MODULE, 'chatDiceEnabled'));
+  root.classList.toggle('pvt-chat-dice', game.settings!.get(MODULE, 'chatDiceEnabled') && game.settings!.get(MODULE, 'chatSkin') !== 'off');
   const images = Array.from(root.querySelectorAll<HTMLImageElement>('img[src]'));
   const data = images.map(image => ({image, native: states.get(image)?.native || image.dataset.pvtDieOriginal || image.getAttribute('src') || ''}));
   for (const {image, native} of data) {

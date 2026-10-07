@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+let z=100;let enabled=true;let registered;const settings={register:(_m,_k,value)=>registered=value,get:()=>enabled};globalThis.game={settings};
+globalThis.HTMLElement=class {constructor(){this.isConnected=true;this.z=++z;}};
+globalThis.getComputedStyle=node=>({zIndex:String(node.z)});
+globalThis.Application=class {constructor(){this.rendered=true;this.closed=0;this.element=[new HTMLElement()];}async close(){this.closed++;this.rendered=false;this.element[0].isConnected=false;}};
+let keydown;globalThis.document={activeElement:null,addEventListener:(_n,fn)=>keydown=fn};globalThis.ui={windows:{}};
+globalThis.foundry={applications:{instances:new Map()},utils:{getProperty:(obj,path)=>path.split('.').reduce((o,k)=>o?.[k],obj)}};
+const hooks={};globalThis.Hooks={on:(name,fn)=>hooks[name]=fn};
+const {registerWindowEscapeProtection}=await import('../dist/sidebar-escape.js');registerWindowEscapeProtection();
+const sidebar=new Application(),sheet=new Application(),dialog=new Application();
+ui.windows={sidebar,sheet,dialog};ui.activeWindow=dialog;
+// No renderApplication hooks: custom base classes must still be protected.
+keydown({key:'Escape'});await Promise.all(Object.values(ui.windows).map(app=>app.close({closeKey:true})));
+assert.equal(dialog.closed,1);assert.equal(sheet.closed,0);assert.equal(sidebar.closed,0);
+ui.activeWindow=sheet;keydown({key:'Escape'});await Promise.all(Object.values(ui.windows).map(app=>app.close({closeKey:true})));
+assert.equal(sheet.closed,1);assert.equal(sidebar.closed,0);
+const modern={rendered:true,hasFrame:true,element:new HTMLElement(),closed:0,async close(){this.closed++;this.rendered=false;this.element.isConnected=false;}};
+foundry.applications.instances.set('modern',modern);ui.activeWindow=sidebar;document.activeElement={closest:()=>sidebar.element[0]};
+keydown({key:'Escape'});await sidebar.close({closeKey:true});await modern.close({closeKey:true});
+assert.equal(modern.closed,1);assert.equal(sidebar.closed,0);
+await sidebar.close();assert.equal(sidebar.closed,1);
+const explicit=new Application();hooks.renderApplication(explicit);await explicit.close({force:true});assert.equal(explicit.closed,1);
+globalThis.game={settings,view:'game',user:{isGM:true}};globalThis.canvas={activeLayer:{controlled:[],preview:{children:[]}}};globalThis.Tour={tourInProgress:false};
+const escape=()=>{let blocked=false;keydown({key:'Escape',preventDefault(){},stopImmediatePropagation(){blocked=true;}});return blocked;};
+assert.equal(escape(),true);
+canvas.activeLayer.controlled=[{}];assert.equal(escape(),false);
+canvas.activeLayer.controlled=[];ui.context={menu:{length:1}};assert.equal(escape(),false);
+ui.context=undefined;Tour.tourInProgress=true;assert.equal(escape(),false);
+Tour.tourInProgress=false;assert.equal(escape(),true);
+assert.equal(registered.name,'Fix Escape Key');assert.equal(registered.default,true);
+enabled=false;assert.equal(escape(),false);const nativeA=new Application(),nativeB=new Application();hooks.renderApplication(nativeA);hooks.renderApplication(nativeB);await Promise.all([nativeA,nativeB].map(app=>app.close({closeKey:true})));assert.equal(nativeA.closed,1);assert.equal(nativeB.closed,1);
+console.log('Universal Escape checks passed: focused-window close, background-window protection, empty-canvas menu suppression, token deselection, context menus and tours.');
+
