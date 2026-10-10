@@ -143,7 +143,7 @@ export function renderChatCard(message: ChatMessage, root: HTMLElement): void {
   }
 }
 
-const chatSkinOrder = ["cyberpunk", "technical", "compact", "compact-hub", "off"] as const;
+const chatSkinOrder = ["cyberpunk", "compact-hub", "technical", "compact", "off"] as const;
 let appliedSkin = 'cyberpunk';
 let skinChanges: Promise<unknown> = Promise.resolve();
 let skinRefresh: Promise<void> = Promise.resolve();
@@ -167,8 +167,8 @@ async function refreshMountedChatCards(): Promise<void> {
 }
 export function registerChatCards(): void {
   game.keybindings!.register(MODULE_ID, "cycleChatSkin", {
-    name: "Cycle chat styles (Hub → Minimal → OFF)",
-    hint: "Cycle Pneuma Hub, Cyberpunk Minimal and Visual Tools OFF on this client. Existing cards update immediately.",
+    name: "Cycle chat styles",
+    hint: "Cycle all four chat skins and Visual Tools OFF on this client. Existing cards update immediately.",
     editable: [{key:"KeyC", modifiers:["Alt", "Shift"]}],
     restricted: false, repeat: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY,
@@ -187,7 +187,7 @@ export function registerChatCards(): void {
   game.settings!.register(MODULE_ID, "chatSkin", {
     name: "PNEUMA_VISUALTOOLS.ChatSkinName", hint: "PNEUMA_VISUALTOOLS.ChatSkinHint",
     scope: "client", config: true, type: String, default: "cyberpunk",
-    choices: { cyberpunk: "PNEUMA_VISUALTOOLS.ChatSkinCyberpunk", technical: "PNEUMA_VISUALTOOLS.ChatSkinTechnical", compact: "PNEUMA_VISUALTOOLS.ChatSkinCompact", "compact-hub": "PNEUMA_VISUALTOOLS.ChatSkinCompactHub", off: 'Visual Tools OFF' },
+    choices: { cyberpunk: "PNEUMA_VISUALTOOLS.ChatSkinCyberpunk", "compact-hub": "PNEUMA_VISUALTOOLS.ChatSkinCompactHub", technical: "PNEUMA_VISUALTOOLS.ChatSkinTechnical", compact: "PNEUMA_VISUALTOOLS.ChatSkinCompact", off: "Off (hotkey)" },
     onChange: (skin: string) => {
       const rebuild = skin === 'off' || appliedSkin === 'off';
       appliedSkin = skin;

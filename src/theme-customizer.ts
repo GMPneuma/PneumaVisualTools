@@ -1,6 +1,6 @@
 import {COLOR_ROLES, DEFAULT_THEME, normalizeTheme, generatePalette, paletteVariables, contrastWarnings, type CustomTheme, type ThemeMode} from './theme-palette.js';
 import {PNEUMA_PRESETS,normalizePersonalPresets,type ThemePreset} from './theme-presets.js';
-declare global {interface SettingConfig {'pneuma-visualtools.customTheme': CustomTheme}}
+declare global {interface SettingConfig {'pneuma-visualtools.customTheme': CustomTheme; 'pneuma-visualtools.customThemeEnabled': boolean}}
 declare global {interface FlagConfig {User:{'pneuma-visualtools':{themePresets:(ThemePreset|null)[]}}}}
 const MODULE = 'pneuma-visualtools';
 let activeMode: ThemeMode | undefined;
@@ -29,7 +29,7 @@ export class ThemeCustomizer extends FormApplication {
     super({});
     this.draft=normalizeTheme(game.settings!.get(MODULE,'customTheme'));
     this.editing=effectiveThemeMode(this.draft);
-    this.manual=this.draft.method==='manual';this.seed=this.draft.seed;
+    this.manual=false;this.seed=this.draft.seed;
   }
   static override get defaultOptions(): FormApplicationOptions {
     return foundry.utils.mergeObject(super.defaultOptions,{
@@ -39,15 +39,17 @@ export class ThemeCustomizer extends FormApplication {
   }
   override getData() {
     return {enabled:normalizeTheme(game.settings!.get(MODULE,'customTheme')).enabled,light:this.editing==='light',dark:this.editing==='dark',
-      modes:[{id:'automatic',label:'Follow Foundry / CPR'},{id:'light',label:'Force Light'},{id:'dark',label:'Force Dark'}].map(m=>({...m,selected:m.id===this.draft.mode})),
-      colors:COLOR_ROLES.map(role=>({...role,value:this.draft[this.editing][role.key]})),
+      overrideSystem:this.draft.mode!=='automatic',
+      modes:[{id:'light',label:'Light'},{id:'dark',label:'Dark'}].map(m=>({...m,selected:m.id===this.editing})),
+      mainAccent:this.draft[this.editing].main,
+      colors:COLOR_ROLES.filter(role=>role.key!=='main').map(role=>({...role,value:this.draft[this.editing][role.key]})),
       manual:this.manual,seed:this.seed,legacyActive:game.modules?.get('pneuma-green-theme')?.active,
       pneumaPresets:PNEUMA_PRESETS.map((preset,index)=>({index,name:preset.name})),
-      personalPresets:normalizePersonalPresets(game.user?.getFlag(MODULE,'themePresets')).map((preset,index)=>({index,slot:index+1,name:preset?.name||`My theme ${index+1}`,empty:!preset})),
+      personalPresets:normalizePersonalPresets(game.user?.getFlag(MODULE,'themePresets')).map((preset,index)=>({index,slot:index+1,name:preset?.name||`My theme ${index+1}`,empty:!preset,accent:preset?.theme[this.editing].main??'transparent'})),
     };
   }
   private readDraft(root: HTMLElement): void {
-    this.draft.mode=root.querySelector<HTMLSelectElement>('[name="mode"]')!.value as CustomTheme['mode'];
+    this.draft.mode=root.querySelector<HTMLInputElement>('[name="overrideSystem"]')?.checked ? (root.querySelector<HTMLSelectElement>('[name="mode"]')?.value as ThemeMode ?? this.editing) : 'automatic';
     for (const {key} of COLOR_ROLES) {
       const input=root.querySelector<HTMLInputElement>(`[name="${key}"]`);
       if (!input) continue;
@@ -64,6 +66,7 @@ export class ThemeCustomizer extends FormApplication {
     super.activateListeners(html);
     const root=html[0]; if (!root) return;
     this.preview(root);
+    root.querySelector<HTMLInputElement>('[name="overrideSystem"]')?.addEventListener('change',()=>{this.readDraft(root);this.editing=effectiveThemeMode(this.draft);this.render(false);});
     root.querySelector<HTMLSelectElement>('[name="mode"]')?.addEventListener('change',()=>{
       this.readDraft(root);this.editing=effectiveThemeMode(this.draft);this.render(false);
     });
@@ -89,28 +92,21 @@ export class ThemeCustomizer extends FormApplication {
     const form=root.matches('form') ? root as HTMLFormElement : root.querySelector<HTMLFormElement>('form');
     root.querySelectorAll<HTMLElement>('[data-function]').forEach(button=>button.addEventListener('click',()=>{
       if (!form?.reportValidity()) return;
-      this.readDraft(root);this.manual=button.dataset.function==='manual';this.draft.method=this.manual?'manual':'simple';this.render(false);
+      this.readDraft(root);this.manual=!this.manual;this.draft.method=this.manual?'manual':'simple';this.render(false);
     }));
-    root.querySelector<HTMLInputElement>('[data-seed]')?.addEventListener('input',event=>{
-      this.seed=(event.currentTarget as HTMLInputElement).value;
-      this.draft.seed=this.seed;
-      this.readDraft(root);
-      this.draft.light=generatePalette(this.seed,'light');this.draft.dark=generatePalette(this.seed,'dark');
-      this.preview(root);
-    });
     root.querySelectorAll<HTMLInputElement>('[data-picker]').forEach(picker=>picker.addEventListener('input',()=>{
       root.querySelector<HTMLInputElement>(`[name="${picker.dataset.picker}"]`)!.value=picker.value;
-      this.readDraft(root);this.preview(root);
+      this.readDraft(root);
+      if(picker.dataset.picker==='main'&&!this.manual){this.seed=picker.value;this.draft.seed=this.seed;this.draft.light=generatePalette(this.seed,'light');this.draft.dark=generatePalette(this.seed,'dark');}
+      this.preview(root);
     }));
     root.querySelectorAll<HTMLInputElement>('[data-hex]').forEach(input=>input.addEventListener('input',()=>{
       if (/^#[0-9a-f]{6}$/i.test(input.value)) {
         root.querySelector<HTMLInputElement>(`[data-picker="${input.name}"]`)!.value=input.value;
-        this.readDraft(root);this.preview(root);
+        this.readDraft(root);
+        if(input.name==='main'&&!this.manual){this.seed=input.value;this.draft.seed=this.seed;this.draft.light=generatePalette(this.seed,'light');this.draft.dark=generatePalette(this.seed,'dark');}
+        this.preview(root);
       }
-    }));
-    root.querySelectorAll<HTMLElement>('[data-edit-mode]').forEach(button=>button.addEventListener('click',()=>{
-      if (!form?.reportValidity()) return;
-      this.readDraft(root); this.editing=button.dataset.editMode as ThemeMode; this.render(false);
     }));
     root.querySelector('[data-generate]')?.addEventListener('click',()=>{
       if (!form?.reportValidity()) return;
@@ -139,7 +135,7 @@ export class ThemeCustomizer extends FormApplication {
     }
     // Applying explicitly activates the theme; saving a palette cannot silently disable it.
     next.enabled=true;
-    next.mode=data.mode as CustomTheme['mode'];
+    next.mode=data.overrideSystem ? data.mode as ThemeMode : 'automatic';
     await game.settings!.set(MODULE,'customTheme',normalizeTheme(next));
     if(liveDraft?.owner===this) liveDraft=undefined;
     applyCustomTheme();
@@ -147,7 +143,8 @@ export class ThemeCustomizer extends FormApplication {
 }
 export function registerThemeCustomizer(): void {
   const link=document.createElement('link');link.rel='stylesheet';link.href=foundry.utils.getRoute(`modules/${MODULE}/theme-customizer.css`);document.head.append(link);
-  game.settings!.register(MODULE,'customTheme',{name:'Custom color theme',scope:'client',config:false,type:Object,default:structuredClone(DEFAULT_THEME),onChange:applyCustomTheme});
+  game.settings!.register(MODULE,'customTheme',{name:'Custom color theme',scope:'client',config:false,type:Object,default:structuredClone(DEFAULT_THEME),onChange:async(theme:CustomTheme)=>{applyCustomTheme();if(game.settings!.get(MODULE,'customThemeEnabled')!==theme.enabled)await game.settings!.set(MODULE,'customThemeEnabled',theme.enabled);}});
+  game.settings!.register(MODULE,'customThemeEnabled',{name:'Enable custom colors',hint:'Use your saved custom palette. Turning this off keeps your colors and presets.',scope:'client',config:true,type:Boolean,default:normalizeTheme(game.settings!.get(MODULE,'customTheme')).enabled,onChange:async(enabled:boolean)=>{const theme=normalizeTheme(game.settings!.get(MODULE,'customTheme'));if(theme.enabled!==enabled)await game.settings!.set(MODULE,'customTheme',{...theme,enabled});}});
   game.settings!.registerMenu(MODULE,'themeCustomizer',{name:'Custom color theme',label:'Customize colors',hint:'Eight accent colors with separate light and dark palettes for this player.',icon:'fas fa-palette',type:ThemeCustomizer,restricted:false});
   Hooks.once('ready',()=>{
     applyCustomTheme();

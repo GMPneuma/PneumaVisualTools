@@ -65,3 +65,7 @@
 .pvt-scene-image-popout .window-content { background:transparent !important; color:inherit; padding:8px; }
 .pvt-scene-image-popout :is(form,figure,.image) { background-color:transparent !important; }
 .pvt-scene-image-popout :is(img,video) { object-fit:contain; max-width:100%; max-height:100%; }
+
+.pvt-settings-groups > fieldset { min-width: 0; margin: 12px 0; padding: 10px 12px; border: 1px solid var(--color-border-light-primary, #8886); border-radius: 5px; }
+.pvt-settings-groups > fieldset > legend { width: auto; margin: 0; padding: 0 6px; border: 0; font-size: 14px; font-weight: 600; }
+.pvt-settings-groups .pvt-setting-disabled { opacity: .45; }

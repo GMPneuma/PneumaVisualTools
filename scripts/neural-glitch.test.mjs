@@ -6,13 +6,14 @@ const nodes=[]; const listeners={}; const motion={matches:false,addEventListener
 const context=vm.createContext({
  window:{matchMedia:()=>motion},document:{get hidden(){return hidden;},addEventListener:(k,f)=>listeners[k]=f,
  createElement:()=>({style:{},children:[],setAttribute(){},append(child){this.children.push(child);},remove(){const i=nodes.indexOf(this);if(i>=0)nodes.splice(i,1);}}),body:{append:n=>nodes.push(n)}},
+ mountScreenEffect:n=>nodes.push(n),removeScreenEffect:n=>n?.remove(),
  setTimeout:(f,delay)=>{timers.set(++id,{f,delay});return id;},clearTimeout:i=>timers.delete(i),Math,
  forceOutEntries:()=>connection?[{messageId:"hack",name:"Unknown Netrunner"}]:[],
  clearInstantCondition:async()=>cleared++,beginForceOut:async()=>ejected++,
  game:{messages:{get:()=>({id:"hack"})}},ui:{notifications:{error:e=>{throw e;}}},
  ContextMenu:class{constructor(container,selector,items){context.menu=items;}},$:x=>x
 });
-vm.runInContext((await readFile("dist/neural-glitch.js","utf8")).replace(/export /g,"")+"\nglobalThis.api={createIntrusionGlitches};",context);
+vm.runInContext((await readFile("dist/neural-glitch.js","utf8")).replace(/^import .*;$/gm,"").replace(/export /g,"")+"\nglobalThis.api={createIntrusionGlitches};",context);
 const glitch=context.api.createIntrusionGlitches(()=>eligible);
 const run=()=>{const [key,t]=timers.entries().next().value;timers.delete(key);t.f();return t.delay;};
 glitch.sync();assert.equal(timers.size,1);const first=[...timers.keys()][0];glitch.sync();assert.equal([...timers.keys()][0],first,"Rerender preserves timer");

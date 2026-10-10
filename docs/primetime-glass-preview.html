@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Prime Time — glass facets</title>
+<style>body{margin:0;background:#192128;color:#dde6eb;font:16px system-ui;background-image:linear-gradient(#ffffff06 1px,transparent 1px),linear-gradient(90deg,#ffffff06 1px,transparent 1px);background-size:48px 48px}header{position:relative;z-index:100;padding:18px 24px;background:#0e151be8}h1{font-size:22px;margin:0 0 8px}button,select{font:inherit;padding:7px 12px;margin-right:8px;background:#27333d;color:#e2e9ef;border:1px solid #61717d;border-radius:4px}#token{position:absolute;left:50%;top:55%;transform:translate(-50%,-50%)}#note{position:absolute;left:30%;right:30%;bottom:8%;text-align:center;color:#b8c9d3}p{margin:12px 0 0}</style>
+<header><h1>Prime Time — glass facets concept</h1><select id="drug"><option value="berserker">Berserker</option><option value="primeTime" selected>Prime Time</option><option value="sixgun">Sixgun</option><option value="timewarp">Timewarp</option></select><select id="mode"><option value="both">Screen + token</option><option value="screen">Screen only</option><option value="token">Token only</option></select><button id="play">Preview</button><button id="stop">Stop</button><p id="description"></p></header>
+<div id="token"></div><p id="note">Concept preview only. Current game effect is unchanged.</p>
+<script src="../node_modules/.pnpm/pixi.js@7.4.3/node_modules/pixi.js/dist/pixi.min.js"></script>
+<script>
+const mounted = new Map();
+let resize, mutation, sidebar = null, frame = 0;
+function screenEffectBounds() {
+    const width = innerWidth, element = document.getElementById('sidebar'), rect = element?.getBoundingClientRect();
+    const expanded = !!element && !element.classList.contains('collapsed') && !!rect && rect.width > 60 && rect.right >= width - 80;
+    const visible = expanded ? Math.max(0, Math.min(width, rect.left)) : width;
+    return { visible, fade: expanded ? Math.min(110, width - visible) : 0 };
+}
+function screenEffectWidth() { const bounds = screenEffectBounds(); return bounds.visible + bounds.fade; }
+function refresh() {
+    frame = 0;
+    const next = document.getElementById('sidebar');
+    if (next !== sidebar) {
+        resize?.disconnect();
+        sidebar = next;
+        if (sidebar)
+            resize?.observe(sidebar);
+    }
+    const bounds = screenEffectBounds();
+    for (const { host, soft, onResize } of mounted.values()) {
+        const fade = soft ? bounds.fade : 0;
+        host.style.width = `${bounds.visible + fade}px`;
+        host.style.maskImage = fade ? `linear-gradient(to right, #000 0px, #000 ${bounds.visible}px, transparent ${bounds.visible + fade}px)` : 'none';
+        onResize?.();
+    }
+}
+function schedule() { if (!frame)
+    frame = requestAnimationFrame(refresh); }
+/** Shared play-area host. Soft effects can fade under a transparent sidebar;
+ * distinct particles stay within the unobstructed map area. */
+function mountScreenEffect(layer, soft = true, onResize) {
+    const host = document.createElement('div');
+    host.dataset.pvtScreenEffectArea = '';
+    Object.assign(host.style, { position: 'fixed', left: '0', top: '0', height: '100vh', overflow: 'hidden', pointerEvents: 'none', zIndex: layer.style.zIndex || '1', containerType: 'inline-size', transition: 'width 160ms ease-out' });
+    layer.style.position = 'absolute';
+    layer.style.width = '100%';
+    host.append(layer);
+    document.body.append(host);
+    mounted.set(layer, { host, soft, onResize });
+    if (mounted.size === 1) {
+        resize = new ResizeObserver(schedule);
+        mutation = new MutationObserver(records => {
+            // Ignore our own layout writes and animation nodes: they must not create
+            // an observer/resize feedback loop.
+            if (records.some(record => record.type === 'attributes'
+                ? record.target === sidebar || !!sidebar && record.target instanceof Element && record.target.contains(sidebar)
+                : [...Array.from(record.addedNodes), ...Array.from(record.removedNodes)].some(node => node === sidebar || node instanceof Element && (node.id === 'sidebar' || !!node.querySelector('#sidebar')))))
+                schedule();
+        });
+        mutation.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+        window.addEventListener('resize', schedule);
+    }
+    refresh();
+}
+function removeScreenEffect(layer) {
+    if (!layer)
+        return;
+    const entry = mounted.get(layer);
+    if (entry) {
+        entry.host.remove();
+        mounted.delete(layer);
+    }
+    else
+        layer.remove();
+    if (!mounted.size) {
+        resize?.disconnect();
+        mutation?.disconnect();
+        resize = undefined;
+        mutation = undefined;
+        sidebar = null;
+        window.removeEventListener('resize', schedule);
+        cancelAnimationFrame(frame);
+        frame = 0;
+    }
+}
+
+const colors = { radiation: '#becf36', gas: '#97a390', blackLace: '#b62743', boost: '#48b6ef', synthcoke: '#8af3fa', berserker: '#145c36', primeTime: '#b297eb', sixgun: '#68cfd4', timewarp: '#a7d1ff' };
+function isSpecialDrug(kind) { return ['berserker', 'primeTime', 'sixgun', 'timewarp'].includes(kind); }
+/** Peripheral vector motifs: no opaque veil or distortion of Foundry controls. */
+function createDrugScreen(kind) {
+    let layer;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const ns = 'http://www.w3.org/2000/svg';
+    function stop() { layer?.getAnimations({ subtree: true }).forEach(a => a.cancel()); removeScreenEffect(layer); layer = undefined; }
+    function start() {
+        if (layer || document.hidden)
+            return;
+        layer = document.createElement('div');
+        layer.id = `pneuma-${kind}-overlay`;
+        layer.setAttribute('aria-hidden', 'true');
+        Object.assign(layer.style, { position: 'fixed', inset: '0', overflow: 'hidden', pointerEvents: 'none', zIndex: '1', maskImage: 'radial-gradient(ellipse, transparent 43%, #000 77%)' });
+        mountScreenEffect(layer, false);
+        for (let side = 0; side < 2; side++)
+            for (let i = 0; i < 6; i++) {
+                const tile = document.createElement('div'), svg = document.createElementNS(ns, 'svg');
+                svg.setAttribute('viewBox', '0 0 200 180');
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.style.overflow = 'visible';
+                Object.assign(tile.style, { position: 'absolute', top: `${i * 18 - 10}%`, width: 'clamp(140px, 23cqw, 330px)', height: '28vh', [side ? 'right' : 'left']: '-3%', opacity: reduced.matches ? '.38' : '.65' });
+                if (side)
+                    svg.style.transform = 'scaleX(-1)';
+                const path = (d, color, width, opacity = 1) => {
+                    const node = document.createElementNS(ns, 'path');
+                    node.setAttribute('d', d);
+                    node.setAttribute('fill', 'none');
+                    node.setAttribute('stroke', color);
+                    node.setAttribute('stroke-width', String(width));
+                    node.setAttribute('stroke-opacity', String(opacity));
+                    node.setAttribute('stroke-linejoin', 'round');
+                    svg.append(node);
+                    return node;
+                };
+                if (kind === 'berserker') {
+                    const d = `M -12 ${30 + i % 3 * 10} L 84 52 L 48 82 L 154 66 L 91 115 L 171 138`;
+                    // Red halo sits behind the dark green cut, keeping the core green.
+                    path(d, '#a91c35', 11, .48).style.filter = 'blur(6px)';
+                    path(d, '#d02942', 6, .35);
+                    path(d, '#12472c', 4.5);
+                    path(d, '#267748', 1.2, .8);
+                    path('M 10 126 L 72 102 L 42 147 L 122 131', '#184f31', 3);
+                }
+                else if (kind === 'primeTime') {
+                    const panes = [['M -25 2 L 125 19 L 91 121 L -14 162 Z', '#8a9ebb', .26], ['M 51 -12 L 169 51 L 112 174 L 18 104 Z', '#b19bce', .19], ['M -13 102 L 91 65 L 172 128 L 63 191 Z', '#c6daec', .15]];
+                    for (const [d, color, alpha] of panes) {
+                        const pane = path(d, color, 0);
+                        pane.setAttribute('stroke', 'none');
+                        pane.setAttribute('fill', color);
+                        pane.setAttribute('fill-opacity', String(alpha));
+                    }
+                    const glint = path('M -14 104 L 91 65 L 84 77 L -14 113 Z', '#dae9f7', 0);
+                    glint.setAttribute('stroke', 'none');
+                    glint.setAttribute('fill', '#dae9f7');
+                    glint.setAttribute('fill-opacity', '.12');
+                }
+                else if (kind === 'sixgun') {
+                    path('M 0 37 L 56 37 L 86 67 L 144 67 M 12 119 L 64 119 L 90 93 L 164 93', '#387982', 1.3, .65);
+                    for (let n = 0; n < 6; n++) {
+                        const packet = path(`M ${15 + n * 24} ${n % 2 ? 89 : 63} h 11 v 8 h -11 Z`, n % 3 ? '#68cfd4' : '#e7bc76', 1.5, .85);
+                        if (!reduced.matches)
+                            packet.animate([{ opacity: .12, transform: 'translateX(-9px)' }, { opacity: .95, offset: .35 }, { opacity: .12, transform: 'translateX(12px)' }], { duration: 2400, delay: -n * 360 - i * 280 - side * 600, iterations: Infinity, easing: 'linear' });
+                    }
+                    path('M 155 57 L 169 57 L 169 72 M 169 87 L 169 103 L 155 103', '#e7bc76', 1.5, .7);
+                }
+                else {
+                    for (let echo = 0; echo < 4; echo++) {
+                        const x = echo * 13;
+                        path(`M ${x - 35} 12 C ${x + 135} 35 ${x - 20} 93 ${x + 150} 163`, echo % 2 ? '#af9ee8' : '#a7d1ff', 3 - echo * .5, .7 - echo * .15);
+                    }
+                    for (let tick = 0; tick < 5; tick++)
+                        path(`M ${20 + tick * 23} ${48 + tick * 19} l 14 -4`, '#c3dafe', 1, .4);
+                    svg.style.filter = 'drop-shadow(-8px 0 5px #8177bd66)';
+                }
+                tile.append(svg);
+                layer.append(tile);
+                if (!reduced.matches) {
+                    const duration = kind === 'berserker' ? 2900 + i * 170 : kind === 'primeTime' ? 8000 + i * 370 : kind === 'sixgun' ? 6200 + i * 230 : 4800 + i * 280;
+                    const shift = kind === 'berserker' ? 'translate(9px,-6px)' : kind === 'primeTime' ? 'translate(8px,-5px) rotate(2deg)' : kind === 'timewarp' ? 'translate(32px,12px) skewY(-8deg)' : 'translate(0,6px)';
+                    tile.animate([{ opacity: .18, transform: 'translate(0,0)' }, { opacity: kind === 'berserker' ? .85 : .65, transform: shift, offset: .45 }, { opacity: .18, transform: 'translate(0,0)' }], { duration, delay: -i * 977 - side * 1300, iterations: Infinity, easing: 'ease-in-out' });
+                }
+            }
+    }
+    reduced.addEventListener('change', () => { if (layer) {
+        stop();
+        start();
+    } });
+    return { start, stop };
+}
+/** Bounded graphics pool; the caller supplies the shared token artwork mask. */
+function createDrugToken(kind) {
+    const container = new PIXI.Container();
+    container.eventMode = 'none';
+    const shapes = new PIXI.Graphics();
+    container.addChild(shapes);
+    function update(w, h, time, phase, stationary) {
+        const t = stationary ? 0 : time, r = Math.min(w, h), pulse = stationary ? .55 : .5 + .5 * Math.sin(t * (kind === 'berserker' ? 2.3 : .85) + phase);
+        shapes.clear();
+        const stroke = (points, width, color, alpha) => {
+            shapes.lineStyle(Math.max(.6, width), color, alpha);
+            shapes.moveTo(points[0], points[1]);
+            for (let j = 2; j < points.length; j += 2)
+                shapes.lineTo(points[j], points[j + 1]);
+        };
+        if (kind === 'berserker') {
+            for (let i = 0; i < 5; i++) {
+                const y = h * (.1 + i * .19), s = stationary ? 0 : Math.sin(t * 1.8 + i + phase) * r * .025;
+                const points = [w * .06, y + s, w * .46, y + h * .04 + s, w * .29, y + h * .11 + s, w * .82, y + h * .03 + s, w * .64, y + h * .17 + s];
+                stroke(points, r * .10, 0x95162e, .08 + pulse * .08);
+                stroke(points, r * .055, 0xcc2740, .15 + pulse * .13);
+                stroke(points, r * .029, 0x12472c, .9);
+                stroke(points, r * .009, 0x267748, .65);
+            }
+        }
+        else if (kind === 'primeTime') {
+            const drift = stationary ? 0 : Math.sin(t * .35 + phase) * .025;
+            const panes = [[[-.1, .04, .72, .14, .52, .74, -.08, .93], 0x8a9ebb, .20], [[.34, -.08, 1.06, .24, .76, 1.05, .16, .65], 0xb19bce, .18], [[-.06, .68, .53, .42, 1.02, .81, .36, 1.12], 0xc6daec, .13]];
+            for (const [coords, color, alpha] of panes) {
+                const points = coords.map((v, j) => j % 2 ? v * h : (v + drift) * w);
+                shapes.lineStyle(0);
+                shapes.beginFill(color, alpha + pulse * .035);
+                shapes.drawPolygon(points);
+                shapes.endFill();
+            }
+            shapes.beginFill(0xdae9f7, .1 + pulse * .04);
+            shapes.drawPolygon([0, h * .68, w * .53, h * .42, w * .49, h * .48, 0, h * .72]);
+            shapes.endFill();
+        }
+        else if (kind === 'sixgun') {
+            for (let i = 0; i < 6; i++) {
+                const y = h * (.13 + i * .145), p = stationary ? .5 : (t * .22 + i * .16 + phase * .1) % 1, x = w * (.1 + p * .76);
+                stroke([w * .09, y, w * .35, y, w * .44, y + h * .025, w * .91, y + h * .025], r * .008, 0x387982, .35);
+                shapes.lineStyle(0);
+                shapes.beginFill(i % 3 ? 0x68cfd4 : 0xe7bc76, .65);
+                shapes.drawRect(x, y - h * .015, r * .07, r * .035);
+                shapes.endFill();
+                stroke([w * .87, y - h * .02, w * .93, y - h * .02, w * .93, y + h * .045], r * .008, 0x68cfd4, .45);
+            }
+        }
+        else {
+            for (let band = 0; band < 3; band++)
+                for (let echo = 3; echo >= 0; echo--) {
+                    const points = [];
+                    for (let j = 0; j <= 12; j++) {
+                        const p = j / 12;
+                        points.push(w * (.04 + p * .92), h * (.18 + band * .27 + Math.sin(p * 4 - t * 1.5 + phase) * .065) + echo * r * .025);
+                    }
+                    stroke(points, r * (echo === 0 ? .018 : .01), echo % 2 ? 0xaf9ee8 : 0xa7d1ff, (.5 - echo * .1) * (stationary ? .65 : .7 + pulse * .3));
+                }
+        }
+    }
+    return { container, update, destroy: () => container.destroy({ children: true }) };
+}
+function createPatternScreen(kind) {
+    if (isSpecialDrug(kind))
+        return createDrugScreen(kind);
+    let layer;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    function stop() { layer?.getAnimations({ subtree: true }).forEach(a => a.cancel()); removeScreenEffect(layer); layer = undefined; }
+    function start() {
+        if (layer || document.hidden)
+            return;
+        layer = document.createElement('div');
+        layer.id = `pneuma-${kind}-overlay`;
+        layer.setAttribute('aria-hidden', 'true');
+        Object.assign(layer.style, { position: 'fixed', inset: '0', overflow: 'hidden', pointerEvents: 'none', zIndex: '1', maskImage: 'radial-gradient(ellipse, transparent 45%, #000 80%)' });
+        mountScreenEffect(layer, !['boost', 'synthcoke'].includes(kind));
+        if (['gas', 'blackLace', 'radiation'].includes(kind))
+            layer.style.background = `radial-gradient(ellipse, transparent 55%, ${colors[kind]}44 85%, ${kind === 'blackLace' ? '#130e1bbb' : colors[kind] + '66'})`;
+        for (let i = 0; i < (kind === 'synthcoke' ? 14 : 8); i++) {
+            const patch = document.createElement('div'), side = i % 2;
+            const geometric = ['boost', 'synthcoke'].includes(kind);
+            Object.assign(patch.style, { position: 'absolute', left: side ? '83%' : '-18%', top: `${i * 14 - 15}%`, width: geometric ? '35cqw' : '44cqw', height: geometric ? '24vh' : '45vh', opacity: '.35', borderRadius: kind === 'boost' ? '15%' : '50%', border: geometric ? `2px solid ${colors[kind]}` : 'none', background: geometric ? 'transparent' : `radial-gradient(ellipse at 35% 45%, ${colors[kind]}99, transparent 65%)`, filter: geometric ? 'none' : 'blur(20px)' });
+            if (geometric) {
+                patch.style.width = '18cqw';
+                patch.style.left = side ? 'calc(100% - 18cqw - 12px)' : '12px';
+            }
+            if (kind === 'boost')
+                patch.style.transform = 'rotate(45deg)';
+            if (kind === 'synthcoke') {
+                patch.style.top = `${(i * 17) % 105 - 5}%`;
+                patch.style.width = '46cqw';
+                patch.style.left = side ? 'calc(100% - 46cqw - 12px)' : '12px';
+                patch.style.height = `${3 + i % 3}px`;
+                patch.style.border = 'none';
+                patch.style.background = 'linear-gradient(90deg,transparent,#8af3fa 25%,#ffffff 60%,transparent)';
+                patch.style.boxShadow = '0 0 12px #8af3fa99';
+            }
+            if (kind === 'gas')
+                patch.style.boxShadow = 'inset 0 0 30px #aa363633';
+            if (kind === 'blackLace') {
+                patch.style.clipPath = 'polygon(0 0,85% 15%,40% 38%,100% 55%,45% 72%,70% 100%,0 85%)';
+                patch.style.filter = 'blur(5px)';
+                patch.style.background = 'linear-gradient(120deg,#140c18aa,#b6274377,transparent)';
+            }
+            if (kind === 'radiation')
+                patch.style.background = 'radial-gradient(ellipse,#becf3677,transparent 70%),repeating-linear-gradient(80deg,transparent 0 19px,#e4ed8044 20px,transparent 22px)';
+            layer.append(patch);
+            if (!reduced.matches) {
+                const duration = kind === 'synthcoke' ? 1100 + i * 67 : kind === 'blackLace' ? 3300 + i * 137 : 6000 + i * 431;
+                patch.animate([{ opacity: .05, transform: 'translate(-2cqw,-2vh) scale(.75)' }, { opacity: kind === 'synthcoke' ? .9 : kind === 'blackLace' ? .65 : .45, transform: `translate(2cqw,3vh) scale(1.2) rotate(${kind === 'boost' ? 45 : 0}deg)`, offset: .5 }, { opacity: .05, transform: 'translate(-2cqw,-2vh) scale(.75)' }], { duration, delay: -i * 871, iterations: Infinity, easing: 'ease-in-out' });
+            }
+        }
+    }
+    reduced.addEventListener('change', () => { if (layer) {
+        stop();
+        start();
+    } });
+    return { start, stop };
+}
+let cloud;
+function createPatternToken(kind) {
+    if (isSpecialDrug(kind))
+        return createDrugToken(kind);
+    const container = new PIXI.Container();
+    container.eventMode = 'none';
+    const shapes = new PIXI.Graphics();
+    container.addChild(shapes);
+    const fog = [];
+    if (['radiation', 'gas', 'blackLace'].includes(kind)) {
+        if (!cloud || cloud.destroyed) {
+            const image = document.createElement('canvas');
+            image.width = image.height = 128;
+            const ctx = image.getContext('2d'), gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, 'rgba(255,255,255,.7)');
+            gradient.addColorStop(.4, 'rgba(255,255,255,.4)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 128, 128);
+            cloud = PIXI.Texture.from(image);
+        }
+        for (let i = 0; i < 5; i++) {
+            const sprite = new PIXI.Sprite(cloud);
+            sprite.anchor.set(.5);
+            sprite.tint = Number.parseInt(colors[kind].slice(1), 16);
+            container.addChild(sprite);
+            fog.push(sprite);
+        }
+    }
+    function update(w, h, time, phase, stationary) {
+        const t = stationary ? 0 : time, r = Math.min(w, h), color = Number.parseInt(colors[kind].slice(1), 16);
+        shapes.clear();
+        fog.forEach((sprite, i) => { const pulse = (Math.sin(t * .7 + i * 1.8 + phase) + 1) / 2; sprite.position.set(w * (.2 + (i % 3) * .3) + Math.sin(t * .2 + i) * w * .035, h * (i < 3 ? .25 : .75)); sprite.width = w * (.6 + pulse * .2); sprite.height = h * (.6 + pulse * .2); sprite.alpha = .16 + pulse * .28; });
+        if (kind === 'boost') {
+            shapes.lineStyle(Math.max(1, r * .01), color, .4);
+            for (let i = 0; i < 3; i++) {
+                const x = w * (.2 + i * .3), y = h * (.3 + .1 * Math.sin(t * .4 + i));
+                shapes.drawPolygon([x, y - r * .12, x + r * .12, y, x, y + r * .12, x - r * .12, y]);
+                if (i < 2) {
+                    shapes.moveTo(x, y);
+                    shapes.lineTo(x + w * .3, y);
+                }
+            }
+        }
+        if (kind === 'synthcoke') {
+            shapes.lineStyle(Math.max(1, r * .018), color, .3 + .2 * Math.sin(t * 2));
+            for (let i = 0; i < 4; i++) {
+                const y = h * ((i * .23 + t * .14) % 1);
+                shapes.moveTo(w * .12, y);
+                shapes.lineTo(w * .65, y - r * .08);
+            }
+        }
+        if (kind === 'blackLace') {
+            shapes.lineStyle(Math.max(1, r * .025), color, .25);
+            shapes.drawPolygon([w * .08, h * .2, w * .2, h * .36, w * .1, h * .52, w * .22, h * .76]);
+        }
+        if (kind === 'radiation') {
+            shapes.beginFill(0xe4ed80, .4);
+            for (let i = 0; i < 7; i++)
+                shapes.drawCircle(w * ((i * .173 + phase * .1) % 1), h * ((i * .137 + t * .025) % 1), Math.max(1, r * .012));
+            shapes.endFill();
+        }
+    }
+    return { container, update, destroy: () => container.destroy({ children: true, texture: false, baseTexture: false }) };
+}
+
+// Borrow the live token texture; never extract pixels or own/destroy its image.
+// Pixi's stock sprite mask also uses the red channel. Only alpha should clip
+// these effects, otherwise opaque black artwork would incorrectly erase them.
+const fragment = `
+varying vec2 vTextureCoord;
+varying vec2 vMaskCoord;
+uniform sampler2D uSampler;
+uniform sampler2D mask;
+uniform vec4 maskClamp;
+void main(void) {
+  float inside = step(maskClamp.x, vMaskCoord.x) * step(maskClamp.y, vMaskCoord.y)
+    * step(vMaskCoord.x, maskClamp.z) * step(vMaskCoord.y, maskClamp.w);
+  float coverage = texture2D(mask, vMaskCoord).a * inside;
+  gl_FragColor = texture2D(uSampler, vTextureCoord) * coverage;
+}`;
+function createTokenEffectMask(token, layer) {
+    const sprite = new PIXI.Sprite();
+    sprite.eventMode = 'none';
+    layer.addChild(sprite);
+    const local = new PIXI.Matrix(), previous = new PIXI.Matrix();
+    let initialized = false;
+    function update() {
+        const mesh = token.mesh, texture = mesh?.texture;
+        if (!mesh || !texture?.valid || mesh.destroyed)
+            return false;
+        let changed = !initialized;
+        if (sprite.texture !== texture) {
+            sprite.texture = texture;
+            changed = true;
+        }
+        if (sprite.anchor.x !== mesh.anchor.x || sprite.anchor.y !== mesh.anchor.y) {
+            sprite.anchor.copyFrom(mesh.anchor);
+            changed = true;
+        }
+        // Token artwork lives in PrimaryCanvasGroup, not under the Token container.
+        // Convert its world transform into this overlay's local coordinates. This
+        // includes texture scale, mirroring, rotation, anchor, movement and canvas zoom.
+        local.copyFrom(layer.worldTransform).invert().append(mesh.worldTransform);
+        if (changed || local.a !== previous.a || local.b !== previous.b || local.c !== previous.c || local.d !== previous.d || local.tx !== previous.tx || local.ty !== previous.ty) {
+            sprite.transform.setFromMatrix(local);
+            sprite.updateTransform();
+            previous.copyFrom(local);
+            initialized = true;
+        }
+        return true;
+    }
+    class ImageAlphaFilter extends PIXI.SpriteMaskFilter {
+        constructor() { super(undefined, fragment); this.maskSprite = sprite; }
+        apply(manager, input, output, clear) {
+            // Render-time transforms are current even during movement animation or zoom.
+            // Missing/unloaded artwork must not expose an unmasked rectangular effect.
+            if (update())
+                super.apply(manager, input, output, clear);
+        }
+    }
+    const filter = new ImageAlphaFilter();
+    layer.filters = [filter];
+    return {
+        update,
+        destroy() {
+            layer.filters = null;
+            filter.destroy();
+            layer.removeChild(sprite);
+            sprite.destroy({ texture: false, baseTexture: false });
+        }
+    };
+}
+
+const app=new PIXI.Application({width:260,height:260,backgroundAlpha:0,antialias:true,preserveDrawingBuffer:true});document.getElementById('token').append(app.view);
+const art=document.createElement('canvas');art.width=art.height=160;const ctx=art.getContext('2d');
+ctx.fillStyle='#3b4c59';ctx.beginPath();ctx.moveTo(80,6);ctx.lineTo(147,44);ctx.lineTo(147,116);ctx.lineTo(80,154);ctx.lineTo(13,116);ctx.lineTo(13,44);ctx.closePath();ctx.fill();ctx.strokeStyle='#8296a5';ctx.lineWidth=3;ctx.stroke();
+ctx.fillStyle='#9cadb8';ctx.beginPath();ctx.arc(80,58,24,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(80,116,40,28,0,Math.PI,Math.PI*2);ctx.fill();
+const mesh=new PIXI.Sprite(PIXI.Texture.from(art));mesh.position.set(50,50);app.stage.addChild(mesh);
+const overlay=new PIXI.Graphics();overlay.position.set(50,50);app.stage.addChild(overlay);const mask=createTokenEffectMask({mesh},overlay);
+const kinds=['berserker','primeTime','sixgun','timewarp'],screens=new Map(kinds.map(kind=>[kind,createPatternScreen(kind)]));
+const descriptions={berserker:'Dark green aggressive cuts with a pulsing red halo.',primeTime:'Translucent steel-blue and violet glass panes drift slowly across one another.',sixgun:'Six moving data packets with cyan circuits and amber accents.',timewarp:'Cyan-violet trailing contours and stretched peripheral motion.'};
+let pattern,elapsed=0;
+function stop(){for(const screen of screens.values())screen.stop();pattern?.destroy();pattern=undefined;}
+function show(){stop();const kind=document.getElementById('drug').value,mode=document.getElementById('mode').value;document.getElementById('description').textContent=descriptions[kind];if(mode!=='token')screens.get(kind).start();if(mode!=='screen'){pattern=createPatternToken(kind);overlay.addChild(pattern.container);}}
+app.ticker.add(delta=>{elapsed+=Math.min(delta,3)/60;pattern?.update(160,160,elapsed,0,matchMedia('(prefers-reduced-motion: reduce)').matches)});
+document.getElementById('play').onclick=show;document.getElementById('drug').onchange=show;document.getElementById('mode').onchange=show;document.getElementById('stop').onclick=stop;
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});window.addEventListener('pagehide',()=>{stop();mask.destroy();app.destroy(true,{children:true,texture:true,baseTexture:true})});
+window.drugPreview={show,stop,app,overlay,kinds};show();
+</script></html>

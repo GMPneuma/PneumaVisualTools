@@ -93,7 +93,7 @@ try {
  }
  await page.evaluate(()=>{
   const root=document.querySelector('#attack-false');
-  const section=document.createElement('section');section.className='pneuma-resolution-damage-roll pvt-section-rail pvt-damage-collapsed';
+  const section=document.createElement('section');section.className='pneuma-resolution-damage-roll pvt-full-section pvt-section-rail pvt-damage-collapsed';
   section.innerHTML='<div class="pneuma-resolution-label">Damage</div><div class="pneuma-resolution-body"><div class="pneuma-damage-heading"><span class="pneuma-damage-ammo">Incendiary</span></div><div class="d6-rollcard-data"><div class="d6-dice-div"><img src="'+img+'"></div><div class="d6-number-div">19</div></div></div>';
   root.append(section);window.savedAmmo=section.querySelector('.pneuma-damage-ammo');
   applyChatSkin(root,'compact');
@@ -104,10 +104,27 @@ try {
    const group=root.querySelector('.d6-dice-div');const original=group.querySelector('img');
    group.replaceChildren(...Array.from({length:count},()=>original.cloneNode(true)));
    group.classList.add('pneuma-balanced-dice');balanceDamageDice(group);
-   return new Set([...group.children].map(img=>img.getBoundingClientRect().top)).size;
+   const rects=[...group.children].map(img=>img.getBoundingClientRect());
+   const bounds=group.getBoundingClientRect();
+   if(width>=300 && rects.some(rect=>Math.abs(rect.width-32)>0.1))throw Error(JSON.stringify({width,count,parent:group.parentElement.clientWidth,group:group.clientWidth,faces:rects.map(r=>r.width),size:getComputedStyle(group).getPropertyValue("--pvt-damage-size")}));
+   for(let i=0;i<rects.length;i++){
+    if(rects[i].right>bounds.right+1)throw Error('Damage die escapes group');
+    for(let j=i+1;j<rects.length;j++)if(Math.abs(rects[i].top-rects[j].top)<1&&rects[i].right>rects[j].left-1)throw Error('Damage dice overlap');
+   }
+   return new Set(rects.map(rect=>rect.top)).size;
   },{width,count});
-  assert.equal(rows,count<=5?1:2,'damage dice rows '+count+' at '+width);
+  assert.equal(rows,count<=6?1:2,'damage dice rows '+count+' at '+width);
  }
+ const critical=await page.evaluate(()=>{
+  const section=document.querySelector('#attack-false .pneuma-resolution-damage-roll');
+  const group=section.querySelector('.d6-dice-div');const die=group.querySelector('img');
+  section.classList.remove('pneuma-resolution-damage-roll');section.classList.add('pneuma-critical-injury-card');
+  group.replaceChildren(die,die.cloneNode(true));balanceDamageDice(group);
+  const sizes=[...group.children].map(img=>img.getBoundingClientRect().width);
+  section.classList.remove('pneuma-critical-injury-card');section.classList.add('pneuma-resolution-damage-roll');
+  return sizes;
+ });
+ assert.deepEqual(critical,[32,32],'Compact critical injury retains readable D6 faces');
  assert.equal(await page.locator('#attack-false .pvt-damage-toggle').count(),0);
  assert.equal(await page.locator('#attack-false .pvt-damage-collapsed').count(),0);
  assert.equal(await page.locator('#attack-false .d6-rollcard-data > .pneuma-damage-ammo').count(),1);

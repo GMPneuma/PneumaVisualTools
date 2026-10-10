@@ -338,14 +338,19 @@ const installedPopoverTriggers = new WeakSet<HTMLElement>();
  * Use available width; smaller areas retain balanced rows. */
 function balanceDamageDice(group: HTMLElement): void {
   const dice = Array.from(group.children).filter((node): node is HTMLImageElement => node instanceof HTMLImageElement);
+  const compact = !!group.closest(".pneuma-skin-compact");
+  if (compact) {
+    const fullWidth = !!group.closest('.pneuma-resolution-damage-roll');
+    const available = Math.max(34, (group.closest<HTMLElement>('.pneuma-chat-card')?.clientWidth ?? 310) - (fullWidth ? 68 : 100));
+    group.style.width = Math.min(Math.min(6, dice.length) * 34, available) + 'px';
+  } else group.style.removeProperty('width');
   const width = group.clientWidth;
   if (!dice.length || !width) return;
-  const compact = !!group.closest(".pneuma-skin-compact");
-  const capacity = compact ? Math.min(5, dice.length) : Math.max(1, Math.floor((width + 2) / 46));
+  const capacity = compact ? Math.min(6, dice.length) : Math.max(1, Math.floor((width + 2) / 46));
   const rows = Math.ceil(dice.length / capacity);
   const perRow = Math.floor(dice.length / rows), extra = dice.length % rows;
   const columns = perRow + (extra ? 1 : 0);
-  const size = Math.min(compact ? 32 : 48, (width - (columns - 1) * 4) / columns);
+  const size = compact ? Math.min(32, width / columns - 2) : Math.min(48, (width - (columns - 1) * 4) / columns);
   const trackSize = compact ? size + 2 : size;
   group.style.setProperty('--pvt-damage-size', `${size}px`);
   group.style.gridTemplateColumns = `repeat(${columns * 2}, ${trackSize / 2}px)`;

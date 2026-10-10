@@ -47,6 +47,56 @@ try{
    if(privacy==='otherScene')m.flags['pneuma-combattools'].exchange.sceneId='elsewhere';hooks.createChatMessage.forEach(fn=>fn(m));},privacy);
   assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,privacy+' blocked');
  }
+ await page.evaluate(()=>{
+  game.user.isGM=true;target.document.hidden=false;
+  window.foundry={utils:{getProperty:(object,path)=>path.split('.').reduce((value,key)=>value?.[key],object)}};
+  window.areaHighlight={renderable:true};canvas.interface={grid:{getHighlightLayer:()=>areaHighlight}};
+  canvas.grid={type:1,getVertices:p=>[{x:p.x,y:p.y},{x:p.x+100,y:p.y},{x:p.x+100,y:p.y+100},{x:p.x,y:p.y+100}]};
+  window.areaTemplate={document:{hidden:false,flags:{'pneuma-combattools':{areaMessage:'fallback-area'}}},renderable:true,highlightId:'area',_getGridHighlightPositions:()=>[{x:700,y:200}]};
+  canvas.templates={placeables:[areaTemplate]};
+  window.areaMsg={id:'fallback-area',visible:true,isContentVisible:true,flags:{'pneuma-combattools':{rollsRevealed:true,aoe:{phase:'responses',attackDiceRevealed:true,kind:'explosive',scene:'s',ammoType:'incendiary',area:{origin:{x:750,y:250}},exchange:{attacker:source.document.uuid,thrownSource:true}}}}};game.messages.push(areaMsg);hooks.createChatMessage.forEach(fn=>fn(areaMsg));
+ });
+ assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'measurement box hides at animation start');
+ await page.waitForTimeout(1500);
+ assert.ok(await page.evaluate(()=>{const c=document.querySelector('.pneuma-weapon-effects');return c?.getContext('2d').getImageData(750,250,1,1).data[3]>0;}),'landing burst is visible with native-template fallback and no new Combat Tools API');
+ assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'box replaced at impact');
+ await page.waitForTimeout(2100);assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'area stays until resolution, past normal animation duration');
+ await page.evaluate(()=>{areaTemplate.renderable=true;areaHighlight.renderable=true;hooks.refreshMeasuredTemplate.forEach(fn=>fn(areaTemplate));});
+ assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'native refresh cannot reveal replaced marker');
+ await page.evaluate(()=>hooks.canvasTearDown.forEach(fn=>fn()));
+ assert.ok(await page.evaluate(()=>areaTemplate.renderable&&areaHighlight.renderable),'unresolved measurement box restored when visuals stop');
+ await page.evaluate(()=>{hooks.canvasReady.forEach(fn=>fn());});
+ await page.waitForFunction(()=>!areaTemplate.renderable);
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'unresolved area recovers on scene reload without replaying flight');
+ await page.evaluate(()=>{areaMsg.flags['pneuma-combattools'].aoe.resolutionComplete=true;areaMsg.flags['pneuma-combattools'].aoe.areaHidden=true;areaTemplate.document.hidden=true;hooks.updateChatMessage.forEach(fn=>fn(areaMsg));});
+ await page.waitForSelector('.pneuma-weapon-effects',{state:'detached'});
+ assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'Combat Tools hidden state remains authoritative after fade');
+ await page.evaluate(()=>hooks.canvasReady.forEach(fn=>fn()));assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'completed areas never recover');
+ await page.evaluate(()=>{
+  const state=areaMsg.flags['pneuma-combattools'].aoe;state.resolutionComplete=false;state.areaHidden=false;state.exchange.combatId=null;areaTemplate.document.hidden=false;
+  hooks.updateChatMessage.forEach(fn=>fn(areaMsg));
+ });
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'noncombat pending areas still recover');
+ await page.evaluate(()=>{canvas.templates.placeables=[];hooks.deleteMeasuredTemplate.forEach(fn=>fn(areaTemplate.document));});
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'deleting main template stops cached area immediately');
+ await page.evaluate(()=>{
+  game.modules.get('pneuma-combattools').api={getAreaEffectCells:()=>[[700,200,800,200,800,300,700,300]]};
+  hooks.canvasReady.forEach(fn=>fn());
+ });
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'historical pending card cannot resurrect a deleted template through footprint API');
+ await page.evaluate(()=>{
+  canvas.templates.placeables=[areaTemplate];window.areaCombat={started:true,flags:{'pneuma-combattools':{evasionEpoch:'first'}}};game.combats=new Map([['combat',areaCombat]]);
+  Object.assign(areaMsg.flags['pneuma-combattools'].aoe.exchange,{combatId:'combat',combatEpoch:'first'});hooks.canvasReady.forEach(fn=>fn());
+ });
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'current encounter area recovers');
+ await page.evaluate(()=>{areaCombat.started=false;});
+ await page.waitForSelector('.pneuma-weapon-effects',{state:'detached'});
+ await page.evaluate(()=>hooks.canvasReady.forEach(fn=>fn()));
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'ended encounter cannot recover unresolved historical area');
+ await page.evaluate(()=>{areaCombat.started=true;areaCombat.flags['pneuma-combattools'].evasionEpoch='second';hooks.canvasReady.forEach(fn=>fn());});
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'reset encounter cannot recover old area');
+ await page.evaluate(()=>{game.combats.clear();hooks.canvasReady.forEach(fn=>fn());});
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'deleted encounter cannot recover old area');
  await page.evaluate(()=>{game.user.isGM=true;target.document.hidden=false;for(const weapon of Object.keys(window.allWeapons))playEffect({weapon,hit:true,visuals:true,sound:true,volume:.2,intensity:.7,positions:()=>({source:{x:160,y:350},target:{x:750,y:250}})});});
  assert.equal(await page.locator('.pneuma-weapon-effects').count(),15);
  await page.waitForFunction(()=>document.querySelectorAll('.pneuma-weapon-effects').length===0);

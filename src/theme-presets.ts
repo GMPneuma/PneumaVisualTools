@@ -2,7 +2,7 @@ import {DEFAULT_THEME,generatePalette,normalizeTheme,type CustomTheme} from './t
 export type ThemePreset={name:string;theme:CustomTheme};
 export const PNEUMA_PRESETS:ThemePreset[] = [
   {name:'Pneuma Green',theme:structuredClone(DEFAULT_THEME)},
-  ...[{name:'Pneuma Cyan',seed:'#22b8d4'},{name:'Pneuma Violet',seed:'#a030dc'}].map(({name,seed})=>({name,theme:{...structuredClone(DEFAULT_THEME),seed,light:generatePalette(seed,'light'),dark:generatePalette(seed,'dark')}})),
+  ...[{name:'Pneuma Cyan',seed:'#64a9b6'},{name:'Pneuma Purple',seed:'#55475c'}].map(({name,seed})=>({name,theme:{...structuredClone(DEFAULT_THEME),seed,light:generatePalette(seed,'light'),dark:generatePalette(seed,'dark')}})),
 ];
 export function normalizePersonalPresets(value:unknown):(ThemePreset|null)[] {
   const slots=Array.isArray(value)?value:[];

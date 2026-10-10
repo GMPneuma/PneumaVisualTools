@@ -3,7 +3,7 @@ type Data=Record<string,unknown>;
 const object=(value:unknown):Data=>value&&typeof value==='object'?value as Data:{};
 const text=(value:unknown):string=>typeof value==='string'?value:'';
 const point=(value:unknown):Point|undefined=>{const p=object(value);return typeof p.x==='number'&&typeof p.y==='number'&&Number.isFinite(p.x)&&Number.isFinite(p.y)?{x:p.x,y:p.y}:undefined};
-export interface ActionEffect {key:string;source:string;target?:string;point?:Point;scene?:string;weapon:string;mode:string;ammo:string;hit:boolean;privateSource?:boolean;title?:string;weaponId?:string}
+export interface ActionEffect {key:string;source:string;target?:string;point?:Point;scene?:string;weapon:string;mode:string;ammo:string;hit:boolean;privateSource?:boolean;title?:string;weaponId?:string;areaMessage?:string;areaAmmo?:string}
 export function weaponKey(type:string,title=''):string {
  const kind=type.toLowerCase();
  if(kind==='martialarts')return 'martial';if(kind==='unarmed')return 'punch';
@@ -24,7 +24,7 @@ export function actionEffects(id:string,flags:unknown,content=''):ActionEffect[]
   const kind=text(aoe.kind),direction=Number(area.direction),length=Number(area.length);
   const endpoint=kind==='explosive'?origin:origin&&Number.isFinite(direction)&&Number.isFinite(length)?{x:origin.x+Math.cos(direction)*length,y:origin.y+Math.sin(direction)*length}:intended;
   if(!endpoint||!text(ex.attacker))return [];
-  return [{key:id+':area',source:text(ex.attacker),point:endpoint,scene:text(aoe.scene),weapon:kind==='suppression'?weaponKey(text(ex.weaponType)):kind==='shell'?'shotgun':ex.thrownSource?'grenade':weaponKey(text(ex.weaponType)),mode:kind==='suppression'?'suppression':'single',ammo:ammoKey(text(aoe.ammoType)||text(object(ex.areaAmmo).type)),hit:true,title:text(ex.title),weaponId:text(ex.weaponId)}];
+  return [{...(kind==='explosive'?{areaMessage:id,areaAmmo:text(aoe.ammoType)||text(object(ex.areaAmmo).type)}:{}),key:id+':area',source:text(ex.attacker),point:endpoint,scene:text(aoe.scene),weapon:kind==='suppression'?weaponKey(text(ex.weaponType)):kind==='shell'?'shotgun':ex.thrownSource?'grenade':weaponKey(text(ex.weaponType)),mode:kind==='suppression'?'suppression':'single',ammo:ammoKey(text(aoe.ammoType)||text(object(ex.areaAmmo).type)),hit:true,title:text(ex.title),weaponId:text(ex.weaponId)}];
  }
  if(exchange.state==='resolved'&&typeof exchange.hit==='boolean'&&text(exchange.attacker)&&text(exchange.defender)){
   return [{key:id+':attack',source:text(exchange.attacker),target:text(exchange.defender),scene:text(exchange.sceneId),weapon:weaponKey(text(exchange.weaponType),text(exchange.title)),mode:exchange.attackMode==='autofire'?'auto':exchange.attackMode==='suppressive'?'suppression':'single',ammo:ammoKey(text(object(exchange.areaAmmo).type)||text(object(object(exchange.damage).result).ammoType)),hit:exchange.hit,title:text(exchange.title),weaponId:text(exchange.weaponId)}];

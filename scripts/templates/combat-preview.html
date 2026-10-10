@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VisualTools — Combat animation preview</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c141a;color:#e5eff1;font:14px system-ui;min-height:100vh;display:grid;place-items:center}main{width:min(1040px,95vw);padding:24px 0}h1{font-size:22px;margin:0 0 8px}p,small{color:#a1b6c0;line-height:1.5}#map{position:relative;aspect-ratio:1000/480;background:#101e26;border:1px solid #344a55;border-radius:4px;overflow:hidden;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:5% 10.4167%}.cover{position:absolute;background:#1d303a}.cover.a{left:42.5%;top:13.54%;width:14.5%;height:11.46%}.cover.b{left:43%;top:76.04%;width:19%;height:10.42%}.cover.c{left:94%;top:19.79%;width:1.2%;height:41.67%;background:#48616e}.token{position:absolute;width:6.8%;aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid currentColor;border-radius:50%;background:#0c141a;color:#71bdcc}#source{left:19%;top:56.25%}#target{left:78.5%;top:44.79%;color:#d17b7b}.token::before{content:'';position:absolute;width:24%;height:24%;left:38%;top:25%;background:currentColor;border-radius:50%}.token::after{content:'';position:absolute;width:44%;height:23%;left:28%;top:56%;background:currentColor;border-radius:6px}.token span{position:absolute;top:120%;left:50%;transform:translateX(-50%);font-size:12px;color:#a1b6c0}nav{position:relative;z-index:100;display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:16px 0}label{display:flex;gap:7px;align-items:center}button,select{font:inherit;background:#16313d;color:#e5eff1;border:1px solid #548792;border-radius:3px;padding:9px 12px}button{cursor:pointer}button:hover{background:#234653}input[type=range]{width:100px;accent-color:#55dce7}.legend{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:12px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}#status{min-height:22px;color:#55dce7}small{display:block;margin-top:8px}
+</style>
+<main><h1>Combat animation preview</h1><p>Weapons, autofire, suppression, melee, and explosives — target impact or miss.</p>
+<div class="legend" id="legend"></div>
+<div id="map" role="img" aria-label="VTT battle map with a grid, cover, an attacker and a target"><div id="area-guide" style="display:none;position:absolute;left:65%;top:20.8333%;width:25%;height:52.0833%;border:2px dashed #e2bb72;background:#e2bb7212"></div><div class="cover a"></div><div class="cover b"></div><div class="cover c"></div><div class="token" id="source"><span>ATTACKER</span></div><div class="token" id="target"><span>TARGET</span></div></div>
+<nav><label>Weapon <select id="weapon"></select></label><label>Mode <select id="mode"></select></label><label>Ammo <select id="ammo"></select></label><button id="play">Fire · Hit</button><button id="miss">Fire · Miss</button><button id="all">Play all</button><button id="stop">Stop</button><button id="resolve" disabled>Finish resolution</button><label><input id="sound" type="checkbox" checked> Sound</label><label>Volume <input id="volume" type="range" min="0" max="100" value="35"></label></nav>
+<div id="status" role="status">Choose a weapon, then fire.</div><small>Uses the module’s current effects. Refreshed on every build; reload this page after rebuilding. Reduced motion uses stationary cues.</small></main>
+<script type="module">
+/* MODULE_RUNTIME_START */
+__WEAPON_RUNTIME__
+/* MODULE_RUNTIME_END */
+const get=id=>document.getElementById(id);let cancel,timer,generation=0,pendingArea=false;
+for(const [key,profile] of Object.entries(weaponProfiles))get('weapon').add(new Option(profile.name,key));
+for(const [key,profile] of Object.entries(profiles)){
+ get('ammo').add(new Option(profile.name,key));
+ const label=document.createElement('span'),dot=document.createElement('i');dot.className='dot';dot.style.background=profile.color;label.append(dot,document.createTextNode(profile.name));get('legend').append(label);
+}
+function stop(){pendingArea=false;get('resolve').disabled=true;get('area-guide').style.visibility='visible';generation++;clearTimeout(timer);cancel?.();cancel=undefined;stopWeaponAudio();get('status').textContent='Stopped';}
+function configure(){
+ const gun=weaponProfiles[get('weapon').value],close=['melee','blade','punch','grapple','martial'].includes(gun.family),previous=get('mode').value;
+ get('mode').replaceChildren(new Option('Single','single'));
+ if(gun.automatic){get('mode').add(new Option('Autofire','auto'));get('mode').add(new Option('Suppression','suppression'));if(previous)get('mode').value=previous;}
+ get('area-guide').style.display=['grenade','rocket'].includes(gun.family)?'block':'none';
+ const previousAmmo=get('ammo').value;get('ammo').replaceChildren();
+ for(const [key,profile] of Object.entries(gun.family==='grenade'?grenadeVisuals:profiles))get('ammo').add(new Option(profile.name,key));
+ if(Array.from(get('ammo').options).some(o=>o.value===previousAmmo))get('ammo').value=previousAmmo;
+ get('ammo').disabled=close||gun.family==='data';
+ get('source').style.left=close?'68.7%':'19%';get('source').style.top=close?'44.79%':'56.25%';
+}
+function previewArea(){
+ const r=get('map').getBoundingClientRect(),w=r.width/20,h=r.height/9.6;
+ const tx=Math.floor(20*.785),ty=Math.floor(9.6*.4479),cells=[];
+ for(let row=ty-2;row<=ty+2;row++)for(let col=tx-2;col<=tx+2;col++){
+  const x=r.left+col*w,y=r.top+row*h;cells.push([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}]);
+ }
+ return cells;
+}
+async function play(hit,ticket=generation){
+ if(get('sound').checked)await unlockWeaponAudio();if(ticket!==generation)return;
+ const point=id=>{const r=get(id).getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}};
+ pendingArea=['grenade','rocket'].includes(get('weapon').value);if(pendingArea)get('area-guide').style.visibility='hidden';
+ cancel=playWeaponEffect({areaPending:pendingArea?()=>pendingArea:undefined,onAreaImpact:()=>{get('area-guide').style.visibility='hidden';get('resolve').disabled=false;get('status').textContent='Area effect active — finish resolution to clear';},area:['grenade','rocket'].includes(get('weapon').value)?previewArea:undefined,areaAmmo:get('ammo').value,weapon:get('weapon').value,mode:get('mode').value,ammo:get('ammo').value,hit,sound:get('sound').checked,volume:Number(get('volume').value)/100,visuals:true,intensity:.8,sourceRadius:get('source').getBoundingClientRect().width/2,targetRadius:get('target').getBoundingClientRect().width/2,positions:()=>({source:point('source'),target:point('target')})});
+ get('status').textContent=weaponProfiles[get('weapon').value].name+' · '+(hit?'Hit':'Miss');
+}
+get('resolve').onclick=()=>{pendingArea=false;get('resolve').disabled=true;get('status').textContent='Resolution complete';};
+get('play').onclick=()=>{stop();void play(true)};get('miss').onclick=()=>{stop();void play(false)};get('stop').onclick=stop;
+get('all').onclick=()=>{stop();const ticket=generation,keys=Object.keys(weaponProfiles);let index=0;const next=async()=>{if(ticket!==generation)return;cancel?.();stopWeaponAudio();get('weapon').value=keys[index++];configure();await play(true,ticket);if(ticket===generation&&index<keys.length)timer=setTimeout(next,3000);};void next()};
+get('weapon').onchange=()=>{stop();configure()};get('mode').onchange=stop;get('ammo').onchange=stop;
+get('volume').oninput=()=>setWeaponVolume(Number(get('volume').value)/100);get('sound').onchange=()=>{if(!get('sound').checked)stopWeaponAudio()};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});window.addEventListener('pagehide',stop);configure();
+</script></html>

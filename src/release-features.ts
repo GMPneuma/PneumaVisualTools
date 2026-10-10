@@ -2,7 +2,7 @@
 export const RELEASE_FEATURES = Object.freeze({
  chatCards: true,
  chatDice: true,
- neuralIntrusion: false,
+ neuralIntrusion: true,
  weaponEffects: true,
- fireEffects: false
+ fireEffects: true
 });

@@ -552,7 +552,7 @@
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-action-header { min-height: 32px; padding-block: 4px 6px; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-heading-check > .pneuma-action-header { min-height: 28px; padding-block: 3px 5px; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact :is(.d10-dice-div, .generic-dice-div) img { --pvt-die-size: 36px; }
-.chat-message.pneuma-chat-card.pneuma-skin-compact .d6-dice-div img { --pvt-die-size: 32px; }
+.chat-message.pneuma-chat-card.pneuma-skin-compact .d6-dice-div img { --pvt-die-size: var(--pvt-damage-size, 32px); }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pvt-section-rail { min-height: 40px; padding-block: 3px; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-apply.pvt-section-rail { min-height: 44px; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact.pneuma-plain-chat > .message-content { padding-block: 4px; }
@@ -662,3 +662,21 @@
 
 .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .d6-dice-div { grid-area: dice; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .d6-number-div { grid-area: total; }
+
+/* Compact native D6 rolls fill their frame; results anchor to its right edge.
+ * Native CPR grid metrics may otherwise collapse/overlap the total cell. */
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data {
+  display: grid !important; width: 100%; min-width: 0;
+  grid-template-columns: minmax(0, 1fr) var(--pvt-total-size) !important;
+  grid-template-areas: "dice total" "details details" !important;
+}
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .d6-dice-div { grid-area: dice !important; justify-self: start; }
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .d6-number-div { grid-area: total !important; justify-self: end; }
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-rollcard-data {
+  grid-template-columns: minmax(0, 1fr) auto var(--pvt-total-size) !important;
+  grid-template-areas: "ammo dice total" "details details details" !important;
+}
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-dice-div { justify-self: end; }
+
+/* Native critical-injury descriptions belong below both dice and total. */
+.chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .rollcard-critinjury-data { grid-area: details; min-width: 0; }

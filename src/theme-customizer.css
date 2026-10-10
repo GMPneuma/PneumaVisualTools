@@ -37,3 +37,19 @@ html.pvt-custom-theme #chat-log .chat-message:not(.pneuma-chat-card) .chat-rollT
 #pvt-theme-customizer .pvt-personal-preset input { width:100%; min-width:0; }
 
 
+
+#pvt-theme-customizer .pvt-preset-columns { display:grid; grid-template-columns:minmax(120px, .8fr) minmax(0, 2fr); gap:16px; align-items:start; margin:12px 0; }
+#pvt-theme-customizer .pvt-pneuma-presets h3 { font-size:14px; margin:0 0 8px; border:0; }
+#pvt-theme-customizer .pvt-pneuma-presets .pvt-theme-toolbar { flex-direction:column; gap:6px; margin:0; }
+#pvt-theme-customizer .pvt-player-presets { min-width:0; margin:0; padding:8px 10px; border:1px solid var(--color-border-light-primary, #888); border-radius:4px; }
+#pvt-theme-customizer .pvt-player-presets legend { padding:0 5px; font-size:14px; font-weight:bold; }
+#pvt-theme-customizer .pvt-player-presets .pvt-personal-preset { grid-template-columns:minmax(0,1fr) 48px 58px; gap:5px; margin:5px 0; }
+#pvt-theme-customizer .pvt-player-presets button { min-width:0; padding:2px 4px; white-space:nowrap; }
+
+#pvt-theme-customizer .pvt-theme-toolbar.pvt-pneuma-presets { flex-direction:row; margin:10px 0; }
+#pvt-theme-customizer .pvt-custom-color-theme { min-width:0; margin:12px 0; padding:14px; border:1px solid var(--color-border-light-primary,#888); border-radius:5px; }
+#pvt-theme-customizer .pvt-custom-color-theme > legend { padding:0 6px; font-size:16px; font-weight:bold; }
+#pvt-theme-customizer .pvt-player-presets .pvt-personal-preset { grid-template-columns:24px minmax(0,1fr) 56px 58px; }
+#pvt-theme-customizer .pvt-player-presets .pvt-preset-swatch { width:24px; height:24px; min-height:0; padding:0; border:1px solid var(--color-border-light-primary,#888); border-radius:3px; }
+#pvt-theme-customizer .pvt-main-accent { margin:16px 0 10px; }
+#pvt-theme-customizer [data-function="manual"] { width:auto; padding:3px 10px; margin-bottom:10px; }

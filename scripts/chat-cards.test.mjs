@@ -395,7 +395,7 @@ try {
     values.chatSkin='cyberpunk';registered.chatSkin.onChange('cyberpunk');
     const binding=bindings.cycleChatSkin,root=document.querySelector('#exchange'),node=root.querySelector('.pneuma-exchange-header');
     if(binding.repeat!==false||binding.restricted!==false)throw Error('Hotkey must be client accessible and not repeat while held');
-    for(const expected of ['technical','compact','compact-hub','off','cyberpunk']){
+    for(const expected of ['compact-hub','technical','compact','off','cyberpunk']){
       if(!binding.onDown())throw Error('Hotkey not handled');
       await new Promise(resolve=>setTimeout(resolve,0));
       if(values.chatSkin!==expected||root.querySelector('.pneuma-exchange-header')!==node)throw Error('Cycle order or DOM preservation failed');
@@ -437,7 +437,10 @@ try {
   });
   for(const skin of ['cyberpunk','technical']) {
     await page.evaluate(skin=>window.registered.chatSkin.onChange(skin),skin);
+    await redesigned.locator('.pneuma-inline-roll > summary').scrollIntoViewIfNeeded();
     await page.mouse.move(0,0);
+    // Finish scroll-dismiss before opening the hover popover.
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     await redesigned.locator('.pneuma-inline-roll > summary').hover();
     const popupFrame=page.locator('#pneuma-roll-popover .cpr-block');
     assert.equal(await popupFrame.evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)');
@@ -620,7 +623,8 @@ try {
     await page.locator('#complete-exchange .pneuma-applied-number').scrollIntoViewIfNeeded();
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     await page.locator('#complete-exchange .pneuma-applied-number').hover();
-    assert.equal(await page.locator('#complete-exchange .pneuma-applied-number').getAttribute('data-pvt-popover'),null,'receipt keeps native click expansion');
+    assert.equal(await page.locator('#complete-exchange .pneuma-applied-number').getAttribute('data-pvt-popover'),'true','receipt exposes saved details on hover');
+    assert.match(await page.locator('#pneuma-roll-popover').innerText(),/Damage rolled 15 \/ Armor SP 9 \/ HP reduced 6/);
     assert.equal(await page.locator('#complete-exchange [data-action="reverseDamage"]').isVisible(),true,'undo remains usable');
     assert.equal(await page.locator('#complete-exchange .pneuma-applied-details').isVisible(),false);
   }
@@ -679,9 +683,9 @@ try {
       await page.locator('#mini-results').evaluate((el,w)=>el.style.width=w+'px',width);
       const rows=await page.locator('#mini-results .pneuma-mini-result-row').evaluateAll(rows=>rows.map(row=>{
         const result=row.querySelector('summary'); const box=result.getBoundingClientRect();
-        return {width:box.width,height:box.height,right:box.right,rowRight:row.getBoundingClientRect().right,color:getComputedStyle(result).color};
+        return {effect:!!row.closest('.pneuma-instant-effect'),width:box.width,height:box.height,right:box.right,rowRight:row.getBoundingClientRect().right,color:getComputedStyle(result).color};
       }));
-      for(const row of rows){assert.equal(row.width,32);assert.equal(row.height,32);assert.ok(Math.abs(row.right-row.rowRight)<1);}
+      for(const row of rows){assert.equal(row.width,32);assert.equal(row.height,row.effect?24:32);assert.ok(Math.abs(row.right-row.rowRight)<1);}
       assert.equal(rows[0].color,skin==='technical'?'rgb(183, 25, 36)':'rgb(255, 53, 77)');assert.equal(rows[1].color,skin==='technical'?'rgb(25, 25, 25)':'rgb(85, 220, 231)');assert.equal(rows[2].color,skin==='technical'?'rgb(40, 122, 53)':'rgb(32, 238, 121)');
       assert.ok(await page.locator('#mini-results').evaluate(el=>el.scrollWidth<=el.clientWidth));
     }
@@ -1018,7 +1022,7 @@ try {
       assert.deepEqual(await measure('technical'),await measure('cyberpunk'),`shared geometry ${id}/${width}`);
     }
   }
-  assert.deepEqual(await page.evaluate(()=>Object.keys(registered.chatSkin.choices)),['cyberpunk','technical','off']);
+  assert.deepEqual(await page.evaluate(()=>Object.keys(registered.chatSkin.choices)),['cyberpunk','compact-hub','technical','compact','off']);
   await page.evaluate(()=>{
     registered.chatSkin.onChange('technical');
     const theme=document.querySelector('#theme-light');

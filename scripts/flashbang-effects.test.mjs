@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+const hooks={},nodes=[],animations=[],media={matches:false,addEventListener(){}};let state={id:'old',created:Date.now()-10000};
+const context=vm.createContext({mountScreenEffect(){},removeScreenEffect:layer=>layer?.remove(),Date,game:{modules:{get:()=>({active:true,api:{getFlashbangState:()=>state}})},settings:{get:()=>true},user:{character:{}}},canvas:{tokens:{controlled:[]}},matchMedia:()=>media,Hooks:{once:(k,f)=>hooks[k]=f,on:(k,f)=>hooks[k]=f},window:{addEventListener(){}},document:{hidden:false,addEventListener(){},body:{append(){}},createElement:()=>{const node={style:{},setAttribute(){},append(){},getAnimations:()=>[],remove(){this.removed=true;},animate:(frames,options)=>{const animation={frames,options};animations.push(animation);return animation;}};nodes.push(node);return node;}}});
+vm.runInContext((await readFile('dist/flashbang-effects.js','utf8')).replace(/^import .*;\s*/gm,'').replace(/export /g,'')+'\nregisterFlashbangEffects();',context);
+hooks.ready();assert.equal(animations.length,0,'refresh restores haze without replaying old flash');assert.match(nodes.at(-1).style.background,/transparent 48%/);
+state={id:'new',created:Date.now()};hooks.updateCombat();assert.equal(animations.length,1);assert.equal(nodes.at(-1).style.background,'white');assert.equal(animations[0].frames[0].opacity,1);assert.equal(animations[0].frames.at(-1).opacity,0);
+hooks.updateCombat();assert.equal(animations.length,1,'ordinary updates do not repeat the flash');state=undefined;hooks.updateWorldTime();assert.equal(nodes.at(-2).removed,true);
+media.matches=true;state={id:'reduced',created:Date.now()};hooks.updateCombat();assert.equal(animations.length,1,'reduced motion suppresses the bright flash');
+console.log('Flashbang fresh-hit flash, edge haze, no repeat and reduced motion passed');

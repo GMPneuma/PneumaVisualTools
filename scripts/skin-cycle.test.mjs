@@ -72,15 +72,14 @@ try {
   await cycle('cyberpunk');
   assert.equal(await page.locator('.pneuma-theme-cyberpunk.chat-message').count(),4);
   await page.locator('#log .chat-message').first().evaluate(el=>el.dataset.sameNode='yes');
+  await cycle('compact-hub');
+  assert.equal(await page.locator('.pneuma-skin-compact.pneuma-theme-cyberpunk.chat-message').count(),4);
   await cycle('technical');
   assert.equal(await page.locator('#log .chat-message').first().getAttribute('data-same-node'),'yes');
   assert.deepEqual(await page.evaluate(()=>cardReads),['a','b','a','c'],'enabled palette switch does not rebuild');
   await cycle('compact');
   assert.equal(await page.locator('.pneuma-skin-compact.chat-message').count(),4);
   assert.equal(await page.locator('#log .chat-message').first().getAttribute('data-same-node'),'yes');
-  await cycle('compact-hub');
-  assert.equal(await page.locator('.pneuma-skin-compact.pneuma-theme-cyberpunk.chat-message').count(),4);
-  assert.equal(await page.locator('.pneuma-theme-technical.chat-message').count(),0);
   await cycle('off');
   assert.equal(await page.locator('.pneuma-chat-card, .pneuma-chat-composer, .pneuma-chat-portrait, .pneuma-chat-identity').count(),0);
   assert.deepEqual(await page.locator('.chat-message img').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src'))),Array(4).fill('systems/cyberpunk-red-core/icons/dice/black/d6_3.svg'));

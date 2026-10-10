@@ -1,3 +1,4 @@
+import {mountScreenEffect,removeScreenEffect,screenEffectWidth} from './screen-effect-area.js';
 export interface FlameOverlay {start:(strength?:number)=>void;stop:()=>void}
 /** Fixed-size canvas, upscaled by the compositor. Advected heat field: cooling, turbulent rising flow, and luminous combustion. */
 export function createFlameOverlay():FlameOverlay {
@@ -6,7 +7,7 @@ export function createFlameOverlay():FlameOverlay {
  function fitTiles(){
   if(!layer)return;
   const displayHeight=Math.min(260,innerHeight*.26),tileWidth=displayHeight*600/180;
-  const count=Math.max(1,Math.ceil(innerWidth/tileWidth));
+  const count=Math.max(1,Math.ceil(screenEffectWidth()/tileWidth));
   while(tiles.length>count){const tile=tiles.pop()!;tile.remove();tile.width=0;tile.height=0}
   while(tiles.length<count){const tile=document.createElement('canvas');tile.width=600;tile.height=180;tile.style.flex='0 0 auto';tile.style.height='100%';tiles.push(tile);layer.append(tile)}
   tiles.forEach((tile,i)=>{tile.style.width=`${tileWidth}px`;tile.style.transform=i%2?'scaleX(-1)':'';tile.getContext('2d')!.drawImage(buffer,0,0)});
@@ -63,10 +64,10 @@ export function createFlameOverlay():FlameOverlay {
   for(const tile of tiles){const context=tile.getContext('2d')!;context.clearRect(0,0,width,height);context.drawImage(buffer,0,0)}
   if(!reduced.matches)frame=requestAnimationFrame(paint);
  }
- function stop(){cancelAnimationFrame(frame);frame=0;if(layer){layer.remove();for(const tile of tiles){tile.width=0;tile.height=0}tiles.length=0;buffer.width=0;buffer.height=0}layer=undefined;heat.fill(0);next.fill(0);last=0}
+ function stop(){cancelAnimationFrame(frame);frame=0;if(layer){removeScreenEffect(layer);for(const tile of tiles){tile.width=0;tile.height=0}tiles.length=0;buffer.width=0;buffer.height=0}layer=undefined;heat.fill(0);next.fill(0);last=0}
  function start(level=1){strength=Math.max(1,Math.min(3,level));if(layer){layer.style.opacity=String(.65+strength*.08);return}
   buffer.width=width;buffer.height=height;layer=document.createElement('div');layer.id='pneuma-fire-overlay';layer.setAttribute('aria-hidden','true');
-  Object.assign(layer.style,{display:'flex',overflow:'hidden',position:'fixed',bottom:'0',left:'0',width:'100vw',height:'26vh',maxHeight:'260px',pointerEvents:'none',zIndex:'1',opacity:String(.65+strength*.08)});document.body.append(layer);fitTiles();
+  Object.assign(layer.style,{display:'flex',overflow:'hidden',position:'fixed',bottom:'0',left:'0',width:'100cqw',height:'26vh',maxHeight:'260px',pointerEvents:'none',zIndex:'1',opacity:String(.65+strength*.08)});mountScreenEffect(layer,true,fitTiles);fitTiles();
   if(reduced.matches){for(let i=0;i<heat.length;i++){const y=Math.floor(i/width);heat[i]=Math.max(0,(y/height-.25)*.85)}paint(performance.now()+40)}else frame=requestAnimationFrame(paint);
  }
  window.addEventListener('resize',fitTiles);

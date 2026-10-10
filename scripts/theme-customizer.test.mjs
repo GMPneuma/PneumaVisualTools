@@ -34,7 +34,7 @@ try {
    }return output;};return render(0,tokens.length,data);
   };
   window.hooks={};window.Hooks={once:(n,f)=>hooks[n]=f};window.settings={};window.menus={};window.flags={alice:{},bob:{}};
-  window.game={modules:new Map(),user:{id:'alice',getFlag:(m,k)=>flags[game.user.id][k],setFlag:async(m,k,v)=>{flags[game.user.id][k]=structuredClone(v);}},settings:{register:(m,k,v)=>{settings[k]=structuredClone(v.default);window.settingOptions=v;window.settingChange=v.onChange;},registerMenu:(m,k,v)=>menus[k]=v,get:(m,k)=>settings[k],set:async(m,k,v)=>{settings[k]=structuredClone(v);settingChange();}}};
+  window.game={modules:new Map(),user:{id:'alice',getFlag:(m,k)=>flags[game.user.id][k],setFlag:async(m,k,v)=>{flags[game.user.id][k]=structuredClone(v);}},settings:{register:(m,k,v)=>{settings[k]=structuredClone(v.default);window.settingOptions=v;window.settingChanges??={};settingChanges[k]=v.onChange;},registerMenu:(m,k,v)=>menus[k]=v,get:(m,k)=>settings[k],set:async(m,k,v)=>{settings[k]=structuredClone(v);await settingChanges[k]?.(v);}}};
   window.foundry={utils:{mergeObject:(a,b)=>({...a,...b}),getRoute:path=>'/foundry/'+path}};
   window.FormApplication=class {
    static get defaultOptions(){return {};}
@@ -48,15 +48,20 @@ try {
  await page.addScriptTag({content:sources.map(s=>s.replace(/^import .*\n/gm,'').replace(/^export /gm,'')).join('\n')+'\nregisterThemeCustomizer();hooks.ready();window.editor=new ThemeCustomizer();editor.render(true);'});
  assert.equal(await page.evaluate(()=>settingOptions.scope),'client');assert.equal(await page.evaluate(()=>menus.themeCustomizer.restricted),false);
  assert.equal(await page.locator('[data-pneuma-preset]').count(),3);
- await page.locator('details').evaluate(e=>e.open=true);
+
  assert.equal(await page.locator('[data-save-preset]').count(),3);
+ const placement=await page.evaluate(()=>{const top=document.querySelector('.pvt-pneuma-presets').getBoundingClientRect();const box=document.querySelector('.pvt-custom-color-theme').getBoundingClientRect();return top.bottom<=box.top&&document.querySelectorAll('.pvt-pneuma-presets button').length===3;});
+ assert.equal(placement,true,'Horizontal Pneuma presets above boxed custom editor');
+ assert.equal(await page.locator('[data-picker]').count(),1,'Only Main Accent initially visible');
+ assert.equal(await page.locator('.pvt-preset-swatch').count(),3);
+ assert.equal(await page.locator('.pvt-player-presets legend').innerText(),'Player presets');
  assert.equal(await page.evaluate(()=>settings.customTheme.enabled),false);
  assert.notEqual(await page.locator('#native .tab-label.active').evaluate(e=>getComputedStyle(e).backgroundColor),baseline,'Existing native tab recolors immediately');
  await page.locator('[data-seed]').fill('#a030dc');
  const purple=await page.locator('#native .tab-label.active').evaluate(e=>getComputedStyle(e).backgroundColor);
  assert.equal(await page.locator('#native h2').evaluate(e=>getComputedStyle(e).borderBottomColor),purple,'Root-derived divider alias recolors');
  assert.deepEqual(await page.locator('#native').boundingBox(),before,'Native geometry unchanged');
- await page.locator('details').evaluate(e=>e.open=true);
+
  await page.locator('[data-preset-name="0"]').fill('Purple');await page.locator('[data-save-preset="0"]').click();
  await page.waitForFunction(()=>flags.alice.themePresets?.[0]?.name==='Purple');
  assert.equal(await page.evaluate(()=>settings.customTheme.enabled),false,'Saving a slot does not apply');
@@ -67,9 +72,11 @@ try {
  await page.locator('[data-pneuma-preset="1"]').click();
  await page.locator('[data-function="manual"]').click();assert.equal(await page.locator('[data-picker]').count(),8);
  await page.locator('[name="main"]').fill('#234567');
- await page.locator('[data-edit-mode="dark"]').click();await page.locator('[name="name"]').fill('#ffdd00');
- await page.locator('[data-edit-mode="light"]').click();assert.equal(await page.locator('[name="main"]').inputValue(),'#234567');
- await page.locator('[data-edit-mode="dark"]').click();assert.equal(await page.locator('[name="name"]').inputValue(),'#ffdd00');
+ assert.equal(await page.locator('[name="mode"]').count(),0,'Light/Dark unavailable while following system');
+ await page.locator('[name="overrideSystem"]').check();
+ await page.locator('[name="mode"]').selectOption('dark');await page.locator('[name="name"]').fill('#ffdd00');
+ await page.locator('[name="mode"]').selectOption('light');assert.equal(await page.locator('[name="main"]').inputValue(),'#234567');
+ await page.locator('[name="mode"]').selectOption('dark');assert.equal(await page.locator('[name="name"]').inputValue(),'#ffdd00');
  await page.locator('[name="mode"]').selectOption('dark');
  await page.locator('button[type="submit"]').click();
  assert.equal(await page.evaluate(()=>settings.customTheme.enabled),true,'Apply works without a separate enable checkbox');
@@ -82,16 +89,16 @@ try {
  assert.deepEqual(await page.evaluate(()=>settings.customTheme),saved);
  await page.evaluate(()=>{window.editor=new ThemeCustomizer();editor.render(true);});
  for(const index of [1,2]){
-  await page.locator('details').evaluate(e=>e.open=true);await page.locator(`[data-preset-name="${index}"]`).fill(`Personal ${index+1}`);await page.locator(`[data-save-preset="${index}"]`).click();await page.waitForFunction(i=>Boolean(flags.alice.themePresets[i]),index);
+  await page.locator(`[data-preset-name="${index}"]`).fill(`Personal ${index+1}`);await page.locator(`[data-save-preset="${index}"]`).click();await page.waitForFunction(i=>Boolean(flags.alice.themePresets[i]),index);
  }
- await page.locator('details').evaluate(e=>e.open=true);await page.locator('[data-load-preset="0"]').click();
- assert.equal(await page.locator('[data-seed]').inputValue(),'#a030dc');
- await page.locator('details').evaluate(e=>e.open=true);
+ await page.locator('[data-load-preset="0"]').first().click();
+ assert.equal(await page.locator('[data-seed]').inputValue(),await page.evaluate(()=>flags.alice.themePresets[0].theme.dark.main));
+
  await page.screenshot({path:new URL('../docs/theme-customizer-live-check.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1')});
  await page.evaluate(()=>editor.close());
  assert.equal(await page.evaluate(()=>flags.alice.themePresets.filter(Boolean).length),3);
  await page.evaluate(()=>{game.user.id='bob';window.editor=new ThemeCustomizer();editor.render(true);});
- assert.equal(await page.locator('[data-load-preset][disabled]').count(),3,'Personal slots are isolated by player');
+ assert.equal(await page.locator('.pvt-preset-swatch[disabled]').count(),3,'Personal slots are isolated by player');
  await page.evaluate(()=>editor.close());
  assert.equal(await page.evaluate(()=>flags.alice.themePresets[0].name),'Purple');
  await page.evaluate(()=>{settings.customTheme.mode='automatic';applyCustomTheme();document.documentElement.dataset.cprTheme='darkmode';});

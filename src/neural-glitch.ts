@@ -1,3 +1,4 @@
+import {mountScreenEffect,removeScreenEffect} from './screen-effect-area.js';
 /** One timer per focused actor. Ordinary HUD rerenders must not restart the interval. */
 export function createIntrusionGlitches(eligible: () => string | undefined) {
   const looks = [
@@ -15,7 +16,7 @@ export function createIntrusionGlitches(eligible: () => string | undefined) {
   const current = () => !document.hidden && !motion.matches ? eligible() : undefined;
   function stop() {
     clearTimeout(timer); clearTimeout(finish); timer = finish = undefined;
-    overlay?.remove(); overlay = undefined; identity = undefined;
+    removeScreenEffect(overlay); overlay = undefined; identity = undefined;
   }
   function queue(first = false) { timer = setTimeout(burst, first ? 1000 : 6000 + Math.random() * 4000); }
   function burst() {
@@ -66,8 +67,8 @@ export function createIntrusionGlitches(eligible: () => string | undefined) {
       }
       overlay.append(region);
     }
-    document.body.append(overlay);
-    finish = setTimeout(() => { overlay?.remove(); overlay = undefined; finish = undefined; queue(); }, 1800);
+    mountScreenEffect(overlay,true);
+    finish = setTimeout(() => { removeScreenEffect(overlay); overlay = undefined; finish = undefined; queue(); }, 1800);
   }
   function sync() {
     const next = current();

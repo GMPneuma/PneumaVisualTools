@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+const hooks={},active=new Set(),module={};let gas=false;
+const effect={name:'Radiation',statuses:new Set(),disabled:false};
+const actor={uuid:'Actor.test',effects:[effect],items:[]};
+const combat={id:'combat',started:true,combatants:[{actor}],combatant:{actor:{uuid:'Actor.other'}}};
+const game={modules:{get:id=>id==='pneuma-combattools'?{active:true,api:{getTearGasState:()=>gas?{}:undefined}}:module},settings:{get:()=>true},user:{character:actor},time:{worldTime:0},combats:[combat]};
+const context=vm.createContext({game,canvas:{tokens:{controlled:[],placeables:[]}},Hooks:{once:(k,f)=>hooks[k]=f,on:(k,f)=>hooks[k]=f,callAll(){}},document:{hidden:false,addEventListener(){}},window:{addEventListener(){}},hasPrimaryDrug:(a,name)=>a.items.some(item=>item.name===name&&item.active),createPatternScreen:kind=>({start:()=>active.add(kind),stop:()=>active.delete(kind)})});
+vm.runInContext((await readFile('dist/remaining-effects.js','utf8')).replace(/^import .*;\s*/gm,'').replace(/export /g,'')+'\nregisterRemainingEffects();',context);
+hooks.ready();assert.ok(active.has('radiation'));hooks.updateCombat(combat,{round:2});assert.ok(active.has('radiation'));
+combat.combatant={actor};hooks.updateCombat(combat,{turn:1});assert.ok(!active.has('radiation'));hooks.updateActor();assert.ok(!active.has('radiation'),'lingering named marker cannot rearm');
+effect.disabled=true;hooks.updateActiveEffect();effect.disabled=false;combat.combatant={actor:{uuid:'Actor.other'}};hooks.updateActiveEffect();assert.ok(active.has('radiation'));
+actor.items=[{name:'Black Lace',active:true},{name:'Boost',active:true},{name:'Synthcoke',active:false}];hooks.updateItem();assert.ok(active.has('blackLace')&&active.has('boost')&&!active.has('synthcoke'));
+actor.items=['Berserker','Prime Time','Sixgun','Timewarp'].map(name=>({name,active:true}));hooks.updateItem();
+for(const kind of ['berserker','primeTime','sixgun','timewarp'])assert.ok(active.has(kind),'status drug mapping: '+kind);
+combat.combatant={actor};hooks.updateCombat(combat,{turn:4});
+for(const kind of ['berserker','primeTime','sixgun','timewarp'])assert.ok(active.has(kind),'drug duration is not next-turn exposure');
+actor.items=[];hooks.updateItem();for(const kind of ['berserker','primeTime','sixgun','timewarp'])assert.ok(!active.has(kind));
+gas=true;hooks.updateCombat(combat,{flags:{}});assert.ok(active.has('gas'));combat.combatant={actor};hooks.updateCombat(combat,{turn:2});assert.ok(active.has('gas'),'applied Tear Gas is not cut short at next turn');gas=false;hooks.updateWorldTime();assert.ok(!active.has('gas'));
+game.combats=[];module.api.activatePatternEffect(actor,'radiation');assert.ok(active.has('radiation'));game.time.worldTime=6;hooks.updateWorldTime();assert.ok(!active.has('radiation'));
+hooks.canvasTearDown();assert.equal(active.size,0);
+actor.effects=['Sonic Concussion','Stunned','Disoriented','Nausea','Fear','Panic'].map(name=>({name,statuses:new Set(),disabled:false}));actor.items=[];
+hooks.updateActor();assert.equal(active.size,0,'removed names do not activate effects');
+for(const kind of ['sonic','stunned','nausea','fear'])module.api.activatePatternEffect(actor,kind);
+assert.equal(active.size,0,'removed API kinds are rejected');
+console.log('Remaining effect activation, drug state, transient cleanup, gas duration and teardown passed');
+context.probe={effects:[]};
+for(const [name,id] of [['Radiation (Low)','qrncrx71vi0kvn12'],['Radiation (High)','vaciaiw08jooz1hf']]){
+ const e={name,statuses:new Set(),duration:{},disabled:false};context.probe.effects=[e];
+ const detected=()=>vm.runInContext("marked(probe,'radiation')",context);
+ assert.ok(detected(),'catalog display name');e.name='Localized radiation';e.statuses.add(id);assert.ok(detected(),'stable catalog ID');
+ e.disabled=true;assert.equal(detected(),false);e.disabled=false;e.isSuppressed=true;assert.equal(detected(),false);e.isSuppressed=false;
+ e.duration={seconds:1,startTime:0};assert.equal(detected(),false,'expired radiation ignored');
+}
+actor.effects=[{name:'Localized',statuses:new Set(['qrncrx71vi0kvn12']),duration:{}}];hooks.updateActor();assert.ok(active.has('radiation'),'native radiation reaches screen controller');
+assert.ok(vm.runInContext('actorPatternKinds(game.user.character).includes("radiation")',context),'native radiation reaches token triggers');

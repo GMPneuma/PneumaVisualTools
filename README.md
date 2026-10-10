@@ -4,7 +4,7 @@ Planned work and editable statuses: [backlog.md](backlog.md).
 
 Foundry VTT v12 module for Cyberpunk RED.
 
-The current build enables chat-card skinning, dice replacement, and procedural combat visuals/audio, including the upgraded close-combat effects. Neural intrusion glitches and On Fire flames remain disabled by the code-only gates in `src/release-features.ts`.
+Version 0.5.0 enables chat-card skinning, dice replacement, combat visuals/audio, and independent Token Effects and Full Screen Effects, including On Fire and detected Neural Intrusion. Use the Effect Previews menu to inspect the available visuals. Combat-linked effects require compatible Combat Tools APIs; Electrical Shock gameplay activation remains deferred.
 
 ## Chat skins
 
@@ -14,7 +14,7 @@ Choose Pneuma Hub, Cyberpunk Minimal, Ultra Compact, or Ultra Compact — Pneuma
 
 Open **Visual Tools → Customize colors** in module settings. **Simple Recolor** generates both light/dark palettes from one color; **Manual Colors** exposes eight colors per mode. Open any real sheet or roll dialog while editing to see the live preview. **Apply Theme** enables and saves the colors; **Cancel** or closing the editor restores the saved theme.
 
-Choose Pneuma Green, Cyan or Violet, or save both palettes into one of three named personal preset slots. Personal presets belong to your Foundry User record. Saving a slot does not apply it. **Use system colors** disables the custom theme. Hub chat keeps its own palette.
+Choose Pneuma Green, Cyan or Purple, or save both palettes into one of three named personal preset slots. Personal presets belong to your Foundry User record. Saving a slot does not apply it. **Use system colors** disables the custom theme. Hub chat keeps its own palette.
 
 ## Development
 
@@ -47,11 +47,11 @@ Install manifest: https://github.com/GMPneuma/PneumaVisualTools/releases/latest/
 
 Release 0.4.0 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
 
-## Procedural attack effects
+## Attack effects
 
-Newly resolved Combat Tools attacks play local procedural visuals and synthesized audio on the current scene. Pistol, SMG, Rifle, Sniper Rifle, Shotgun, Bow/Crossbow, thrown grenades, rockets, melee/blades, unarmed/martial attacks, grapple, and netrunning results are supported. SMG/Rifle Autofire and Suppression use representative bursts. Area attacks play once after their saved attack is revealed, rather than once per damage recipient.
+Newly resolved Combat Tools attacks play local visuals and synthesized audio on the current scene. Pistol, SMG, Rifle, Sniper Rifle, Shotgun, Bow/Crossbow, thrown grenades, rockets, melee/blades, unarmed/martial attacks, grapple, and netrunning results are supported. SMG/Rifle Autofire and Suppression use representative bursts. Area attacks play once after their saved attack is revealed, rather than once per damage recipient.
 
-Under Visual Tools settings, each client controls **Show procedural attack effects**, **Play procedural attack sounds**, **Attack sound volume**, and **Attack visual intensity**. Sounds unlock after a click or keypress. Reduced motion keeps stationary contact cues. Scene teardown, hidden tabs, and disabled settings stop local effects.
+Under Visual Tools settings, each client controls **Show attack effects**, **Play attack sounds**, **Attack sound volume**, and **Attack visual intensity**. Sounds unlock after a click or keypress. Reduced motion keeps stationary contact cues. Scene teardown, hidden tabs, and disabled settings stop local effects.
 
 Message privacy, hidden tokens, concealed netrunners, and Combat Tools' hidden-weapon setting are respected. Concealed-source netrunning effects are GM-only. Hidden weapon effects are limited to the GM and source owner. Old chat history and later damage/recovery updates do not replay attacks. Native CPR cards without Combat Tools action metadata do not automatically animate.
 
@@ -101,4 +101,12 @@ Chat dice replacement is now built into Visual Tools and works independently of 
 
 See [custom set specification](docs/chat-dice-sets.md). A template ZIP is included in the menu. Keep custom images in a world or other shared Foundry data folder outside the Visual Tools module directory so updates do not overwrite them.
 
-Development only (disabled in 0.2.0): On Fire screen flames use a bundled transparent 900×270, 30 FPS WebM loop instead of live procedural simulation. The preview is docs/fire-animation-preview.html. Reduced motion uses the bundled still image.
+Development only (disabled in 0.2.0): On Fire screen flames use a bundled transparent 900×270, 30 FPS WebM loop instead of live simulation. The preview is docs/fire-animation-preview.html. Reduced motion uses the bundled still image.
+
+### Visual effect previews
+
+Open module settings, then **Effect Previews > Preview effects**. Select one token to preview token visuals. Choose an effect and display mode, then **Preview**, or use **Play All** to cycle through the full list. **Stop** or closing the dialog clears the preview. These are local visual tests; character data and saved settings are unchanged. Humanity previews are screen-only.
+
+Macro/API entry point:
+
+game.modules.get('pneuma-visualtools').api.effectsPreview.open();

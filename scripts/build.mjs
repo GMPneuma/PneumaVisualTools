@@ -39,4 +39,5 @@ if (!RELEASE_FEATURES.neuralIntrusion) excluded.push('intrusion-effects.js', 'ne
 if (!RELEASE_FEATURES.fireEffects) excluded.push('fire-effects.js', 'fire-overlay.js', 'fire-procedural.js', 'fire-loop.webm', 'fire-loop-poster.png');
 for (const file of excluded) await rm(resolve(output, file), { force: true });
 await check(output);
+await import('./combat-sound-preview.mjs');
 console.log("Built " + output);
