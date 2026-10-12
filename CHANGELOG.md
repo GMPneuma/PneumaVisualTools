@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Remove obsolete prerendered fire media and its preview/generation tools, reducing unpacked runtime assets by approximately 4.4 MB. Current procedural fire effects are unchanged.
+- Update chat-skin names, hotkey order, effect statuses and release documentation. Reconcile the backlog with outstanding live verification and deferred work.
+
+Validation: TypeScript/module build and focused fire, preview and startup checks. Live Foundry and multiplayer verification remain pending.
+
 ## 0.5.0
 
 - Add independent Token Effects and Full Screen Effects controls, shared artwork masking, reduced-motion support, and an effects preview menu.

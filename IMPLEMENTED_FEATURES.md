@@ -4,6 +4,10 @@
 
 Released scope is recorded in CHANGELOG.md. All 40 local test scripts pass, including the complete chat-card browser suite; module validation and the TypeScript build pass. Earlier dated development notes below retain their historical context. Live Foundry and multiplayer verification remain separate.
 
+## 0.6.0 asset and documentation cleanup (2026-10-11)
+
+Removed the obsolete prerendered fire video/poster, video preview, offline generator and comparison benchmark. Current fire rendering remains procedural through `fire-overlay.ts` / `fire-procedural.ts`, with previews available in the module. Removed the obsolete local 0.1.0 ZIP. Updated README, backlog and effect statuses to match the current source; live verification remains pending. Dated notes labeled unreleased describe their state at that time, not the current release status.
+
 ## Custom color theme
 
 - Client-local **Custom color theme → Customize colors** menu provides **Simple Recolor** (one color generates eight related shades for both light/dark palettes) and **Manual Colors** (eight color pickers and hex inputs per palette).
@@ -104,13 +108,9 @@ Strict TypeScript, Foundry v12 definitions and flat generated `dist/` output. Br
 
 ## On Fire screen effect
 
-Transparent prerendered VP9 WebM flames use a 900×270, 30 FPS, eight-second blended loop, generated from the retained procedural renderer. Playback contains no heat simulation or JavaScript animation loop. Mirrored sections preserve flame proportions on wide screens and remain behind Foundry controls. Mild/Strong/Deadly statuses change opacity. One controlled visible owned token takes precedence over the assigned character. Disabled/suppressed effects are ignored; Combat Tools is not required.
+Procedural heat-field flames and embers run through `fire-overlay.ts` / `fire-procedural.ts`. Mild, Strong and Deadly native burning statuses control intensity. One controlled visible owned token takes precedence over the assigned character. Disabled and suppressed effects are ignored; Combat Tools is not required.
 
-The client toggle, status removal, hidden tabs, and canvas teardown stop playback and release media sources. Reduced motion and playback failure use a static transparent poster. Build copies both media assets directly into dist. Browser checks cover playback, native status lifecycle, repeated start/stop, 4K proportions, and reduced motion; live Foundry CPU and stability remain unverified. Multiple sections require multiple video elements, so decoder/compositor cost grows with viewport width.
-
-The procedural source is retained only for offline regeneration through scripts/render-fire-loop.mjs (FFmpeg path argument), and is not used by the runtime effect.
-
-Headless Edge at 3840×2160 measured main-thread task time over ten seconds: procedural 0.319 s, video 0.018 s. These measurements exclude media-decoder and GPU work and do not establish total client CPU savings. The video is approximately 4 MB.
+Full Screen Effects controls the screen display; Token Effects independently controls token flames. Status removal, hidden tabs and canvas teardown stop screen rendering. Reduced motion uses a stationary rendering. The in-module Effect Previews menu uses the current renderer. Live Foundry performance and multiplayer verification remain separate from local checks.
 
 ## Compact area chat cards
 

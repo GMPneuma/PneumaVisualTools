@@ -4,11 +4,11 @@ Planned work and editable statuses: [backlog.md](backlog.md).
 
 Foundry VTT v12 module for Cyberpunk RED.
 
-Version 0.5.0 enables chat-card skinning, dice replacement, combat visuals/audio, and independent Token Effects and Full Screen Effects, including On Fire and detected Neural Intrusion. Use the Effect Previews menu to inspect the available visuals. Combat-linked effects require compatible Combat Tools APIs; Electrical Shock gameplay activation remains deferred.
+Version 0.6.0 enables chat-card skinning, dice replacement, combat visuals/audio, and independent Token Effects and Full Screen Effects, including On Fire and detected Neural Intrusion. Use the Effect Previews menu to inspect the available visuals. Combat-linked effects require compatible Combat Tools APIs; Electrical Shock gameplay activation remains deferred.
 
 ## Chat skins
 
-Choose Pneuma Hub, Cyberpunk Minimal, Ultra Compact, or Ultra Compact — Pneuma Hub. Shift–Alt–C cycles those skins and OFF. Compact skins keep dice left of results, opposed rolls side-by-side, and damage dice right of ammo with no Damage collapse control.
+Choose Pneuma Hub, Pneuma Hub - Compact, Cyberpunk Minimal, or Cyberpunk Minimal - Compact. Shift–Alt–C cycles those skins and OFF. Compact skins keep dice left of results, opposed rolls side-by-side, and damage dice right of ammo with no Damage collapse control.
 
 ## Custom color theme
 
@@ -45,7 +45,7 @@ Build, then copy the contents of `dist/` into `Data/modules/pneuma-visualtools/`
 
 Install manifest: https://github.com/GMPneuma/PneumaVisualTools/releases/latest/download/module.json
 
-Release 0.4.0 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
+Version 0.6.0 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
 
 ## Attack effects
 
@@ -63,23 +63,20 @@ After building, run `node scripts/weapon-effects.test.mjs` with Playwright avail
 
 In Configure Settings → Pneuma's Visual Tools:
 
-- **Compact chat cards** is the master switch for all chat customization (per client, enabled by default).
-- **Chat card skin** selects **Pneuma Hub** (dark cyan/amber, default) or **Cyberpunk Minimal** (native theme colors). Both use the exact same layout, dice sizes, portraits and spacing.
+- **Enable Chat Card Re-Skin** is the master switch for chat-card skinning (per client, enabled by default).
+- **Chat card skin** selects **Pneuma Hub** (default), **Pneuma Hub - Compact**, **Cyberpunk Minimal**, or **Cyberpunk Minimal - Compact**. Hub uses its own palette; Minimal follows native theme colors. Each palette offers standard and compact layouts.
 - **Chat portrait image** is a GM-controlled world setting: everyone uses the same token/actor artwork preference for attackers and defenders. Reload to apply. After upgrading from the client setting, the GM should select the world preference once (default: Token image); old per-client choices are no longer used.
 - **Fallback chat portrait** is a GM/world image path or URL. Leave it empty for a blank portrait.
 
-The skin changes immediately when saved. Other chat settings marked for reload still require it. Click Self/Whisper/Blind to reveal recipients; hover, focus or click a supported roll total for its saved breakdown. Native damage buttons remain available beside the action details. Combat Tools exchange/AoE layouts and controls are supported. Both skins share layout and behavior; the technical palette inherits system CSS variables for light/dark chat surfaces.
+The skin changes immediately when saved. Other chat settings marked for reload still require it. Click Self/Whisper/Blind to reveal recipients; hover, focus or click a supported roll total for its saved breakdown. Native damage buttons remain available beside the action details. Combat Tools exchange/AoE layouts and controls are supported. All four skins preserve native controls; the Minimal palette inherits system CSS variables for light/dark chat surfaces.
 
 Browser checks: after building, run node scripts/chat-cards.test.mjs with Playwright available and Edge installed. Set PNEUMA_PLAYWRIGHT_MODULE to a module URL if using a separately installed Playwright runtime.
 
 These settings now use the Visual Tools namespace. Reapply any custom portrait preference, fallback image or disabled master switch under Visual Tools after enabling it.
 
-Neural Intrusion screen glitches are disabled in 0.2.0; their settings are not registered. They require the matching Combat Tools integration for detected Jack-In state; Combat Tools remains usable without this visual module.
+Neural Intrusion visuals are enabled and require the matching Combat Tools integration for detected Jack-In state. Combat Tools remains usable without this visual module.
 
-
-
-
-Chat style hotkey: **Alt+Shift+C** cycles **1. Pneuma Hub → 2. Cyberpunk Minimal → 1**. Rebind Cycle chat styles in Foundry Configure Controls. Uses the existing client setting and immediately re-skins existing cards without replacing their nodes or expanded details.
+Chat style hotkey: **Alt+Shift+C** cycles **Pneuma Hub → Pneuma Hub - Compact → Cyberpunk Minimal → Cyberpunk Minimal - Compact → OFF**. Rebind Cycle chat styles in Foundry Configure Controls. Existing cards update without replacing their nodes or expanded details.
 
 ### Replaceable weapon artwork
 All 21 weapon silhouettes are individual **512 × 256 transparent WebP files**, named `weapon-*.webp`. Source files live directly in `src/`; installed files live directly in the module folder. The same canvas and aspect ratio is used for every weapon, with no per-weapon CSS scaling rules.
@@ -93,7 +90,7 @@ The original assault-rifle art was retained and resized; the remaining artwork w
 
 ## Chat dice
 
-Chat dice replacement is now built into Visual Tools and works independently of the Compact chat cards switch. Disable the separate **Pneuma Chat Dice** module when using this version.
+Chat dice replacement is now built into Visual Tools and works independently of the Enable Chat Card Re-Skin switch. Disable the separate **Pneuma Chat Dice** module when using this version.
 
 - **Replace chat dice**: per-client master switch, on by default. Turning it off immediately restores native images.
 - **Manage dice sets**: choose Pneuma (default) or a registered custom set. The GM can name a set, choose its folder and file format, validate its images, and add/remove it for the world. Each player selects their preferred set.
@@ -101,7 +98,7 @@ Chat dice replacement is now built into Visual Tools and works independently of 
 
 See [custom set specification](docs/chat-dice-sets.md). A template ZIP is included in the menu. Keep custom images in a world or other shared Foundry data folder outside the Visual Tools module directory so updates do not overwrite them.
 
-Development only (disabled in 0.2.0): On Fire screen flames use a bundled transparent 900×270, 30 FPS WebM loop instead of live simulation. The preview is docs/fire-animation-preview.html. Reduced motion uses the bundled still image.
+On Fire uses procedural flames and embers, with strength following Mild / Strong / Deadly burning statuses. Full Screen Effects and Token Effects control the two displays independently. Use the Effect Previews menu to inspect the current renderer.
 
 ### Visual effect previews
 
@@ -109,4 +106,6 @@ Open module settings, then **Effect Previews > Preview effects**. Select one tok
 
 Macro/API entry point:
 
+```javascript
 game.modules.get('pneuma-visualtools').api.effectsPreview.open();
+```

@@ -1,6 +1,6 @@
 # Visual Tools backlog
 
-Updated: 2026-09-29
+Updated: 2026-10-11
 
 Edit each **Status** directly. Priorities are initial suggestions, not an agreed work order.
 
@@ -20,14 +20,14 @@ Sources: [README](README.md), [implemented features](IMPLEMENTED_FEATURES.md), a
 
 **Problem:** Browser fixtures do not establish that real native and Combat Tools cards work across clients.
 
-**Desired result:** Record a live GM/player check of both skins and their controls.
+**Desired result:** Record a live GM/player check of all four skins and their controls.
 
 **Done when:**
 
-- [ ] Check native, attack, damage, grapple, QuickHack and area-effect cards in both skins.
+- [ ] Check native, attack, damage, grapple, QuickHack and area-effect cards in all four skins.
 - [ ] Verify blind/whisper visibility, hidden identities, portraits and fallback images as GM and player.
 - [ ] Check narrow chat widths, long names, expanded rolls, native damage/undo and late-added controls.
-- [ ] Verify skin switching, saved settings and the compact-chat master switch.
+- [ ] Verify skin switching, saved settings and the Enable Chat Card Re-Skin master switch.
 
 **Notes:** README.md and IMPLEMENTED_FEATURES.md explicitly leave live verification pending.
 
@@ -48,40 +48,44 @@ Sources: [README](README.md), [implemented features](IMPLEMENTED_FEATURES.md), a
 
 **Notes:** Source: IMPLEMENTED_FEATURES.md; mechanics remain in Combat Tools.
 
-### BL-003 — Decide ownership of combat header rendering
+### BL-005 - Verify remaining effects and combat animations in a live world
+
+**Priority:** High\
+**Status:** Ready
+
+**Done when:**
+
+- [ ] Verify screen/token effect activation, expiry, disablement and removal, including native Blue Glass use and Choking 1/2 transitions.
+- [ ] Verify attack audio/visuals and persistent AoE effects as GM and player, including resolution, template deletion, encounter end and scene changes.
+- [ ] Verify custom themes, saved settings and Cancel restoration in real sheets and dialogs.
+- [ ] Record module/system versions and results; include reduced motion and independent screen/token switches.
+
+### BL-006 - Electrical Shock gameplay activation
 
 **Priority:** Low\
 **Status:** Idea
 
-**Problem:** The migration notes describe a possible move into Combat Tools, while Visual Tools currently owns the adapters.
+The renderer and preview exist. Gameplay activation is deliberately deferred until a trigger and clearing contract are defined. This entry does not authorize new mechanics.
 
-**Desired result:** Decide whether to retain or move the adapters and update the ownership documentation.
-
-**Done when:**
-
-- [ ] Record the ownership decision.
-- [ ] If a move is approved, preserve visibility, saved titles, native controls and skin contracts without duplicate renderers.
-- [ ] Correct the older client-scoped portrait statement to match the documented GM world setting.
-
-**Notes:** Source: docs/combat-header-migration.md. This entry does not approve migration.
-
-### BL-004 — Prepare the first published release
+### BL-007 - Run behavioral tests in CI
 
 **Priority:** Medium\
-**Status:** Blocked
+**Status:** Ready
 
-**Problem:** The README states that no release has been published and live verification is pending.
-
-**Desired result:** Provide a verified installable package when release is authorized.
-
-**Done when:**
-
-- [ ] Complete BL-001 and BL-002 or record explicitly accepted limitations.
-- [ ] Check matching manifest/package versions and a ZIP with runtime files at its root.
-- [ ] When authorized, publish and verify installation from the public manifest.
-
-**Notes:** Blocked on live verification and release authorization; no release performed by this documentation task.
+CI currently validates TypeScript/module files and builds the package. Add a repeatable test entry point and the required browser dependencies to run the existing behavioral/browser suites. Local test history is recorded in IMPLEMENTED_FEATURES.md.
 
 ## Done or dropped
+
+### BL-003 - Decide ownership of combat header rendering
+
+**Status:** Done (2026-10-11 documentation reconciliation)
+
+The existing [presentation boundary](docs/combat-header-migration.md) records Visual Tools ownership of presentation and Combat Tools ownership of rules, state and controls. Portrait settings are already documented as GM/world settings. No migration is scheduled or performed by this cleanup.
+
+### BL-004 - Prepare the first published release
+
+**Status:** Dropped (2026-10-11; superseded)
+
+The original first-release blocker is obsolete: the checkout records v0.5.0 in its release commit, changelog and manifests. This cleanup does not reverify public release assets or installation. Outstanding live verification remains in BL-001, BL-002 and BL-005.
 
 Existing features and superseded visual designs remain recorded in [IMPLEMENTED_FEATURES.md](IMPLEMENTED_FEATURES.md).

@@ -26,7 +26,7 @@ for (const file of ['soundboard-folder.hbs', 'soundboard-tile.hbs']) await cp(re
 for (const file of ["module.json", "README.md", "CHANGELOG.md"]) {
   await cp(resolve(root, file), resolve(output, file));
 }
-for (const file of ["pneuma-visualtools.css", "chat-cards.css", "chat-hub.css", "chat-theme.css", "chat-dice.css", "chat-dice-settings.hbs", "chat-dice-template.zip", "en.json", "fire-loop.webm", "fire-loop-poster.png"]) {
+for (const file of ["pneuma-visualtools.css", "chat-cards.css", "chat-hub.css", "chat-theme.css", "chat-dice.css", "chat-dice-settings.hbs", "chat-dice-template.zip", "en.json"]) {
   await cp(resolve(root, "src", file), resolve(output, file));
 }
 for (const file of (await readdir(resolve(root, "src"))).filter(name => /^(?:weapon-[a-z-]+|dice-pneuma-[a-z0-9_]+)\.webp$/.test(name))) {
@@ -36,7 +36,7 @@ execFileSync(process.execPath, [tsc], { cwd: root, stdio: "inherit" });
 const { RELEASE_FEATURES } = await import(pathToFileURL(resolve(output, 'release-features.js')).href);
 const excluded = [];
 if (!RELEASE_FEATURES.neuralIntrusion) excluded.push('intrusion-effects.js', 'neural-glitch.js');
-if (!RELEASE_FEATURES.fireEffects) excluded.push('fire-effects.js', 'fire-overlay.js', 'fire-procedural.js', 'fire-loop.webm', 'fire-loop-poster.png');
+if (!RELEASE_FEATURES.fireEffects) excluded.push('fire-effects.js', 'fire-overlay.js', 'fire-procedural.js');
 for (const file of excluded) await rm(resolve(output, file), { force: true });
 await check(output);
 await import('./combat-sound-preview.mjs');

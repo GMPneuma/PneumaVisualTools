@@ -44,7 +44,7 @@ Excluded from this list: bleeding, near death, ongoing poison/radiation, cold, a
 
 Remaining transient effects detect enabled effects with the corresponding roadmap names, or can be activated through the Visual Tools `activatePatternEffect(actor, kind)` API. They do not add native conditions or invent new mechanics. Single-round visual reports clear at the affected actor's next turn or combat end; outside combat the API uses six seconds of game time. Electrical Shock remains deliberately unconnected to gameplay.
 
-## Missing Status-List Drugs — Planned
+## Additional Status-List Drugs — Implemented
 
 Drug scope comes exclusively from Combat Tools’ `masterStatuses` entries in the `drugs` group: [status-catalog.ts](../PneumaCombatTools/src/scripts/status-catalog.ts). The five original drug effects plus these four cover that list. No additional drugs are inferred from external catalogs. The following renderers read active drug effects/status markers without changing gameplay state; live Foundry activation remains to be verified.
 
@@ -66,6 +66,6 @@ Approved additions from the status-list review are limited to the four drugs abo
 | Type | Name | Effect | Expire Timer | Status |
 | --- | --- | --- | --- | --- |
 | Token | Choking 1 / Choking 2 | Restrained dark pulses over token artwork, clipped to its transparency mask; stronger at Choking 2. | Follows active Choking status IDs; level 2 takes precedence. Clears on expiry, suppression, disablement or removal. | Implemented locally; live verification pending |
-| Full Screen | Choking 1 / Choking 2 | Restrained dark peripheral pulses, stronger at Choking 2; center and controls remain clear. | Follow the active Choking status; verify status transition and removal handling before implementation. | Planned |
+| Full Screen | Choking 1 / Choking 2 | Restrained dark peripheral pulses, stronger at Choking 2; center and controls remain clear. | Follows active Choking status IDs; level 2 takes precedence. Clears on expiry, suppression, disablement or removal. | Implemented; live verification pending |
 
 Drug previews: **Settings > Visual Tools > Effect Previews > Preview effects** includes all four drugs in screen/token/both modes. A standalone [drug effects preview](docs/drug-effects-preview.html) also uses the built renderers and token artwork mask. Regenerate it after building with `node scripts/drug-effects-preview.mjs`. Reduced motion keeps motifs stationary.
