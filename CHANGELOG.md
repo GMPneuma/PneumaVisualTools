@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1
+
+- Fix missing EMP token and full-screen visuals when the native EMP status is applied manually. Visuals recognize the status as well as existing Combat Tools item disablements.
+- Respect status removal, disablement, suppression and expiry. No gameplay state is changed.
+- Record the planned Cyberpsychosis effects enhancement in the backlog.
+
+Validation: module build and focused EMP, token, preview and startup regression checks. Live Foundry verification remains pending.
+
 ## 0.6.0
 
 - Remove obsolete prerendered fire media and its preview/generation tools, reducing unpacked runtime assets by approximately 4.4 MB. Current procedural fire effects are unchanged.

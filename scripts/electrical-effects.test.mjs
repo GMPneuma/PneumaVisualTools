@@ -17,3 +17,15 @@ let applied=true;const original=game.modules.get;game.modules.get=id=>id==='pneu
 hooks.updateItem();assert.equal(active.emp,true,'existing applied Combat Tools EMP restores the screen overlay');assert.equal(vm.runInContext('hasEMP(game.user.character)',context),true,'token query reads the same applied state');
 hooks.updateCombat(combat,{turn:2});assert.equal(active.emp,true,'applied EMP follows mechanical duration, not next-turn cleanup');
 applied=false;hooks.updateItem();assert.equal(active.emp,false,'removal or expiry of actual disablement clears visuals');
+
+const empStatus={name:'Localized EMP',statuses:new Set(['3l6yrmvd37862mll']),disabled:false,isSuppressed:false,system:{isSuppressed:false},duration:{}};
+actor.effects=[empStatus];hooks.createActiveEffect();assert.equal(active.emp,true,'native EMP status starts screen effect without item disablement');
+assert.equal(vm.runInContext('hasEMP(game.user.character)',context),true,'token query recognizes native EMP status');
+empStatus.disabled=true;hooks.updateActiveEffect();assert.equal(active.emp,false,'disabled status clears');empStatus.disabled=false;
+empStatus.isSuppressed=true;hooks.updateActiveEffect();assert.equal(active.emp,false,'suppressed status clears');empStatus.isSuppressed=false;
+empStatus.system.isSuppressed=true;hooks.updateActiveEffect();assert.equal(active.emp,false,'native suppression clears');empStatus.system.isSuppressed=false;
+empStatus.duration={seconds:5,startTime:0};hooks.updateWorldTime();assert.equal(active.emp,false,'expired status clears');
+empStatus.duration={remaining:0};hooks.updateCombat(combat,{});assert.equal(active.emp,false,'expired round duration clears');
+empStatus.duration={};hooks.updateActiveEffect();assert.equal(active.emp,true,'re-enabled status restores');
+actor.effects=[];hooks.deleteActiveEffect();assert.equal(active.emp,false,'removed status clears');
+console.log('Native EMP status activation, shared token query, suppression, expiry and removal passed');

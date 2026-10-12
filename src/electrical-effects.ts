@@ -6,7 +6,13 @@ export function hasElectricalShock(actor:Actor|undefined):boolean {return !!acto
 export function hasEMP(actor:Actor|undefined):boolean {
  if(!actor)return false;
  const module=game.modules?.get('pneuma-combattools') as unknown as {active?:boolean,api?:{hasActorEMP?:(actor:Actor)=>boolean}}|undefined;
- return !!(module?.active&&module.api?.hasActorEMP?.(actor))||!!held.get(actor.uuid)?.has('emp');
+ const status=[...(actor.allApplicableEffects?.()??actor.effects)].some(effect=>{
+  if(!effect.statuses.has('3l6yrmvd37862mll')||effect.disabled||effect.isSuppressed||(effect as ActiveEffect & {system?:{isSuppressed?:boolean}}).system?.isSuppressed)return false;
+  const duration=effect.duration as typeof effect.duration & {remaining?:number};
+  if(duration.seconds!=null&&duration.startTime!=null&&Number(game.time?.worldTime??0)>=duration.startTime+duration.seconds)return false;
+  return duration.remaining==null||duration.remaining>0;
+ });
+ return status||!!(module?.active&&module.api?.hasActorEMP?.(actor))||!!held.get(actor.uuid)?.has('emp');
 }
 /** Prepared renderer API; gameplay integrations will call this later. */
 export function registerElectricalEffects():void {

@@ -387,3 +387,7 @@ EMP scattered readouts (2026-10-10, unreleased): diagnostic messages now type in
 EMP varying readout positions (2026-10-10, unreleased): each readout now picks a different vertical position and horizontal inset for its next appearance during its invisible interval. Alternating sides preserve separation between simultaneous messages; the two-message limit and typing cadence remain. Position timer is cleared on stop and disabled for reduced motion. Build and browser checks passed for relocation across multiple cycles and maximum simultaneous visibility.
 
 EMP procedural grids and quieter text (2026-10-10, unreleased): screen faults regenerate with varied 2-5 row/column layouts, square sizes, spacing and shuffled cell order; squares appear and disappear individually. Six bounded screen clusters, with old animations canceled before replacement. Token grids vary per cycle and redraw only when their pixel step changes. Readouts now start every five seconds, remain for 3.6 seconds, then leave a gap. Build and browser tests passed for square progression, readout positions/visibility, reduced motion and cleanup.
+
+## Native EMP status recognition (0.6.1)
+
+Screen and token EMP visuals now recognize the native EMP status ID, including manual application. Disabled, suppressed, expired and removed statuses do not activate visuals. Existing Combat Tools item-disablement recognition remains supported; no gameplay state is modified. Local regression reproduces the missing manual-status trigger before the fix; live Foundry verification remains pending.

@@ -74,6 +74,13 @@ The renderer and preview exist. Gameplay activation is deliberately deferred unt
 
 CI currently validates TypeScript/module files and builds the package. Add a repeatable test entry point and the required browser dependencies to run the existing behavioral/browser suites. Local test history is recorded in IMPLEMENTED_FEATURES.md.
 
+### BL-008 - Enhance Cyberpsychosis effects
+
+**Priority:** Medium\
+**Status:** Idea
+
+Enhance the existing Cyberpsychosis visual effects. Specific visual changes remain to be defined.
+
 ## Done or dropped
 
 ### BL-003 - Decide ownership of combat header rendering
