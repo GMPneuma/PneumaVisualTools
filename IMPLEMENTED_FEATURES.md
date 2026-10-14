@@ -391,3 +391,13 @@ EMP procedural grids and quieter text (2026-10-10, unreleased): screen faults re
 ## Native EMP status recognition (0.6.1)
 
 Screen and token EMP visuals now recognize the native EMP status ID, including manual application. Disabled, suppressed, expired and removed statuses do not activate visuals. Existing Combat Tools item-disablement recognition remains supported; no gameplay state is modified. Local regression reproduces the missing manual-status trigger before the fix; live Foundry verification remains pending.
+
+## Escape menu suppression repair (0.7.0)
+
+With Fix Escape Key enabled, empty-canvas Escape now ignores persistent non-popup panels and detached application roots when deciding whether a popup exists. Keyboard handling captures at window level before document handlers. Existing focused-window close protection and native token/context-menu/tour dismissal remain. Build, regression checks and a headless Edge event-order fixture passed; live Foundry verification remains pending.
+
+## Combat sound tails and explosive impacts (0.7.0)
+
+Gunshot buffers now taper their final 200 ms to exact silence, removing the nonzero endpoint found most strongly in shotgun, sniper and rifle reports. Grenades and rockets use distinct cached stereo blast buffers with pressure transients, low-frequency impact, turbulent decay and staggered reflections; rockets have a stronger launch and deeper, longer detonation. Debris accents remain spatialized. Grenade blast buffers last 2.6 seconds and rocket buffers 3.2 seconds after impact. No convolution/reverb processing is added; each cached blast uses one buffer source and one stereo panner. Both explosion caches together use approximately 2.2 MB at 48 kHz.
+
+The generated combat previews use the same runtime. Play All allows five seconds for each grenade/rocket so their tails finish. Offline browser audio checks cover all 15 attack profiles, bounded full-volume peaks, exact cached endpoints, extended explosion tails, natural silence, cache reuse, mute/stop and source cleanup. A rocket buffer generated in about 16 ms in the headless test; this is local timing, not a live Foundry performance guarantee. Live Foundry/listening verification remains pending.

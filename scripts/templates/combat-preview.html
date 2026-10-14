@@ -49,7 +49,7 @@ async function play(hit,ticket=generation){
 }
 get('resolve').onclick=()=>{pendingArea=false;get('resolve').disabled=true;get('status').textContent='Resolution complete';};
 get('play').onclick=()=>{stop();void play(true)};get('miss').onclick=()=>{stop();void play(false)};get('stop').onclick=stop;
-get('all').onclick=()=>{stop();const ticket=generation,keys=Object.keys(weaponProfiles);let index=0;const next=async()=>{if(ticket!==generation)return;cancel?.();stopWeaponAudio();get('weapon').value=keys[index++];configure();await play(true,ticket);if(ticket===generation&&index<keys.length)timer=setTimeout(next,3000);};void next()};
+get('all').onclick=()=>{stop();const ticket=generation,keys=Object.keys(weaponProfiles);let index=0;const next=async()=>{if(ticket!==generation)return;cancel?.();stopWeaponAudio();get('weapon').value=keys[index++];configure();await play(true,ticket);if(ticket===generation&&index<keys.length)timer=setTimeout(next,['grenade','rocket'].includes(keys[index-1])?5000:3000);};void next()};
 get('weapon').onchange=()=>{stop();configure()};get('mode').onchange=stop;get('ammo').onchange=stop;
 get('volume').oninput=()=>setWeaponVolume(Number(get('volume').value)/100);get('sound').onchange=()=>{if(!get('sound').checked)stopWeaponAudio()};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});window.addEventListener('pagehide',stop);configure();

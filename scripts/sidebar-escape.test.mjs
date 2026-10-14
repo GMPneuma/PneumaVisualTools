@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 let z=100;let enabled=true;let registered;const settings={register:(_m,_k,value)=>registered=value,get:()=>enabled};globalThis.game={settings};
-globalThis.HTMLElement=class {constructor(){this.isConnected=true;this.z=++z;}};
+globalThis.HTMLElement=class {constructor(){this.isConnected=true;this.z=++z;this.popup=true;}matches(){return this.popup;}};
 globalThis.getComputedStyle=node=>({zIndex:String(node.z)});
 globalThis.Application=class {constructor(){this.rendered=true;this.closed=0;this.element=[new HTMLElement()];}async close(){this.closed++;this.rendered=false;this.element[0].isConnected=false;}};
-let keydown;globalThis.document={activeElement:null,addEventListener:(_n,fn)=>keydown=fn};globalThis.ui={windows:{}};
+let keydown;globalThis.document={activeElement:null,addEventListener:(_n,fn)=>keydown=fn};globalThis.ui={windows:{}};globalThis.window={addEventListener:(_n,fn)=>keydown=fn};
 globalThis.foundry={applications:{instances:new Map()},utils:{getProperty:(obj,path)=>path.split('.').reduce((o,k)=>o?.[k],obj)}};
 const hooks={};globalThis.Hooks={on:(name,fn)=>hooks[name]=fn};
 const {registerWindowEscapeProtection}=await import('../dist/sidebar-escape.js');registerWindowEscapeProtection();
@@ -23,6 +23,9 @@ const explicit=new Application();hooks.renderApplication(explicit);await explici
 globalThis.game={settings,view:'game',user:{isGM:true}};globalThis.canvas={activeLayer:{controlled:[],preview:{children:[]}}};globalThis.Tour={tourInProgress:false};
 const escape=()=>{let blocked=false;keydown({key:'Escape',preventDefault(){},stopImmediatePropagation(){blocked=true;}});return blocked;};
 assert.equal(escape(),true);
+const persistent=new Application();persistent.options={popOut:false};persistent.element[0].popup=false;ui.windows={persistent};assert.equal(escape(),true,'persistent sidebar is not a popup');
+const stale=new Application();stale.element[0].isConnected=false;ui.windows={stale};assert.equal(escape(),true,'detached rendered applications do not enable the menu');
+ui.windows={};
 canvas.activeLayer.controlled=[{}];assert.equal(escape(),false);
 canvas.activeLayer.controlled=[];ui.context={menu:{length:1}};assert.equal(escape(),false);
 ui.context=undefined;Tour.tourInProgress=true;assert.equal(escape(),false);

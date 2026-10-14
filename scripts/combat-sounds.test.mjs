@@ -7,24 +7,28 @@ try {
  const page=await browser.newPage();
  await page.addScriptTag({content:runtime+`
  window.renderSound=async(key,hit,mode='single',ammo='basic',muted=false,stop=false)=>{
-  audio=new OfflineAudioContext(2,48000*3,48000);master=audio.createGain();master.gain.value=.65;master.connect(audio.destination);
+  audio=new OfflineAudioContext(2,48000*6,48000);master=audio.createGain();master.gain.value=.65;master.connect(audio.destination);
   noise=audio.createBuffer(1,48000,48000);let seed=17;const data=noise.getChannelData(0);for(let i=0;i<data.length;i++){seed=(Math.imul(seed,1664525)+1013904223)|0;data[i]=(seed>>>0)/2147483648-1;}
-  reportBuffers=undefined;nodes.clear();Object.defineProperty(audio,'state',{get:()=> 'running'});
+  reportBuffers=undefined;explosionBuffers=undefined;nodes.clear();Object.defineProperty(audio,'state',{get:()=> 'running'});
   const cancel=playWeaponEffect({weapon:key,hit,mode,ammo,sound:!muted,visuals:false,volume:1,intensity:1,positions:()=>({source:{x:10,y:10},target:{x:500,y:10}})});
-  if(stop)stopWeaponAudio();const buffer=await audio.startRendering();cancel();let peak=0,energy=0,tail=0;
-  for(let c=0;c<2;c++)for(const [i,v] of buffer.getChannelData(c).entries()){peak=Math.max(peak,Math.abs(v));energy+=v*v;if(i>48000*1.2)tail+=v*v;}
-  return {peak,energy,tail,remaining:nodes.size};
+  if(stop)stopWeaponAudio();const buffer=await audio.startRendering();cancel();let peak=0,energy=0,tail=0,lateTail=0,finalEnergy=0;
+  for(let c=0;c<2;c++)for(const [i,v] of buffer.getChannelData(c).entries()){peak=Math.max(peak,Math.abs(v));energy+=v*v;if(i>48000*1.2)tail+=v*v;if(i>48000*3.2)lateTail+=v*v;if(i>48000*5)finalEnergy+=v*v;}
+  const reports=[...Object.values(reportBuffers??{}),...Object.values(explosionBuffers??{})];const silentEndpoints=reports.every(b=>Array.from({length:b.numberOfChannels},(_,c)=>b.getChannelData(c).at(-1)).every(v=>v===0));return {peak,energy,tail,lateTail,finalEnergy,silentEndpoints,remaining:nodes.size};
  };window.keys=Object.keys(weaponProfiles);`});
  for(const key of await page.evaluate(()=>keys))for(const hit of [true,false]){
   const result=await page.evaluate(({key,hit})=>renderSound(key,hit),{key,hit});
   assert.ok(Number.isFinite(result.peak)&&result.peak>.005&&result.peak<1,`${key}/${hit}: bounded audible PCM ${JSON.stringify(result)}`);
-  assert.ok(result.energy>0);assert.equal(result.remaining,0,`${key}: sources released`);
-  if(key==='grenade'||key==='rocket')assert.ok(result.tail>0,'explosion has an audible decay');
+  assert.ok(result.energy>0);assert.ok(result.silentEndpoints,'cached reports end at exact silence');assert.equal(result.finalEnergy,0,'audio finishes naturally');assert.equal(result.remaining,0,`${key}: sources released`);
+  if(key==='grenade'||key==='rocket'){assert.ok(result.tail>0,'explosion has an audible decay');assert.ok(result.lateTail>.001,'explosion retains an extended decay beyond 3.2 seconds');};
  }
  for(const ammo of ['armorPiercing','incendiary','expansive','rubber','smart'])assert.ok((await page.evaluate(ammo=>renderSound('pistol',true,'single',ammo),ammo)).energy>0);
  for(const mode of ['auto','suppression'])assert.ok((await page.evaluate(mode=>renderSound('smg',true,mode),mode)).energy>0);
  assert.equal((await page.evaluate(()=>renderSound('pistol',true,'single','basic',true))).energy,0,'sound switch mutes');
  assert.equal((await page.evaluate(()=>renderSound('smg',true,'auto','basic',false,true))).energy,0,'stop cancels scheduled burst');
+ assert.equal((await page.evaluate(()=>renderSound('rocket',true,'single','basic',false,true))).energy,0,'stop cancels explosion and launch');
+ // Repeated impacts reuse the cached PCM and create just one source per blast.
+ const cache=await page.evaluate(async()=>{audio=new OfflineAudioContext(2,48000*5,48000);master=audio.createGain();master.gain.value=.65;master.connect(audio.destination);explosionBuffers=undefined;nodes.clear();const started=performance.now();explosionReport(true,.02,0);const generatedMs=performance.now()-started,buffer=explosionBuffers.rocket;explosionReport(true,.12,0);const reused=buffer===explosionBuffers.rocket,sources=nodes.size;await audio.startRendering();return {reused,sources,remaining:nodes.size,generatedMs};});
+ assert.ok(cache.reused);assert.equal(cache.sources,2);assert.equal(cache.remaining,0);console.log('Explosion cache:',JSON.stringify(cache));
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(new URL('../docs/combat-sound-preview.html',import.meta.url).href);
  assert.equal(await page.locator('#weapon option').count(),15);

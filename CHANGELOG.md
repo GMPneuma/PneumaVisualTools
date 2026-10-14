@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 - 2026-10-14
+
+- Repair Fix Escape Key handling: ignore persistent panels and detached application roots when detecting popups, and capture Escape before Foundry's document handlers. Preserve native popup, token, context-menu and tour dismissal.
+- Fade gunshot buffers to exact silence over their final 200 ms to prevent abrupt audio endings.
+- Add distinct cached stereo grenade and rocket blasts with pressure transients, bass impact, reflections and longer decay: 2.6 seconds for grenades and 3.2 seconds for rockets.
+- Strengthen rocket launch audio and refine spatialized debris accents.
+- Update combat previews to use the revised audio and allow explosion tails to finish during Play All.
+
+Validation: strict TypeScript/module build and focused Escape, offline audio and startup checks. Live Foundry/multiplayer and listening verification remain pending.
+
 ## 0.6.1
 
 - Fix missing EMP token and full-screen visuals when the native EMP status is applied manually. Visuals recognize the status as well as existing Combat Tools item disablements.

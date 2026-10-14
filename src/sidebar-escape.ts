@@ -4,6 +4,7 @@ type EscapeWindow = {
   element: HTMLElement | {0?: HTMLElement};
   rendered: boolean;
   hasFrame?: boolean;
+  options?: {popOut?: boolean};
   close(options?: Application.CloseOptions & {closeKey?: boolean}): Promise<unknown>;
 };
 /** Keep Foundry's dismiss behavior, but restrict its close-all phase to one window. */
@@ -34,9 +35,14 @@ export function registerWindowEscapeProtection(): void {
     const modern = foundry.utils.getProperty(foundry, 'applications.instances') as Map<string, EscapeWindow> | undefined;
     return [...new Set([...classic, ...(modern?.values() ?? [])])];
   };
-  document.addEventListener('keydown', event => {
+  // Capture at the window before Foundry's document keyboard dispatch.
+  window.addEventListener('keydown', event => {
     if (event.key !== 'Escape' || !enabled()) return;
-    const apps = windows().filter(app => app.rendered && app.hasFrame !== false);
+    const apps = windows().filter(app => {
+      const root = element(app);
+      return app.rendered && app.hasFrame !== false && app.options?.popOut !== false
+        && !!root?.isConnected && (app.hasFrame === true || root.matches('.window-app, .application'));
+    });
     if (!apps.length && game.view === 'game') {
       const controlled = foundry.utils.getProperty(canvas, 'activeLayer.controlled') as unknown[] | undefined;
       const preview = foundry.utils.getProperty(canvas, 'activeLayer.preview.children') as unknown[] | undefined;

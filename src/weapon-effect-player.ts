@@ -53,11 +53,53 @@ function gunReport(gun:WeaponProfile,at:number,sourcePan=-.5){
     }
     let peak=0;for(let i=0;i<length;i++){data[i]=Math.tanh(data[i]!*1.6);peak=Math.max(peak,Math.abs(data[i]!))}
     for(let i=0;i<length;i++)data[i]=data[i]!/Math.max(peak,1e-6)*.82;
+    fadeReportTail(data,rate);
     reportBuffers[key]=buffer;
   }
   const node=audio!.createBufferSource(),pan=audio!.createStereoPanner();node.buffer=reportBuffers[key];node.playbackRate.value=.98+Math.random()*.04;pan.pan.value=sourcePan;node.connect(pan);pan.connect(master!);nodes.add(node);node.onended=()=>{nodes.delete(node);node.disconnect();pan.disconnect()};node.start(at);node.stop(at+.9);
 }
 let reportBuffers:Record<string,AudioBuffer>|undefined;
+/** Reach exact silence in cached PCM, without adding any playback nodes. */
+function fadeReportTail(data:Float32Array,rate:number):void {
+ const count=Math.min(data.length,Math.round(rate*.2)),start=data.length-count;
+ for(let j=0;j<count;j++){const x=j/(count-1);data[start+j]=data[start+j]!*(1-x*x*(3-2*x));}
+}
+let explosionBuffers:Record<string,AudioBuffer>|undefined;
+function explosionReport(rocket:boolean,at:number,targetPan:number):void {
+ const key=rocket?'rocket':'grenade';explosionBuffers??={};
+ if(!explosionBuffers[key]){
+  const rate=audio!.sampleRate,length=Math.ceil(rate*(rocket?3.2:2.6)),buffer=audio!.createBuffer(2,length,rate);
+  let peak=0;
+  for(let channel=0;channel<2;channel++){
+   const data=buffer.getChannelData(channel);let low=0,mid=0,seed=(rocket?18731:7193)+channel*137;
+   for(let i=0;i<length;i++){
+    seed=(Math.imul(seed,1664525)+1013904223)|0;const n=(seed>>>0)/2147483648-1,t=i/rate;
+    low+=.006*(n-low);mid+=.13*(n-mid);
+    const onset=1-Math.exp(-t/.0004),crack=(n-mid)*Math.exp(-t/.012)*.5;
+    const blast=mid*Math.exp(-t/(rocket?.27:.18))*2.2;
+    const rumble=low*Math.exp(-t/(rocket?.75:.52))*7;
+    const pressure=(1-t/.012)*Math.exp(-t/.012)*.55;
+    const bass=Math.sin(2*Math.PI*(rocket?48:62)*t)*Math.exp(-t/(rocket?.38:.25))*.3;
+    data[i]=onset*(crack+blast+rumble+pressure+bass);
+   }
+   const dry=data.slice();
+   // Uneven, decorrelated reflections widen the blast and let debris settle.
+   for(const [delay,level] of [[.073,.24],[.157,.18],[.293,.12],[.479,.075],[.731,.04]]){
+    const offset=Math.round((delay!+channel*.009)*rate);
+    for(let i=offset;i<length;i++)data[i]=data[i]!+dry[i-offset]!*level!;
+   }
+   for(let i=0;i<length;i++){data[i]=Math.tanh(data[i]!*1.4);peak=Math.max(peak,Math.abs(data[i]!));}
+  }
+  for(let channel=0;channel<2;channel++){
+   const data=buffer.getChannelData(channel);for(let i=0;i<length;i++)data[i]=data[i]!/Math.max(peak,1e-6)*.86;
+   fadeReportTail(data,rate);
+  }
+  explosionBuffers[key]=buffer;
+ }
+ const node=audio!.createBufferSource(),pan=audio!.createStereoPanner();node.buffer=explosionBuffers[key];pan.pan.value=targetPan*.65;
+ node.connect(pan);pan.connect(master!);nodes.add(node);
+ node.onended=()=>{nodes.delete(node);node.disconnect();pan.disconnect();};node.start(at);
+}
 function weaponAudio(s:Shot,r:Round,index:number){const g=s.gun,f=g.family,at=audio!.currentTime+.012+r.delay*s.scale/1000,impact=at+g.travel*s.scale/1000,pan=s.targetPan;
  if(f==='data'){voice(at,.48,.07,350,85,'sawtooth','lowpass',.5,s.sourcePan);for(let i=0;i<5;i++)voice(at+i*.075,.045,.035,720+i*170,720+i*170,'square','lowpass',.5,s.sourcePan+i*.1);voice(at,.35,.025,4200,2500,'noise','bandpass',.7,0)}else if(['gun','shotgun'].includes(f)){
   gunReport(g,at,s.sourcePan);
@@ -67,12 +109,12 @@ function weaponAudio(s:Shot,r:Round,index:number){const g=s.gun,f=g.family,at=au
   voice(at+.035,.05,.018,6000,5000,'noise','highpass',.5,0);
  }else if(f==='arrow'){
   voice(at,.08,.14,g.name==='Crossbow'?3500:1900,800,'noise','bandpass',.6,s.sourcePan);voice(at+.01,.075,.06,260,160,'triangle','lowpass',.5,s.sourcePan);
- }else if(f==='rocket'){voice(at,.72,.28,2600,400,'noise','lowpass',.7,s.sourcePan);voice(at,.3,.16,90,40,'sine','lowpass',.5,s.sourcePan)}
+ }else if(f==='rocket'){voice(at,.09,.24,4200,1500,'noise','highpass',.5,s.sourcePan);voice(at,.86,.32,3200,550,'noise','lowpass',.7,s.sourcePan);voice(at,.36,.19,115,42,'sine','lowpass',.5,s.sourcePan)}
  else if(f==='grenade'){voice(at,.07,.09,3800,1200,'noise','bandpass',.5,s.sourcePan);voice(at+.04,.27,.08,1400,350,'noise','bandpass',.5,s.sourcePan)}
  else{voice(impact-.20,.24,.16,f==='blade'?4800:2100,450,'noise','bandpass',.5,(s.sourcePan+pan)/2);if(f==='martial')voice(at+.08,.16,.10,1700,450,'noise','bandpass',.5,s.sourcePan)}
  if(f==='data'){voice(impact,.08,.06,s.hit?1400:350,s.hit?1400:220,'triangle','lowpass',.5,pan);voice(impact+.09,.1,.04,s.hit?1900:250,s.hit?1900:160,'triangle','lowpass',.5,pan)}else if(['rocket','grenade'].includes(f)){
-  voice(impact,1,.4,2600,100,'noise','lowpass',.5,pan);voice(impact,.65,.3,85,26,'sine','lowpass',.5,pan);voice(impact+.08,.92,.19,1800,160,'noise','bandpass',.5,pan);
- for(let i=0;i<5;i++)voice(impact+.12+i*.11,.16,.065,4300-i*400,700,'noise','highpass',.5,Math.max(-1,Math.min(1,pan+(i%2?.25:-.25))));
+  explosionReport(f==='rocket',impact,pan);
+  for(let i=0;i<5;i++)voice(impact+.16+i*.15,.12+i*.025,.045,4300-i*500,550,'noise','highpass',.5,Math.max(-1,Math.min(1,pan+(i%2?.3:-.3))));
  }else if(s.hit&&s.mode!=='suppression'){
   voice(impact,.18,['punch','martial','melee','grapple'].includes(f)?.19:.10,f==='martial'?115:85,35,'sine','lowpass',.5,pan);
   if(f==='blade')voice(impact+.015,.24,.065,2100,1400,'triangle','bandpass',.5,pan);

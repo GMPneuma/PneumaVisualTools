@@ -97,6 +97,7 @@ function gunReport(gun, at, sourcePan = -.5) {
         }
         for (let i = 0; i < length; i++)
             data[i] = data[i] / Math.max(peak, 1e-6) * .82;
+        fadeReportTail(data, rate);
         reportBuffers[key] = buffer;
     }
     const node = audio.createBufferSource(), pan = audio.createStereoPanner();
@@ -111,6 +112,65 @@ function gunReport(gun, at, sourcePan = -.5) {
     node.stop(at + .9);
 }
 let reportBuffers;
+/** Reach exact silence in cached PCM, without adding any playback nodes. */
+function fadeReportTail(data, rate) {
+    const count = Math.min(data.length, Math.round(rate * .2)), start = data.length - count;
+    for (let j = 0; j < count; j++) {
+        const x = j / (count - 1);
+        data[start + j] = data[start + j] * (1 - x * x * (3 - 2 * x));
+    }
+}
+let explosionBuffers;
+function explosionReport(rocket, at, targetPan) {
+    const key = rocket ? 'rocket' : 'grenade';
+    explosionBuffers ??= {};
+    if (!explosionBuffers[key]) {
+        const rate = audio.sampleRate, length = Math.ceil(rate * (rocket ? 3.2 : 2.6)), buffer = audio.createBuffer(2, length, rate);
+        let peak = 0;
+        for (let channel = 0; channel < 2; channel++) {
+            const data = buffer.getChannelData(channel);
+            let low = 0, mid = 0, seed = (rocket ? 18731 : 7193) + channel * 137;
+            for (let i = 0; i < length; i++) {
+                seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
+                const n = (seed >>> 0) / 2147483648 - 1, t = i / rate;
+                low += .006 * (n - low);
+                mid += .13 * (n - mid);
+                const onset = 1 - Math.exp(-t / .0004), crack = (n - mid) * Math.exp(-t / .012) * .5;
+                const blast = mid * Math.exp(-t / (rocket ? .27 : .18)) * 2.2;
+                const rumble = low * Math.exp(-t / (rocket ? .75 : .52)) * 7;
+                const pressure = (1 - t / .012) * Math.exp(-t / .012) * .55;
+                const bass = Math.sin(2 * Math.PI * (rocket ? 48 : 62) * t) * Math.exp(-t / (rocket ? .38 : .25)) * .3;
+                data[i] = onset * (crack + blast + rumble + pressure + bass);
+            }
+            const dry = data.slice();
+            // Uneven, decorrelated reflections widen the blast and let debris settle.
+            for (const [delay, level] of [[.073, .24], [.157, .18], [.293, .12], [.479, .075], [.731, .04]]) {
+                const offset = Math.round((delay + channel * .009) * rate);
+                for (let i = offset; i < length; i++)
+                    data[i] = data[i] + dry[i - offset] * level;
+            }
+            for (let i = 0; i < length; i++) {
+                data[i] = Math.tanh(data[i] * 1.4);
+                peak = Math.max(peak, Math.abs(data[i]));
+            }
+        }
+        for (let channel = 0; channel < 2; channel++) {
+            const data = buffer.getChannelData(channel);
+            for (let i = 0; i < length; i++)
+                data[i] = data[i] / Math.max(peak, 1e-6) * .86;
+            fadeReportTail(data, rate);
+        }
+        explosionBuffers[key] = buffer;
+    }
+    const node = audio.createBufferSource(), pan = audio.createStereoPanner();
+    node.buffer = explosionBuffers[key];
+    pan.pan.value = targetPan * .65;
+    node.connect(pan);
+    pan.connect(master);
+    nodes.add(node);
+    node.onended = () => { nodes.delete(node); node.disconnect(); pan.disconnect(); };
+    node.start(at);
+}
 function weaponAudio(s, r, index) {
     const g = s.gun, f = g.family, at = audio.currentTime + .012 + r.delay * s.scale / 1000, impact = at + g.travel * s.scale / 1000, pan = s.targetPan;
     if (f === 'data') {
@@ -134,8 +194,9 @@ function weaponAudio(s, r, index) {
         voice(at + .01, .075, .06, 260, 160, 'triangle', 'lowpass', .5, s.sourcePan);
     }
     else if (f === 'rocket') {
-        voice(at, .72, .28, 2600, 400, 'noise', 'lowpass', .7, s.sourcePan);
-        voice(at, .3, .16, 90, 40, 'sine', 'lowpass', .5, s.sourcePan);
+        voice(at, .09, .24, 4200, 1500, 'noise', 'highpass', .5, s.sourcePan);
+        voice(at, .86, .32, 3200, 550, 'noise', 'lowpass', .7, s.sourcePan);
+        voice(at, .36, .19, 115, 42, 'sine', 'lowpass', .5, s.sourcePan);
     }
     else if (f === 'grenade') {
         voice(at, .07, .09, 3800, 1200, 'noise', 'bandpass', .5, s.sourcePan);
@@ -151,11 +212,9 @@ function weaponAudio(s, r, index) {
         voice(impact + .09, .1, .04, s.hit ? 1900 : 250, s.hit ? 1900 : 160, 'triangle', 'lowpass', .5, pan);
     }
     else if (['rocket', 'grenade'].includes(f)) {
-        voice(impact, 1, .4, 2600, 100, 'noise', 'lowpass', .5, pan);
-        voice(impact, .65, .3, 85, 26, 'sine', 'lowpass', .5, pan);
-        voice(impact + .08, .92, .19, 1800, 160, 'noise', 'bandpass', .5, pan);
+        explosionReport(f === 'rocket', impact, pan);
         for (let i = 0; i < 5; i++)
-            voice(impact + .12 + i * .11, .16, .065, 4300 - i * 400, 700, 'noise', 'highpass', .5, Math.max(-1, Math.min(1, pan + (i % 2 ? .25 : -.25))));
+            voice(impact + .16 + i * .15, .12 + i * .025, .045, 4300 - i * 500, 550, 'noise', 'highpass', .5, Math.max(-1, Math.min(1, pan + (i % 2 ? .3 : -.3))));
     }
     else if (s.hit && s.mode !== 'suppression') {
         voice(impact, .18, ['punch', 'martial', 'melee', 'grapple'].includes(f) ? .19 : .10, f === 'martial' ? 115 : 85, 35, 'sine', 'lowpass', .5, pan);
@@ -1045,7 +1104,7 @@ async function play(hit,ticket=generation){
 }
 get('resolve').onclick=()=>{pendingArea=false;get('resolve').disabled=true;get('status').textContent='Resolution complete';};
 get('play').onclick=()=>{stop();void play(true)};get('miss').onclick=()=>{stop();void play(false)};get('stop').onclick=stop;
-get('all').onclick=()=>{stop();const ticket=generation,keys=Object.keys(weaponProfiles);let index=0;const next=async()=>{if(ticket!==generation)return;cancel?.();stopWeaponAudio();get('weapon').value=keys[index++];configure();await play(true,ticket);if(ticket===generation&&index<keys.length)timer=setTimeout(next,3000);};void next()};
+get('all').onclick=()=>{stop();const ticket=generation,keys=Object.keys(weaponProfiles);let index=0;const next=async()=>{if(ticket!==generation)return;cancel?.();stopWeaponAudio();get('weapon').value=keys[index++];configure();await play(true,ticket);if(ticket===generation&&index<keys.length)timer=setTimeout(next,['grenade','rocket'].includes(keys[index-1])?5000:3000);};void next()};
 get('weapon').onchange=()=>{stop();configure()};get('mode').onchange=stop;get('ammo').onchange=stop;
 get('volume').oninput=()=>setWeaponVolume(Number(get('volume').value)/100);get('sound').onchange=()=>{if(!get('sound').checked)stopWeaponAudio()};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});window.addEventListener('pagehide',stop);configure();
