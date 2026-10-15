@@ -1,0 +1,32 @@
+<form style="display:flex;flex-direction:column;height:100%;gap:6px">
+  <div class="form-group">
+    <label>Match animation ammo color</label>
+    <div class="form-fields"><input type="checkbox" name="matchAmmo" {{checked matchAmmo}}></div>
+    <p class="notes">Manual colors are retained. Radii use {{units}}; dim is at least bright.</p>
+  </div>
+  <div class="pvt-light-profiles" style="overflow:auto;flex:1;min-height:0">
+    {{#each profiles}}
+    <fieldset>
+      <legend>{{name}}</legend>
+      <div class="pvt-flash-row">
+        <div class="pvt-flash-control" data-flash-color>
+          <label for="flash-{{id}}-color">Color</label><input id="flash-{{id}}-color" type="color" name="profiles.{{id}}.color" value="{{color}}">
+        </div>
+        <div class="pvt-flash-control">
+          <label for="flash-{{id}}-alpha">Intensity</label><input id="flash-{{id}}-alpha" type="range" name="profiles.{{id}}.alpha" value="{{alpha}}" min="0" max="1" step="0.05"><span class="range-value">{{alpha}}</span>
+        </div>
+      </div>
+      <div class="pvt-flash-row">
+        <div class="pvt-flash-control">
+          <label for="flash-{{id}}-bright">Bright</label><input id="flash-{{id}}-bright" type="number" name="profiles.{{id}}.bright" value="{{bright}}" min="0" step="any">
+        </div>
+        <div class="pvt-flash-control">
+          <label for="flash-{{id}}-dim">Dim</label><input id="flash-{{id}}-dim" type="number" name="profiles.{{id}}.dim" value="{{dim}}" min="0" step="any">
+        </div>
+      </div>
+      {{#if isGrenade}}<label><input type="checkbox" name="profiles.grenade.autoRadius" {{checked autoRadius}}> Match target area (Bright to edge; Dim +2)</label>{{/if}}
+    </fieldset>
+    {{/each}}
+  </div>
+  <button type="submit"><i class="fas fa-save"></i> Save flash lighting</button>
+</form>

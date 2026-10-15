@@ -69,3 +69,16 @@
 .pvt-settings-groups > fieldset { min-width: 0; margin: 12px 0; padding: 10px 12px; border: 1px solid var(--color-border-light-primary, #8886); border-radius: 5px; }
 .pvt-settings-groups > fieldset > legend { width: auto; margin: 0; padding: 0 6px; border: 0; font-size: 14px; font-weight: 600; }
 .pvt-settings-groups .pvt-setting-disabled { opacity: .45; }
+
+/* Compact GM flash-light profiles. */
+#pneuma-weapon-light-settings .pvt-light-profiles fieldset { margin:0 0 6px; padding:4px 8px 6px; }
+#pneuma-weapon-light-settings .pvt-flash-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:4px; align-items:center; }
+#pneuma-weapon-light-settings .pvt-flash-control { display:flex; align-items:center; gap:6px; min-width:0; }
+#pneuma-weapon-light-settings .pvt-flash-control label { flex:0 0 auto; white-space:nowrap; }
+#pneuma-weapon-light-settings .pvt-flash-control input { min-width:0; margin:0; }
+#pneuma-weapon-light-settings .pvt-flash-control input[type=color] { width:44px; height:26px; flex:0 0 44px; padding:0; }
+#pneuma-weapon-light-settings .pvt-flash-control input[type=range],
+#pneuma-weapon-light-settings .pvt-flash-control input[type=number] { width:0; flex:1; }
+#pneuma-weapon-light-settings .pvt-flash-control .range-value { flex:0 0 28px; text-align:right; }
+#pneuma-weapon-light-settings .pvt-flash-vision { display:flex; align-items:center; gap:5px; font-weight:normal; }
+#pneuma-weapon-light-settings .pvt-flash-vision input { margin:0; }

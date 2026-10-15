@@ -10,7 +10,7 @@ const groups = [
  ['Colors','customThemeEnabled','themeCustomizer'],
  ['Scene Previews','scenePreviewsEnabled'],
  ['Audio & Soundboard','audioToolsEnabled'],
- ['Attack Visuals','weaponAnimations','weaponIntensity','weaponSounds','weaponVolume'],
+  ['Attack Visuals','weaponAnimations','weaponIntensity','weaponSounds','weaponVolume','weaponLighting','weaponLightVision','weaponLightMenu'],
  ['Escape Handling','fixEscapeKey'],
  ['Full Screen Effects','screenEffects'],
  ['Token Effects','tokenEffects'],

@@ -424,6 +424,10 @@ export const grenadeVisuals = {
     sleep: { name: 'Sleep', color: '#ad80df', kind: 'cloud' },
     teargas: { name: 'Teargas', color: '#b3c84c', kind: 'cloud' }
 };
+/** Shared palette lookup for native flash lights and the animation. */
+export function attackAmmoColor(ammo = 'basic', areaAmmo) {
+    return areaAmmo && grenadeVisuals[areaAmmo] ? grenadeVisuals[areaAmmo].color : profiles[ammo]?.color ?? profiles.basic.color;
+}
 /** Union mask with an inward distance fade: no glow can spill into excluded cells. */
 function createAreaBurst() {
     const mask = document.createElement('canvas'), surface = document.createElement('canvas');
@@ -546,7 +550,7 @@ export function playWeaponEffect(options) {
         return () => { };
     }
     const ctx = context;
-    if (options.visuals)
+    if (options.visuals && !options.lightOnly)
         document.body.append(layer);
     let source = { x: 0, y: 0 }, target = { x: 0, y: 0 }, frame = 0, done = false;
     const initial = { hit: options.hit, p, gun, mode, rounds, scale: 1.38, time: performance.now(), seed: Math.random() * 6, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, label: '', sourcePan: 0, targetPan: 0 };
@@ -556,9 +560,10 @@ export function playWeaponEffect(options) {
     if (options.resumeArea)
         initial.time -= gun.travel * initial.scale + 1100;
     let areaStarted = false, areaEndedAt;
+    const lightRounds = new Set();
     let shot = initial;
     setWeaponVolume(options.volume);
-    if (!options.resumeArea && options.sound && audio?.state === 'running')
+    if (!options.lightOnly && !options.resumeArea && options.sound && audio?.state === 'running')
         rounds.forEach((r, i) => weaponAudio(initial, r, i));
     function base() {
         const positions = options.positions();
@@ -568,6 +573,8 @@ export function playWeaponEffect(options) {
         }
         source = positions.source;
         target = positions.target;
+        if (options.lightOnly)
+            return;
         if (layer.width !== innerWidth || layer.height !== innerHeight) {
             layer.width = innerWidth;
             layer.height = innerHeight;
@@ -943,7 +950,7 @@ export function playWeaponEffect(options) {
         base();
         if (done)
             return;
-        if (glow > 0) {
+        if (!options.lightOnly && glow > 0) {
             ctx.save();
             ctx.globalAlpha = glow * .25;
             ctx.strokeStyle = color;
@@ -953,7 +960,7 @@ export function playWeaponEffect(options) {
             ctx.stroke();
             ctx.restore();
         }
-        if (s.mode === 'suppression') {
+        if (!options.lightOnly && s.mode === 'suppression') {
             ctx.fillStyle = color + '12';
             ctx.fillRect(target.x - 65, target.y - 105, 170, 210);
             ctx.strokeStyle = color + '66';
@@ -970,6 +977,20 @@ export function playWeaponEffect(options) {
             const sx = source.x + aimX * (options.sourceRadius ?? 28), sy = source.y + aimY * (options.sourceRadius ?? 28);
             const miss = !s.hit && f !== 'data', range = miss ? (close ? 12 : 90) : -(options.targetRadius ?? 28), spread = s.mode === 'suppression' ? r.offset : miss ? 55 : 0;
             const ex = target.x + aimX * range - aimY * spread, ey = target.y + aimY * range + aimX * spread, dx = ex - sx, dy = ey - sy, len = Math.max(1, Math.hypot(dx, dy)), ux = dx / len, uy = dy / len;
+            if (options.visuals && !s.reduced && !options.resumeArea && options.onLightPulse && !lightRounds.has(index)) {
+                const explosive = f === 'grenade' || f === 'rocket', due = explosive ? impactAge : age;
+                if (due >= 0) {
+                    lightRounds.add(index);
+                    if (due * s.scale < 150 && (explosive || f === 'gun' || f === 'shotgun'))
+                        options.onLightPulse(explosive ? 'impact' : 'source', explosive ? { x: ex, y: ey } : { x: sx, y: sy });
+                }
+            }
+            if (f === 'rocket' && a >= 0 && a < 1 && options.visuals && !s.reduced && !options.resumeArea) {
+                const curve = s.p.kind === 'smart' ? 20 : 0;
+                options.onLightMove?.({ x: sx + dx * a, y: sy + dy * a + Math.sin(a * Math.PI) * curve });
+            }
+            if (options.lightOnly)
+                continue;
             if (age < 65 && ['gun', 'shotgun', 'rocket'].includes(f))
                 muzzleFlash(ctx, sx, sy, (g.flash || 28) * (1 - age / 90), 1 - age / 65, Math.atan2(uy, ux));
             if (a >= 0 && a < 1 && !s.reduced) {

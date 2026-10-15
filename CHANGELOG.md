@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.1 - 2026-10-14
+
+- Add native Ambient Light flashes synchronized with gunfire, shotgun blasts, grenade impacts and rocket travel/impact. Reuse a bounded light pool with local pulses instead of per-bullet server writes.
+- Add GM attack-lighting controls: master enable switch, Provides Vision (off by default), and separate color, intensity and bright/dim radii for Gunfire, Shotgun, Grenade and Rocket.
+- Add optional matching to animation ammo colors and grenade target-area size. Rocket lights follow the actual projectile path and expand at impact.
+- Allow public vision-providing flashes outside current player vision without revealing projectile artwork or playing attack sounds for unseen attacks. Preserve hidden-token, private-message and reduced-motion restrictions.
+- Keep public weapon-category effects visible when Combat Tools hides NPC weapon names.
+- Handle delayed light delivery, overlapping attacks, cancellation, scene teardown and interrupted-light recovery; refresh the generated previews.
+
+Validation: strict TypeScript/build and targeted lighting, settings, lifecycle, audio and rendering checks. Live Foundry wall occlusion, vision appearance and multiplayer performance verification remain pending.
+
 ## 0.7.0 - 2026-10-14
 
 - Repair Fix Escape Key handling: ignore persistent panels and detached application roots when detecting popups, and capture Escape before Foundry's document handlers. Preserve native popup, token, context-menu and tour dismissal.

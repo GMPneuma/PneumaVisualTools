@@ -3,7 +3,7 @@ export interface WeaponProfile {name:string;family:string;travel:number;flash?:n
 interface Round {delay:number;offset:number}
 interface Ammo {name:string;color:string;kind:string}
 interface Shot {hit:boolean;p:Ammo;gun:WeaponProfile;mode:string;rounds:Round[];scale:number;time:number;seed:number;reduced:boolean;label:string;sourcePan:number;targetPan:number}
-export interface EffectOptions {areaPending?:()=>boolean;onAreaImpact?:()=>void;resumeArea?:boolean;area?:()=>Point[][];areaAmmo?:string;weapon:string;mode?:string;ammo?:string;hit:boolean;visuals:boolean;sound:boolean;volume:number;intensity:number;sourceRadius?:number;targetRadius?:number;positions:()=>{source:Point;target:Point}|undefined;onDone?:()=>void}
+export interface EffectOptions {lightOnly?:boolean;onLightMove?:(point:Point)=>void;onLightPulse?:(phase:'source'|'impact',point:Point)=>void;areaPending?:()=>boolean;onAreaImpact?:()=>void;resumeArea?:boolean;area?:()=>Point[][];areaAmmo?:string;weapon:string;mode?:string;ammo?:string;hit:boolean;visuals:boolean;sound:boolean;volume:number;intensity:number;sourceRadius?:number;targetRadius?:number;positions:()=>{source:Point;target:Point}|undefined;onDone?:()=>void}
 let audio:AudioContext|null=null,master:GainNode|null=null,noise:AudioBuffer|null=null,volume=.35;
 const nodes=new Set<AudioScheduledSourceNode>();
 export function stopWeaponAudio():void {for(const node of nodes){try{node.stop()}catch{}}nodes.clear()}
@@ -201,6 +201,10 @@ export const grenadeVisuals:Record<string,{name:string;color:string;kind:string}
  sleep:{name:'Sleep',color:'#ad80df',kind:'cloud'},
  teargas:{name:'Teargas',color:'#b3c84c',kind:'cloud'}
 };
+/** Shared palette lookup for native flash lights and the animation. */
+export function attackAmmoColor(ammo='basic',areaAmmo?:string):string {
+ return areaAmmo&&grenadeVisuals[areaAmmo]?grenadeVisuals[areaAmmo]!.color:profiles[ammo]?.color??profiles.basic!.color;
+}
 /** Union mask with an inward distance fade: no glow can spill into excluded cells. */
 function createAreaBurst(){
  const mask=document.createElement('canvas'),surface=document.createElement('canvas');
@@ -267,16 +271,18 @@ export function playWeaponEffect(options:EffectOptions):()=>void {
  const layer=document.createElement('canvas');layer.setAttribute('aria-hidden','true');layer.className='pneuma-weapon-effects';
  Object.assign(layer.style,{position:'fixed',inset:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'60',opacity:String(Math.max(0,Math.min(1,options.intensity)))});
  const context=layer.getContext('2d');if(!context){options.onDone?.();return ()=>{}}const ctx=context;
- if(options.visuals)document.body.append(layer);
+ if(options.visuals&&!options.lightOnly)document.body.append(layer);
  let source:Point={x:0,y:0},target:Point={x:0,y:0},frame=0,done=false;
  const initial:Shot={hit:options.hit,p,gun,mode,rounds,scale:1.38,time:performance.now(),seed:Math.random()*6,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,label:'',sourcePan:0,targetPan:0};
  const placement=options.positions();initial.sourcePan=placement?Math.max(-.85,Math.min(.85,placement.source.x/innerWidth*2-1)):0;initial.targetPan=placement?Math.max(-.85,Math.min(.85,placement.target.x/innerWidth*2-1)):0;
  if(options.resumeArea)initial.time-=gun.travel*initial.scale+1100;
  let areaStarted=false,areaEndedAt:number|undefined;
+ const lightRounds=new Set<number>();
  let shot:Shot|null=initial;
  setWeaponVolume(options.volume);
- if(!options.resumeArea&&options.sound&&audio?.state==='running')rounds.forEach((r,i)=>weaponAudio(initial,r,i));
+ if(!options.lightOnly&&!options.resumeArea&&options.sound&&audio?.state==='running')rounds.forEach((r,i)=>weaponAudio(initial,r,i));
  function base(){const positions=options.positions();if(!positions){stop();return}source=positions.source;target=positions.target;
+ if(options.lightOnly)return;
  if(layer.width!==innerWidth||layer.height!==innerHeight){layer.width=innerWidth;layer.height=innerHeight}
  ctx.clearRect(0,0,layer.width,layer.height);ctx.globalAlpha=1;
  }
@@ -379,14 +385,20 @@ function dataStream(sx:number,sy:number,ex:number,ey:number,progress:number,colo
 function draw(now:number){if(!shot){base();return}const s=shot,g=s.gun,f=g.family,t=(now-s.time)/s.scale,close=['melee','blade','punch','grapple','martial'].includes(f),color=s.p.color;
  const last=s.rounds.at(-1)!,end=last.delay+g.travel+(['grenade','rocket'].includes(f)?1100:650);
  let glow=0,recoil=0;for(const r of s.rounds){const age=t-r.delay-g.travel;if(s.hit&&s.mode!=='suppression'&&age>=0)glow=Math.max(glow,Math.max(0,1-age/400));if(t>=r.delay&&t<r.delay+120)recoil=-((g.recoil||4)*Math.sin((t-r.delay)/120*Math.PI))}
- base();if(done)return;if(glow>0){ctx.save();ctx.globalAlpha=glow*.25;ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(target.x,target.y,options.targetRadius??28,0,Math.PI*2);ctx.stroke();ctx.restore()}
- if(s.mode==='suppression'){ctx.fillStyle=color+'12';ctx.fillRect(target.x-65,target.y-105,170,210);ctx.strokeStyle=color+'66';ctx.setLineDash([5,6]);ctx.strokeRect(target.x-65,target.y-105,170,210);ctx.setLineDash([])}
+ base();if(done)return;if(!options.lightOnly&&glow>0){ctx.save();ctx.globalAlpha=glow*.25;ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(target.x,target.y,options.targetRadius??28,0,Math.PI*2);ctx.stroke();ctx.restore()}
+ if(!options.lightOnly&&s.mode==='suppression'){ctx.fillStyle=color+'12';ctx.fillRect(target.x-65,target.y-105,170,210);ctx.strokeStyle=color+'66';ctx.setLineDash([5,6]);ctx.strokeRect(target.x-65,target.y-105,170,210);ctx.setLineDash([])}
  for(const [index,r] of s.rounds.entries()){
   const age=t-r.delay;if(age<0)continue;const a=age/g.travel,impactAge=age-g.travel;
   const aimLength=Math.max(1,Math.hypot(target.x-source.x,target.y-source.y)),aimX=(target.x-source.x)/aimLength,aimY=(target.y-source.y)/aimLength;
   const sx=source.x+aimX*(options.sourceRadius??28),sy=source.y+aimY*(options.sourceRadius??28);
   const miss=!s.hit&&f!=='data',range=miss?(close?12:90):-(options.targetRadius??28),spread=s.mode==='suppression'?r.offset:miss?55:0;
   const ex=target.x+aimX*range-aimY*spread,ey=target.y+aimY*range+aimX*spread,dx=ex-sx,dy=ey-sy,len=Math.max(1,Math.hypot(dx,dy)),ux=dx/len,uy=dy/len;
+  if(options.visuals&&!s.reduced&&!options.resumeArea&&options.onLightPulse&&!lightRounds.has(index)){
+   const explosive=f==='grenade'||f==='rocket',due=explosive?impactAge:age;
+   if(due>=0){lightRounds.add(index);if(due*s.scale<150&&(explosive||f==='gun'||f==='shotgun'))options.onLightPulse(explosive?'impact':'source',explosive?{x:ex,y:ey}:{x:sx,y:sy});}
+  }
+  if(f==='rocket'&&a>=0&&a<1&&options.visuals&&!s.reduced&&!options.resumeArea){const curve=s.p.kind==='smart'?20:0;options.onLightMove?.({x:sx+dx*a,y:sy+dy*a+Math.sin(a*Math.PI)*curve});}
+  if(options.lightOnly)continue;
   if(age<65&&['gun','shotgun','rocket'].includes(f))muzzleFlash(ctx,sx,sy,(g.flash||28)*(1-age/90),1-age/65,Math.atan2(uy,ux));
   if(a>=0&&a<1&&!s.reduced){ctx.save();ctx.shadowColor=color;ctx.shadowBlur=9;
    if(f==='data'){dataStream(sx,sy,ex,ey,a,color)}else if(f==='grapple'){ctx.strokeStyle=color;ctx.lineWidth=3;for(const offset of [-1,1]){ctx.beginPath();ctx.arc(ex,ey,24+8*offset,-1.4*offset,a*3*offset,offset<0);ctx.stroke()}}else if(f==='grenade'||f==='arrow'){
