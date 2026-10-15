@@ -21,7 +21,7 @@ export function normalizeFlashSettings(raw:unknown,distance=2):FlashSettings {
   const base=weaponLightProfile(weapon)!,custom=asRecord(values[id]),bright=numeric(custom.bright,id==='grenade'?5:base.bright*distance,0);
   profiles[id]={color:typeof custom.color==='string'&&/^#[0-9a-f]{6}$/i.test(custom.color)?custom.color:base.color,
    alpha:numeric(custom.alpha,base.alpha,0,1),bright,dim:Math.max(bright,numeric(custom.dim,id==='grenade'?7:base.dim*distance,0)),
-   ...(id==='grenade'?{autoRadius:custom.autoRadius!==false}:{})};
+   ...(['grenade','rocket'].includes(id)?{autoRadius:custom.autoRadius!==false}:{})};
  }
  return {matchAmmo:input.matchAmmo===true,profiles};
 }
@@ -31,7 +31,7 @@ export function currentFlashSettings():FlashSettings {
 export function weaponLightConfig(weapon:string,ammoColor?:string,areaRadius?:number):FlashCustomization&{vision:boolean} {
  const settings=currentFlashSettings(),id=['shotgun','grenade','rocket'].includes(weapon)?weapon:'gunfire';
  const config={...settings.profiles[id]!,vision:game.settings!.get('pneuma-visualtools','weaponLightVision')===true};
- if(weapon==='grenade'&&config.autoRadius){config.bright=areaRadius??5;config.dim=config.bright+2;}
+ if(['grenade','rocket'].includes(weapon)&&config.autoRadius){config.bright=areaRadius??5;config.dim=config.bright+2;}
  if(settings.matchAmmo&&ammoColor&&/^#[0-9a-f]{6}$/i.test(ammoColor))config.color=ammoColor;
  return config;
 }

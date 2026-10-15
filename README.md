@@ -4,7 +4,7 @@ Planned work and editable statuses: [backlog.md](backlog.md).
 
 Foundry VTT v12 module for Cyberpunk RED.
 
-Version 0.7.1 enables chat-card skinning, dice replacement, combat visuals/audio, and independent Token Effects and Full Screen Effects, including On Fire and detected Neural Intrusion. Use the Effect Previews menu to inspect the available visuals. Combat-linked effects require compatible Combat Tools APIs; Electrical Shock gameplay activation remains deferred.
+Version 0.8.0 enables chat-card skinning, dice replacement, combat visuals/audio, and independent Token Effects and Full Screen Effects, including On Fire and detected Neural Intrusion. Use the Effect Previews menu to inspect the available visuals. Combat-linked effects require compatible Combat Tools APIs; Electrical Shock gameplay activation remains deferred.
 
 ## Chat skins
 
@@ -45,7 +45,7 @@ Build, then copy the contents of `dist/` into `Data/modules/pneuma-visualtools/`
 
 Install manifest: https://github.com/GMPneuma/PneumaVisualTools/releases/latest/download/module.json
 
-Version 0.7.1 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
+Version 0.8.0 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
 
 ## Attack effects
 
@@ -53,7 +53,7 @@ Newly resolved Combat Tools attacks play local visuals and synthesized audio on 
 
 Gunfire also pulses native Foundry lighting at the muzzle for each animated shot. Shotgun flashes are brighter and longer. Grenades flash only at impact. Rockets carry a small light along the projectile path, then flash at full size at impact. The active GM moves and configures an off Ambient Light from a reusable scene pool on the Lighting layer. Each client waits for it, then flashes its native local rendering in sync with its own animation; per-shot changes do not travel through the server. Lights respect walls and each client's Show attack effects and reduced-motion preferences. Completed lights stay off for the next attack. Overlapping attacks use separate pooled lights.
 
-Under **Attack Visuals**, **Enable attack lighting** is the GM world master switch. **Provides Vision** applies to all attack lights; it defaults off. The GM can open **Customize flash lights** to edit Gunfire, Shotgun, Grenade and Rocket colors, intensity and bright/dim radii. Grenades default to **Match target area**: Bright reaches from blast center to edge, and Dim adds 2 scene units. Disable matching to use manual radii. Rocket travel uses at most half a grid space Bright and one grid space Dim, capped by its explosion profile; impact restores the full profile. **Match animation ammo color** preserves manual colors. Changes apply to new attacks; disabling attack lighting also turns off active attack lights.
+Under **Attack Visuals**, **Enable attack lighting** is the GM world master switch. **Provides Vision** applies to all attack lights; it defaults off. The GM can open **Customize flash lights** to edit Gunfire, Shotgun, Grenade and Rocket colors, intensity and bright/dim radii. Grenades and rockets default to **Match target area**: Bright reaches from blast center to edge, and Dim adds 2 scene units. Disable matching to use manual radii. Rocket travel uses at most half a grid space Bright and one grid space Dim, capped by its explosion profile; impact restores the full profile. **Match animation ammo color** preserves manual colors. Changes apply to new attacks; disabling attack lighting also turns off active attack lights.
 
 With **Provides Vision** enabled, public flashes can run even when the attacker or target is outside a player's current vision. Those unseen attacks run native light pulses only, without projectile artwork or sound. Foundry controls the revealed area and wall occlusion. Hidden tokens, private messages, reduced motion and disabled attack visuals still prevent those flashes.
 

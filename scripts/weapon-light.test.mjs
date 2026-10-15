@@ -21,12 +21,12 @@ await advance(14000);assert.equal(marker(server.get(id)).key,'second','old lease
 const a=prepare(gm,'parallel-a'),b=prepare(gm,'parallel-b');await settle();assert.equal(creates,2,'overlapping attacks obtain separate lights');pendingCreates.shift()();await settle();for(const c of clients)for(const d of c.local.values())d.object.field={};await advance(20);await Promise.all([a.ready,b.ready]);assert.equal(server.size,2);assert.equal(new Set([...server.values()].map(d=>marker(d).key)).size,2);a.stop();b.stop();await advance(5000);
 const cancelled=prepare(gm,'cancelled');cancelled.stop();await settle();assert.ok([...server.values()].every(d=>d.hidden));assert.equal(creates,2,'cancelled attack reuses slot without orphan creation');assert.equal(deletes,0);
 const claims=Array.from({length:9},(_,i)=>prepare(gm,'capacity-'+i));await settle();while(pendingCreates.length){pendingCreates.shift()();await settle();}assert.equal(server.size,8,'pool is capped at eight concurrent slots');await advance(3001);claims.forEach(c=>c.stop());await advance(5000);assert.ok([...server.values()].every(d=>d.hidden&&marker(d).key===''));
-const rocket=gm.context.make('rocket',{x:100,y:100},true,'moving-rocket');await settle();await advance(20);await rocket.ready;
+const rocket=gm.context.make('rocket',{x:100,y:100},true,'moving-rocket',undefined,8);await settle();await advance(20);await rocket.ready;
 const rocketId=[...server.values()].find(d=>marker(d).key==='moving-rocket').id,rocketDoc=gm.local.get(rocketId),rocketWrites=writes;
 rocket.move({x:150,y:100});assert.equal(rocketDoc.x,150);assert.equal(rocketDoc.config.bright,1);assert.equal(rocketDoc.config.dim,2);assert.equal(rocketDoc.hidden,false);
 rocket.move({x:170,y:100});assert.equal(rocketDoc.x,150,'movement refresh is throttled');await advance(34);rocket.move({x:300,y:120});assert.equal(rocketDoc.x,300);
 assert.equal(server.get(rocketId).hidden,true);assert.equal(writes,rocketWrites,'rocket travel has no server writes');
-rocket.pulse('impact',{x:600,y:100});assert.equal(rocketDoc.config.bright,8);assert.equal(rocketDoc.config.dim,16);assert.equal(rocketDoc.x,600);await advance(300);assert.equal(rocketDoc.hidden,true);rocket.stop();await advance(5000);
+rocket.pulse('impact',{x:600,y:100});assert.equal(rocketDoc.config.bright,8);assert.equal(rocketDoc.config.dim,10);assert.equal(rocketDoc.x,600);await advance(300);assert.equal(rocketDoc.hidden,true);rocket.stop();await advance(5000);
 gm.context.game.settings.get=(_module,key)=>key==='weaponLighting'?false:true;
 const disabled=prepare(gm,'disabled');assert.equal(disabled.ready,undefined);await settle();assert.ok([...server.values()].every(d=>marker(d).key!=='disabled'),'master off does not reserve a light');gm.context.game.settings.get=()=>true;
 const privateLight=prepare(player,'private',false);assert.equal(privateLight.ready,undefined);

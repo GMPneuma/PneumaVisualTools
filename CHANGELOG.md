@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0 - 2026-10-14
+
+- Add Rocket Match target area alongside the existing Grenade option in Attack flash lighting.
+- Match the rocket impact flash to the target area: Bright reaches the edge and Dim extends 2 scene units farther. Keep the small projectile light during travel and expand at impact.
+- Save grenade and rocket matching independently; disable matching to use manual Bright/Dim radii. Matching defaults on, with Bright 5 / Dim 7 when blast geometry is unavailable.
+- Record optional suppressor sound softening as a future idea after v13 support; it is not implemented in this release.
+
+Validation: strict TypeScript/build and focused lighting/settings regressions. Live Foundry/multiplayer verification remains pending.
+
 ## 0.7.1 - 2026-10-14
 
 - Add native Ambient Light flashes synchronized with gunfire, shotgun blasts, grenade impacts and rocket travel/impact. Reuse a bounded light pool with local pulses instead of per-bullet server writes.

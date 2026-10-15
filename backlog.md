@@ -1,6 +1,6 @@
 # Visual Tools backlog
 
-Updated: 2026-10-11
+Updated: 2026-10-14
 
 Edit each **Status** directly. Priorities are initial suggestions, not an agreed work order.
 
@@ -80,6 +80,13 @@ CI currently validates TypeScript/module files and builds the package. Add a rep
 **Status:** Idea
 
 Enhance the existing Cyberpsychosis visual effects. Specific visual changes remain to be defined.
+
+### BL-009 - Optional suppressed gun sounds after v13 support
+
+**Priority:** Low\
+**Status:** Idea
+
+After v13 support is released, provide an option to soften gun sounds when a gun has a suppressor.
 
 ## Done or dropped
 

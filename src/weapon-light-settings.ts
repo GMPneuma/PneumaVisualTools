@@ -9,7 +9,7 @@ export class WeaponLightSettings extends FormApplication {
  }
  override getData(){
   const settings=currentFlashSettings();
-  return {matchAmmo:settings.matchAmmo,profiles:flashProfiles.map(([id,name])=>({id,name,isGrenade:id==='grenade',...settings.profiles[id]})),
+  return {matchAmmo:settings.matchAmmo,profiles:flashProfiles.map(([id,name])=>({id,name,hasBlastArea:['grenade','rocket'].includes(id),...settings.profiles[id]})),
    units:canvas.scene?.grid?.units||'scene units'};
  }
  override activateListeners(html:JQuery){
@@ -17,9 +17,11 @@ export class WeaponLightSettings extends FormApplication {
   const match=root.querySelector<HTMLInputElement>('[name="matchAmmo"]');
   const sync=()=>root.querySelectorAll<HTMLElement>('[data-flash-color]').forEach(group=>{group.inert=!!match?.checked;group.style.opacity=match?.checked?'.5':'';});
   match?.addEventListener('change',sync);sync();
-  const automatic=root.querySelector<HTMLInputElement>('[name="profiles.grenade.autoRadius"]');
-  const syncRadius=()=>root.querySelectorAll<HTMLInputElement>('[name="profiles.grenade.bright"],[name="profiles.grenade.dim"]').forEach(input=>{input.readOnly=!!automatic?.checked;});
-  automatic?.addEventListener('change',syncRadius);syncRadius();
+  for(const id of ['grenade','rocket']){
+   const automatic=root.querySelector<HTMLInputElement>(`[name="profiles.${id}.autoRadius"]`);
+   const syncRadius=()=>root.querySelectorAll<HTMLInputElement>(`[name="profiles.${id}.bright"],[name="profiles.${id}.dim"]`).forEach(input=>{input.readOnly=!!automatic?.checked;});
+   automatic?.addEventListener('change',syncRadius);syncRadius();
+  }
  }
  protected override async _updateObject(_event:Event,formData:Record<string,unknown>):Promise<void>{
   if(!game.user?.isGM)return;

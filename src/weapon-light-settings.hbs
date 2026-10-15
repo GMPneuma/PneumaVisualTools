@@ -24,7 +24,7 @@
           <label for="flash-{{id}}-dim">Dim</label><input id="flash-{{id}}-dim" type="number" name="profiles.{{id}}.dim" value="{{dim}}" min="0" step="any">
         </div>
       </div>
-      {{#if isGrenade}}<label><input type="checkbox" name="profiles.grenade.autoRadius" {{checked autoRadius}}> Match target area (Bright to edge; Dim +2)</label>{{/if}}
+      {{#if hasBlastArea}}<label><input type="checkbox" name="profiles.{{id}}.autoRadius" {{checked autoRadius}}> Match target area (Bright to edge; Dim +2)</label>{{/if}}
     </fieldset>
     {{/each}}
   </div>

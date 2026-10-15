@@ -24,6 +24,13 @@ stored.matchAmmo=false;assert.equal(weaponLightConfig('pistol',attackAmmoColor('
 for(const value of [true,false]){vision=value;for(const weapon of ['pistol','shotgun','grenade','rocket'])assert.equal(weaponLightConfig(weapon).vision,value,'one vision switch covers every profile');}
 assert.equal(weaponLightConfig('grenade',undefined,8).bright,8);assert.equal(weaponLightConfig('grenade',undefined,8).dim,10);
 stored.profiles.grenade={autoRadius:false,bright:3,dim:7};assert.equal(weaponLightConfig('grenade',undefined,8).bright,3);
+assert.equal(defaults.profiles.rocket.autoRadius,true);
+assert.equal(app.getData().profiles.find(profile=>profile.id==='rocket').hasBlastArea,true);
+assert.equal(weaponLightConfig('rocket',undefined,8).bright,8);assert.equal(weaponLightConfig('rocket',undefined,8).dim,10);
+assert.equal(weaponLightConfig('rocket').bright,5);assert.equal(weaponLightConfig('rocket').dim,7);
+await app._updateObject(new Event('submit'),{'profiles.rocket.autoRadius':false,'profiles.rocket.bright':4,'profiles.rocket.dim':9});
+assert.equal(saved.profiles.rocket.autoRadius,false);assert.equal(weaponLightConfig('rocket',undefined,8).bright,4);assert.equal(weaponLightConfig('rocket',undefined,8).dim,9);
+assert.equal(saved.profiles.grenade.autoRadius,true,'matching is independent per profile');
 assert.equal(attackBlastRadius({'pneuma-combattools':{aoe:{area:{shape:'circle',length:250}}}}),5);
 assert.equal(attackBlastRadius({'pneuma-combattools':{aoe:{area:{shape:'square',length:500}}}}),5);
 const before=saved;game.user.isGM=false;await new WeaponLightSettings()._updateObject(new Event('submit'),{});assert.equal(saved,before,'player cannot write world config');
