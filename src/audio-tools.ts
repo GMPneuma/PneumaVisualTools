@@ -130,7 +130,7 @@ export function updateSidebarProgress(root: ParentNode = document): void {
 }
 export class Soundboard extends Application {
   static override get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {id: 'pvt-soundboard', title: 'VT-Soundboard', width: 220, height: 320, resizable: false, template: `modules/${MODULE}/soundboard.hbs`});
+    return foundry.utils.mergeObject(super.defaultOptions, {id: 'pvt-soundboard', title: 'Visual Tools - Soundboard', width: 220, height: 320, resizable: false, template: `modules/${MODULE}/soundboard.hbs`});
   }
   override getData() {
     const data = {isGM: !!game.user?.isGM, boards: playlists().filter(p => p.mode === CONST.PLAYLIST_MODES.DISABLED && foundry.utils.getProperty(p.flags, MODULE + '.includeSoundboard') === true && p.visible).map(p => ({id: p.id, sounds: p.sounds.contents.map(s => ({id:s.id, name:s.name, description:description(s), playing:s.playing, missing:!s.path || s.sound?.failed, image:foundry.utils.getProperty(s.flags, MODULE + '.soundImage')}))}))};
@@ -190,14 +190,14 @@ export function toggleSoundboard(): void {
 export function registerAudioTools(): void {
   registerSoundboardOnce();
   game.keybindings!.register(MODULE, 'toggleSoundboard', {
-    name: 'Toggle VT-Soundboard', hint: 'Open or close the compact soundboard.',
+    name: 'Toggle Visual Tools - Soundboard', hint: 'Open or close the compact soundboard.',
     editable: [{key: 'KeyS', modifiers: ['Alt', 'Shift']}],
     onDown: () => {toggleSoundboard(); return true;}, restricted: true,
   });
   Hooks.on('getSceneControlButtons', (controls: SceneControl[]) => {
     const tokens = controls.find(control => control.name === 'token');
     if (!tokens || tokens.tools.some(tool => tool.name === 'vt-soundboard')) return;
-    tokens.tools.push({name: 'vt-soundboard', title: 'VT-Soundboard', icon: 'fas fa-volume-up', button: true, visible: !!game.user?.isGM, onClick: toggleSoundboard});
+    tokens.tools.push({name: 'vt-soundboard', title: 'Visual Tools - Soundboard', icon: 'fas fa-volume-up', button: true, visible: !!game.user?.isGM, onClick: toggleSoundboard});
   });
   Hooks.on('renderPlaylistDirectory', (_app: unknown, html: JQuery) => {
     const root = html[0]; if (!root) return;
@@ -206,14 +206,14 @@ export function registerAudioTools(): void {
     const boardButton = document.createElement('button'); boardButton.type = 'button'; boardButton.dataset.pvtSoundboardOpen = '';
     const nativeButton = root.querySelector<HTMLButtonElement>('.directory-footer button, .directory-header button');
     if (nativeButton) boardButton.className = nativeButton.className;
-    boardButton.innerHTML = '<i class="fas fa-volume-up" aria-hidden="true"></i> VT-Soundboard';    boardButton.title = 'Toggle VT-Soundboard (Alt+Shift+S; configurable in Configure Controls)';
+    boardButton.innerHTML = '<i class="fas fa-volume-up" aria-hidden="true"></i> Visual Tools - Soundboard';    boardButton.title = 'Toggle Visual Tools - Soundboard (Alt+Shift+S; configurable in Configure Controls)';
     boardButton.addEventListener('click', toggleSoundboard);
     (root.querySelector('.directory-header') ?? root).prepend(boardButton);
   });
   Hooks.on('renderPlaylistConfig', (app: PlaylistConfig, html: JQuery) => {
     const root = html[0]; if (!root || !game.user?.isGM || root.querySelector('[data-pvt-include-soundboard]')) return;
     const group = document.createElement('div'); group.className = 'form-group'; group.dataset.pvtIncludeSoundboard = '';
-    const label = document.createElement('label'); label.textContent = 'Include in VT-Soundboard';
+    const label = document.createElement('label'); label.textContent = 'Include in Visual Tools - Soundboard';
     const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.name = `flags.${MODULE}.includeSoundboard`;
     checkbox.checked = foundry.utils.getProperty(app.object.flags, MODULE + '.includeSoundboard') === true;
     group.append(label, checkbox); const submit = root.querySelector('button[type="submit"]'); if (submit) submit.before(group); else root.append(group);

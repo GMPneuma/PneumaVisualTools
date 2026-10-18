@@ -29,6 +29,7 @@ try {
  assert.equal(await page.evaluate(()=>audio.parseAudioTime('1:02:03')),3723);
  assert.equal(await page.evaluate(()=>audio.parseAudioTime('1:99')),null);
  assert.equal(await page.evaluate(()=>audio.audioTime(65)), '1:05');
+ assert.equal(await page.evaluate(()=>audio.Soundboard.defaultOptions.title),'Visual Tools - Soundboard');
  await page.evaluate(async()=>{bindings.toggleSoundboard.onDown();window.beforeSeekRenders=renderCalls;await audio.seekAudio(track,65);});
  assert.equal(await page.evaluate(()=>renderCalls),await page.evaluate(()=>beforeSeekRenders));
  assert.deepEqual(await page.evaluate(()=>lastUpdateOptions),{render:false,pvtSeek:true});
@@ -144,7 +145,7 @@ try {
  assert.ok(overflow.every(Boolean));
  await page.evaluate(()=>{
    const board=document.querySelector('#pvt-soundboard');board.style.cssText='width:220px;height:320px;display:flex;flex-direction:column';
-   const header=document.createElement('header');header.className='window-header';header.style.cssText='height:30px;flex:0 0 30px';header.textContent='VT-Soundboard';board.prepend(header);
+   const header=document.createElement('header');header.className='window-header';header.style.cssText='height:30px;flex:0 0 30px';header.textContent='Visual Tools - Soundboard';board.prepend(header);
  });
  assert.equal(await page.locator('#pvt-soundboard .window-content').evaluate(node=>node.scrollHeight>node.clientHeight),true);
  await page.locator('#pvt-soundboard .window-content').evaluate(node=>{node.scrollTop=node.scrollHeight;});

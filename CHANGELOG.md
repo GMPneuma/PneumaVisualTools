@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1 - 2026-10-18
+
+- Rename the soundboard and related controls to Visual Tools - Soundboard.
+- Give hazard chat cards full-width sections and a Hazard header label.
+
+
+
 ## 0.8.0 - 2026-10-14
 
 - Add Rocket Match target area alongside the existing Grenade option in Attack flash lighting.

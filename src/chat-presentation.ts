@@ -102,7 +102,7 @@ export function arrangeCardSections(root: HTMLElement): void {
   });
   root.querySelectorAll('.pvt-section-flow, .pvt-full-section, .pvt-opening-stack, .pvt-opposed-divider')
     .forEach(node => node.classList.remove('pvt-section-flow', 'pvt-full-section', 'pvt-opening-stack', 'pvt-opposed-divider'));
-  const sections = content.querySelector<HTMLElement>(':scope > .pneuma-resolution-card, :scope > .pneuma-aoe-card');
+  const sections = content.querySelector<HTMLElement>(':scope > .pneuma-resolution-card, :scope > .pneuma-aoe-card, :scope > .pneuma-scene-effect-card');
   const grapple = content.querySelector<HTMLElement>(':scope > .pneuma-grapple-card');
   if (sections) {
     content.classList.add('pvt-section-flow'); sections.classList.add('pvt-section-flow');
@@ -158,7 +158,7 @@ function arrangeCardHeader(root: HTMLElement): void {
   const subtitle = nativeKind?.textContent?.trim() || title.querySelector('.rollcard-subtitle-center')?.textContent?.trim() || '';
   const skill = !net && !grapple && !root.querySelector('.pneuma-exchange-header, .pneuma-aoe-card')
     && !title.querySelector('[data-action="rollDamage"]') && (recovery || /skill/i.test(subtitle));
-  const independent = !net && !grapple && !root.querySelector('.pneuma-exchange-header, .pneuma-aoe-card') && !title.querySelector('[data-action="rollDamage"]');
+  const independent = !net && !grapple && !root.querySelector('.pneuma-exchange-header, .pneuma-aoe-card, .pneuma-scene-effect-card') && !title.querySelector('[data-action="rollDamage"]');
   const kindText = subtitle || title.textContent || '';
   const stat = independent && /\bstat\b/i.test(kindText);
   const role = independent && /role\s*ability|roleAbility/i.test(kindText);
@@ -182,6 +182,7 @@ function arrangeCardHeader(root: HTMLElement): void {
     action.textContent = skill ? 'Skill' : net ? 'Netrunning' : root.querySelector('.dice-roll, .rollcard') ? 'Roll' : 'Chat';
   }
   if (skill || stat || role || initiative || damage) action.textContent = skill ? 'Skill' : stat ? 'Stat' : role ? 'Role Ability' : initiative ? 'Initiative' : 'Suppression';
+  if (root.querySelector('.pneuma-scene-effect-card')) action.textContent = 'Hazard';
   if (noticeAction) action.textContent = noticeAction;
   if (critical) action.textContent = 'Critical Injury';
   if (adHocDamage) {
