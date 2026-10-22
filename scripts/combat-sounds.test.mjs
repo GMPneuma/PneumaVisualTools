@@ -31,10 +31,10 @@ try {
  assert.ok(cache.reused);assert.equal(cache.sources,2);assert.equal(cache.remaining,0);console.log('Explosion cache:',JSON.stringify(cache));
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(new URL('../docs/combat-sound-preview.html',import.meta.url).href);
- assert.equal(await page.locator('#weapon option').count(),15);
+ assert.equal(await page.locator('#weapon option').count(),21);
  await page.selectOption('#weapon','rocket');await page.click('#play');
  assert.equal(await page.locator('.pneuma-weapon-effects').count(),1);
  await page.click('#stop');assert.equal(await page.locator('.pneuma-weapon-effects').count(),0);
  await page.click('#all');await page.click('#stop');assert.deepEqual(errors,[]);
- console.log('All 15 attacks: hit/miss PCM, ammo, burst modes, explosion tails, mute, stop, and source cleanup passed.');
+ console.log('All 21 attacks: hit/miss PCM, ammo, burst modes, explosion tails, mute, stop, and source cleanup passed.');
 }finally{await browser.close();}

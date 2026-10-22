@@ -4,7 +4,7 @@ Planned work and editable statuses: [backlog.md](backlog.md).
 
 Foundry VTT v12 module for Cyberpunk RED.
 
-Version 0.8.1 enables chat-card skinning, dice replacement, combat visuals/audio, and independent Token Effects and Full Screen Effects, including On Fire and detected Neural Intrusion. Use the Effect Previews menu to inspect the available visuals. Combat-linked effects require compatible Combat Tools APIs; Electrical Shock gameplay activation remains deferred.
+Version 0.9.0 enables chat-card skinning, dice replacement, combat visuals/audio, and independent Token Effects and Full Screen Effects, including On Fire and detected Neural Intrusion. Use the Effect Previews menu to inspect the available visuals. Combat-linked effects require compatible Combat Tools APIs; Electrical Shock gameplay activation remains deferred.
 
 ## Chat skins
 
@@ -45,7 +45,7 @@ Build, then copy the contents of `dist/` into `Data/modules/pneuma-visualtools/`
 
 Install manifest: https://github.com/GMPneuma/PneumaVisualTools/releases/latest/download/module.json
 
-Version 0.8.1 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
+Version 0.9.0 supports Foundry v12. Automated validation covers build and browser fixtures; live Foundry verification remains separate.
 
 ## Attack effects
 

@@ -1,6 +1,7 @@
 const MODULE = 'pneuma-visualtools';
 function playlists(): Playlist[] { return Array.from(game.playlists ?? []); }
 const ONCE_FLAG = MODULE + '.soundboardOnce';
+const pendingSoundboardTracks = new Set<PlaylistSound>();
 function isOneShot(track: PlaylistSound): boolean { return foundry.utils.getProperty(track.flags, ONCE_FLAG) === true; }
 export async function playSoundboardOnce(track: PlaylistSound): Promise<void> {
   if (!game.user?.isGM || track.parent?.mode !== CONST.PLAYLIST_MODES.DISABLED) return;
@@ -60,7 +61,9 @@ export function updateSoundboardIndicators(): void {
     const button = row.querySelector<HTMLButtonElement>('.pvt-sound-tile');
     if (!track || !button) return;
     button.classList.toggle('playing', track.playing);
-    button.disabled = !game.user?.isGM || !track.path || !!track.sound?.failed;
+    button.setAttribute('aria-pressed', String(track.playing));
+    button.setAttribute('aria-label', `${track.playing ? 'Stop' : 'Play'} ${track.name ?? ''}`);
+    button.disabled = pendingSoundboardTracks.has(track) || !game.user?.isGM || !track.path || !!track.sound?.failed;
   });
 }
 function description(track: PlaylistSound): string {
@@ -165,9 +168,15 @@ export class Soundboard extends Application {
       if (!game.user?.isGM) return;
       const row = button.closest<HTMLElement>('[data-track]');
       const track = game.playlists?.get(row?.dataset.playlist ?? '')?.sounds.get(row?.dataset.track ?? '');
-      if (!track) return;
+      if (!track || pendingSoundboardTracks.has(track)) return;
+      pendingSoundboardTracks.add(track);
       button.disabled = true;
-      void playSoundboardOnce(track).catch(error => ui.notifications?.error(String(error))).finally(() => {button.disabled = false;});
+      const playback = track.playing ? track.update({playing: false, pausedTime: null}) : playSoundboardOnce(track);
+      void playback.catch(error => ui.notifications?.error(String(error))).finally(() => {
+        pendingSoundboardTracks.delete(track);
+        button.disabled = !game.user?.isGM || !track.path || !!track.sound?.failed;
+        updateSoundboardIndicators();
+      });
     }));
     html[0]?.querySelectorAll<HTMLElement>('.folder-header').forEach(header => {
       const toggle = (event: Event): void => {
@@ -250,6 +259,7 @@ export function registerAudioTools(): void {
   const refresh = (): void => {if (soundboardApp?.rendered) soundboardApp.render(false);};
   for (const hook of ['createPlaylist', 'updatePlaylist', 'deletePlaylist', 'createPlaylistSound', 'deletePlaylistSound']) Hooks.on(hook, refresh);
   Hooks.on('updatePlaylistSound', (_track: PlaylistSound, _change: unknown, options: {pvtSeek?: boolean}) => {
+    updateSoundboardIndicators();
     if (options?.pvtSeek) {updateSidebarProgress(); updateSoundboardIndicators();} else refresh();
   });
   for (const hook of ['createFolder', 'updateFolder', 'deleteFolder']) Hooks.on(hook, refresh);

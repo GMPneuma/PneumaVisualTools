@@ -151,7 +151,33 @@ try {
  await page.locator('#pvt-soundboard .window-content').evaluate(node=>{node.scrollTop=node.scrollHeight;});
  assert.equal(await page.locator('#pvt-soundboard .window-content').evaluate(node=>node.scrollTop>0),true);
  assert.equal(await page.locator('#pvt-soundboard .window-content').evaluate(node=>node.scrollWidth<=node.clientWidth),true);
- console.log('Audio fixtures passed, including vertical scrolling and nested folders without horizontal overflow.');
+ const tileTemplate=await readFile(new URL('../src/soundboard-tile.hbs',import.meta.url),'utf8');
+ assert.ok(tileTemplate.includes('class="pvt-sound-playing"'));
+ await page.evaluate(()=>{
+   const content=document.querySelector('#pvt-soundboard .window-content');
+   content.innerHTML='<div class="pvt-sound-grid"><div data-track="s" data-playlist="p"><button class="pvt-sound-tile" data-action="play"><div class="pvt-sound-art"><i class="fas fa-volume-up"></i><div class="pvt-sound-playing"><b></b><b></b><b></b><b></b></div></div><span>Door</span></button></div></div>';
+   game.user.isGM=true;track.parent=playlist;track.playing=false;calls.length=0;boardApp.activateListeners([content]);
+ });
+ const tile=page.locator('#pvt-soundboard .pvt-sound-tile');
+ assert.equal(await tile.locator('.pvt-sound-playing').isVisible(),false);
+ await tile.click();
+ await page.waitForFunction(()=>track.playing && !document.querySelector('#pvt-soundboard .pvt-sound-tile').disabled);
+ assert.equal(await tile.getAttribute('aria-label'),'Stop Door');
+ assert.equal(await tile.getAttribute('aria-pressed'),'true');
+ assert.equal(await tile.locator('.pvt-sound-playing').isVisible(),true);
+ assert.equal(await tile.locator('b').first().evaluate(node=>getComputedStyle(node).animationName),'pvt-sound-playing');
+ await page.emulateMedia({reducedMotion:'reduce'});
+ assert.equal(await tile.locator('b').first().evaluate(node=>getComputedStyle(node).animationName),'none');
+ await tile.click();
+ await page.waitForFunction(()=>!track.playing && !document.querySelector('#pvt-soundboard .pvt-sound-tile').disabled);
+ assert.equal(await tile.getAttribute('aria-label'),'Play Door');
+ assert.equal(await tile.locator('.pvt-sound-playing').isVisible(),false);
+ assert.deepEqual(await page.evaluate(()=>calls.splice(0)),[{playing:true,pausedTime:null,'flags.pneuma-visualtools.soundboardOnce':true},{playing:false,pausedTime:null}]);
+ await tile.click();
+ await page.waitForFunction(()=>track.playing);
+ await page.evaluate(async()=>{await track.update({playing:false});});
+ assert.equal(await tile.locator('.pvt-sound-playing').isVisible(),false);
+ console.log('Audio fixtures passed, including soundboard toggle, animated overlay, reduced motion, playback completion, scrolling and nested folders.');
 } finally {await browser.close();}
 
 

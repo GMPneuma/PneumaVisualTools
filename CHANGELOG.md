@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0 - 2026-10-21
+
+- Reduce projectile bodies, halos, trails and rocket exhaust by 35%.
+- Add crowbar, sword, knife and katana/Wakizashi visuals. Start close-combat strikes at the attacker-facing edge, preserve readable weapon size and remove backward travel.
+- Use a fist for brawling and a fist with a floating black-belt emblem for martial arts. Replace grapple arcs with two reaching hands and distinct grip/miss motion.
+- Add spinning axes for improvised throws/Tomahawks, boomerangs and Mono-Star throwing stars, selected by weapon names.
+- Add glowing Monowire/Mono-Guard lashes with a short wind-up, extension, waist-level wrap, pullback and subtle flicker.
+- Add distinct punch, crowbar clank, blade swish and martial-arts whoosh sounds. Lower grenade/rocket explosions and debris accents by 10%.
+- Toggle soundboard sounds on repeated clicks and overlay animated playing indicators; clear indicators when playback ends and use static indicators with reduced motion.
+- Refresh combat previews and expand audio, motion, matching and soundboard regression coverage.
+
+Validation: strict TypeScript/module build and targeted runtime, browser, audio and motion checks. Live Foundry/multiplayer verification remains pending.
+
+
 ## 0.8.1 - 2026-10-18
 
 - Rename the soundboard and related controls to Visual Tools - Soundboard.

@@ -10,7 +10,7 @@ export async function checkPreview(weapons){
  try{
   const page=await browser.newPage({viewport:{width:1100,height:760}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(new URL('../docs/bullet-animation-preview.html',import.meta.url).href);
-  assert.equal(await page.locator('#weapon option').count(),15);
+  assert.equal(await page.locator('#weapon option').count(),21);
   assert.equal(await page.locator('#ammo option').count(),6);
   await page.uncheck('#sound');
   for(const weapon of weapons)for(const outcome of ['play','miss']){

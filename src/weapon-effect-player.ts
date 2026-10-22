@@ -17,10 +17,16 @@ export const weaponProfiles:Record<string,WeaponProfile>={
  sniper:{name:'Sniper Rifle',family:'gun',travel:105,flash:19,tail:110,width:1.5,recoil:10,impact:25,sparks:17},
  bow:{name:'Bow',family:'arrow',travel:410,recoil:3,impact:13,sparks:5},
  crossbow:{name:'Crossbow',family:'arrow',travel:300,recoil:4,impact:15,sparks:7},
+ thrownAxe:{name:'Thrown Axe / Tomahawk / Improvised',family:'thrownAxe',travel:600,impact:22,sparks:8},
+ boomerang:{name:'Boomerang',family:'boomerang',travel:680,impact:18,sparks:5},
+ throwingStar:{name:'Mono-Star',family:'throwingStar',travel:400,impact:15,sparks:6},
  grenade:{name:'Grenade Throw',family:'grenade',travel:850,recoil:2,impact:60,sparks:36},
  rocket:{name:'Rocket',family:'rocket',travel:650,recoil:8,impact:75,sparks:42},
  melee:{name:'Melee',family:'melee',travel:460,impact:25,sparks:13},
  blade:{name:'Katana',family:'blade',travel:420,impact:22,sparks:12},
+ sword:{name:'Sword',family:'blade',travel:420,impact:22,sparks:12},
+ knife:{name:'Knife',family:'blade',travel:420,impact:22,sparks:12},
+ whip:{name:'Monowire / Mono-Guard',family:'blade',travel:580,impact:20,sparks:10},
  punch:{name:'Brawling',family:'punch',travel:360,impact:17,sparks:8},
  grapple:{name:'Grapple',family:'grapple',travel:340,impact:20,sparks:0},
  martial:{name:'Martial Art Attack',family:'martial',travel:720,impact:22,sparks:12},
@@ -91,7 +97,7 @@ function explosionReport(rocket:boolean,at:number,targetPan:number):void {
    for(let i=0;i<length;i++){data[i]=Math.tanh(data[i]!*1.4);peak=Math.max(peak,Math.abs(data[i]!));}
   }
   for(let channel=0;channel<2;channel++){
-   const data=buffer.getChannelData(channel);for(let i=0;i<length;i++)data[i]=data[i]!/Math.max(peak,1e-6)*.86;
+   const data=buffer.getChannelData(channel);for(let i=0;i<length;i++)data[i]=data[i]!/Math.max(peak,1e-6)*.86*.9;
    fadeReportTail(data,rate);
   }
   explosionBuffers[key]=buffer;
@@ -100,7 +106,42 @@ function explosionReport(rocket:boolean,at:number,targetPan:number):void {
  node.connect(pan);pan.connect(master!);nodes.add(node);
  node.onended=()=>{nodes.delete(node);node.disconnect();pan.disconnect();};node.start(at);
 }
+function closeCombatAudio(s:Shot,impact:number):void {
+ const family=s.gun.family,pan=s.targetPan,swingPan=(s.sourcePan+pan)/2;
+ if(family==='punch'){
+  voice(impact-.15,.16,.08,1600,650,'noise','bandpass',.7,swingPan);
+  if(!s.hit)return;
+  // Short skin slap over a heavy, dry body impact.
+  voice(impact,.035,.24,2300,900,'noise','bandpass',.8,pan);
+  voice(impact,.15,.30,540,110,'noise','lowpass',.7,pan);
+  voice(impact,.13,.22,125,48,'sine','lowpass',.7,pan);
+ }else if(family==='melee'){
+  voice(impact-.22,.24,.12,1900,550,'noise','bandpass',.7,swingPan);
+  if(!s.hit)return;
+  // Inharmonic steel resonances make the crowbar clank rather than thump.
+  voice(impact,.025,.22,6500,2600,'noise','highpass',.6,pan);
+  for(const [frequency,level,decay] of [[620,.12,.48],[1037,.09,.39],[1789,.06,.29],[2911,.035,.19]])
+   voice(impact,decay!,level!,frequency!,frequency!*.97,'sine','bandpass',3,pan);
+  voice(impact,.12,.13,180,65,'triangle','lowpass',.6,pan);
+ }else if(family==='martial'){
+  // Exaggerated film-style "wa-pooosh": rising air, then a broad falling rush.
+  voice(impact-.42,.24,.17,450,1650,'noise','bandpass',2,s.sourcePan);
+  voice(impact-.25,.29,.24,2600,500,'noise','bandpass',.8,swingPan);
+  voice(impact-.12,.32,.13,5200,850,'noise','highpass',.5,pan);
+  if(!s.hit)return;
+  voice(impact,.045,.25,3200,1100,'noise','bandpass',.8,pan);
+  voice(impact,.23,.29,700,100,'noise','lowpass',.7,pan);
+  voice(impact,.20,.23,150,42,'sine','lowpass',.6,pan);
+ }else{
+  const duration=s.gun.name==='Knife'?.18:.32;
+  // Layered air swishes; no metallic collision is implied by the blade swing.
+  voice(impact-duration,duration+.05,.20,4200,650,'noise','bandpass',.8,swingPan);
+  voice(impact-duration*.65,duration*.85,.13,7500,1800,'noise','highpass',.5,pan);
+  if(s.hit)voice(impact,.07,.10,1100,250,'noise','lowpass',.6,pan);
+ }
+}
 function weaponAudio(s:Shot,r:Round,index:number){const g=s.gun,f=g.family,at=audio!.currentTime+.012+r.delay*s.scale/1000,impact=at+g.travel*s.scale/1000,pan=s.targetPan;
+ if(['punch','melee','martial'].includes(f)||(f==='blade'&&g.name!=='Monowire / Mono-Guard')){closeCombatAudio(s,impact);return;}
  if(f==='data'){voice(at,.48,.07,350,85,'sawtooth','lowpass',.5,s.sourcePan);for(let i=0;i<5;i++)voice(at+i*.075,.045,.035,720+i*170,720+i*170,'square','lowpass',.5,s.sourcePan+i*.1);voice(at,.35,.025,4200,2500,'noise','bandpass',.7,0)}else if(['gun','shotgun'].includes(f)){
   gunReport(g,at,s.sourcePan);
   if(g.name==='Shotgun')voice(at,.17,.2,800,350,'noise','lowpass',.5,s.sourcePan);
@@ -114,7 +155,7 @@ function weaponAudio(s:Shot,r:Round,index:number){const g=s.gun,f=g.family,at=au
  else{voice(impact-.20,.24,.16,f==='blade'?4800:2100,450,'noise','bandpass',.5,(s.sourcePan+pan)/2);if(f==='martial')voice(at+.08,.16,.10,1700,450,'noise','bandpass',.5,s.sourcePan)}
  if(f==='data'){voice(impact,.08,.06,s.hit?1400:350,s.hit?1400:220,'triangle','lowpass',.5,pan);voice(impact+.09,.1,.04,s.hit?1900:250,s.hit?1900:160,'triangle','lowpass',.5,pan)}else if(['rocket','grenade'].includes(f)){
   explosionReport(f==='rocket',impact,pan);
-  for(let i=0;i<5;i++)voice(impact+.16+i*.15,.12+i*.025,.045,4300-i*500,550,'noise','highpass',.5,Math.max(-1,Math.min(1,pan+(i%2?.3:-.3))));
+  for(let i=0;i<5;i++)voice(impact+.16+i*.15,.12+i*.025,.045*.9,4300-i*500,550,'noise','highpass',.5,Math.max(-1,Math.min(1,pan+(i%2?.3:-.3))));
  }else if(s.hit&&s.mode!=='suppression'){
   voice(impact,.18,['punch','martial','melee','grapple'].includes(f)?.19:.10,f==='martial'?115:85,35,'sine','lowpass',.5,pan);
   if(f==='blade')voice(impact+.015,.24,.065,2100,1400,'triangle','bandpass',.5,pan);
@@ -137,6 +178,7 @@ function muzzleFlash(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,
  ctx.fillStyle='#fff9df';ctx.beginPath();ctx.ellipse(size*.14,0,size*.25,size*.08,0,0,Math.PI*2);ctx.fill();ctx.restore();
 }
 /** Neutral material shading with a thin ammunition-colored silhouette. */
+const PROJECTILE_SCALE=.65;
 const projectileSprites=new Map<string,HTMLCanvasElement>();
 function projectile(ctx:CanvasRenderingContext2D,family:string,x:number,y:number,angle:number,color:string){
  const key=family+color;let sprite=projectileSprites.get(key);
@@ -150,13 +192,23 @@ function projectile(ctx:CanvasRenderingContext2D,family:string,x:number,y:number
   c.globalCompositeOperation='source-over';c.drawImage(body,0,0);
   if(projectileSprites.size>=64)projectileSprites.clear();projectileSprites.set(key,sprite);
  }
- ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.shadowBlur=0;ctx.drawImage(sprite,-80,-24);ctx.restore();
+ ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(PROJECTILE_SCALE,PROJECTILE_SCALE);ctx.shadowBlur=0;ctx.drawImage(sprite,-80,-24);ctx.restore();
 }
 function projectileBody(ctx:CanvasRenderingContext2D,family:string,x:number,y:number,angle:number,color:string,halo=false){
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.shadowColor=color;ctx.shadowBlur=halo?4:0;ctx.lineJoin='round';ctx.lineWidth=family==='shotgun'?1.8:2.25;ctx.strokeStyle=color;
  const metal=ctx.createLinearGradient(0,-5,0,5);metal.addColorStop(0,'#e4e6df');metal.addColorStop(.35,'#a9afb0');metal.addColorStop(1,'#424c50');
  const shape=(points:number[],fill:string|CanvasGradient)=>{ctx.fillStyle=fill;ctx.beginPath();for(let i=0;i<points.length;i+=2)i?ctx.lineTo(points[i]!,points[i+1]!):ctx.moveTo(points[i]!,points[i+1]!);ctx.closePath();ctx.fill();ctx.stroke();};
- if(family==='arrow'){
+ if(family==='thrownAxe'){
+  shape([-19,-18,-13,-18,-11,19,-17,19],'#805c3e');
+  shape([-18,-17,-7,-16,5,-21,8,-11,4,-2,-8,-8,-18,-8],metal);
+  ctx.strokeStyle='#f0f5f5';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(5,-20);ctx.quadraticCurveTo(11,-11,4,-3);ctx.stroke();
+ }else if(family==='boomerang'){
+  shape([-34,-17,-27,-20,-12,-4,3,-19,9,-15,-9,12,-15,13],'#91633c');
+  ctx.strokeStyle='#d8a957';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-29,-14);ctx.lineTo(-13,5);ctx.lineTo(4,-13);ctx.stroke();
+ }else if(family==='throwingStar'){
+  shape([-13,-21,-7,-6,7,0,-7,6,-13,21,-19,6,-33,0,-19,-6],metal);
+  ctx.fillStyle='#26343b';ctx.beginPath();ctx.arc(-13,0,3,0,Math.PI*2);ctx.fill();
+ }else if(family==='arrow'){
   shape([-42,-2,-12,-2,-12,2,-42,2],'#84765c');
   shape([-43,-2,-50,-6,-37,-6,-31,-2,-31,2,-37,6,-50,6,-43,2],'#c5c9be');
   shape([-15,-5,0,0,-15,5,-11,0],metal);
@@ -180,12 +232,12 @@ function projectileBody(ctx:CanvasRenderingContext2D,family:string,x:number,y:nu
 }
 /** Sample the actual flight path so curved shots leave curved, fading trails. */
 function projectileTrail(ctx:CanvasRenderingContext2D,family:string,color:string,progress:number,distance:number,point:(t:number)=>Point){
- const length=family==='gun'?105:family==='shotgun'?48:family==='arrow'?75:70;
+ const length=(family==='gun'?105:family==='shotgun'?48:family==='arrow'?75:70)*PROJECTILE_SCALE;
  const start=Math.max(0,progress-length/Math.max(1,distance));
- ctx.save();ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=8;ctx.lineCap='round';
+ ctx.save();ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=8*PROJECTILE_SCALE;ctx.lineCap='round';
  for(let i=0;i<12;i++){
   const p=point(start+(progress-start)*i/12),q=point(start+(progress-start)*(i+1)/12),fade=(i+1)/12;
-  ctx.globalAlpha=fade*.65;ctx.lineWidth=(family==='shotgun'?2:3.5)*(.35+.65*fade);
+  ctx.globalAlpha=fade*.65;ctx.lineWidth=(family==='shotgun'?2:3.5)*(.35+.65*fade)*PROJECTILE_SCALE;
   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
  }
  ctx.restore();
@@ -313,8 +365,7 @@ function physicalImpact(x:number,y:number,k:number,color:string,s:Shot,ux:number
   ctx.rotate(Math.atan2(uy,ux));for(let i=0;i<3;i++){const phase=k-i*.13;if(phase<0)continue;ctx.globalAlpha=alpha*(1-i*.22);ctx.lineWidth=4.5-i*.9;ctx.beginPath();ctx.ellipse(phase*18,0,6+phase*23,16+phase*42,0,-1.3,1.3);ctx.stroke()}
   ctx.globalAlpha=alpha;ctx.fillStyle='#edffff';ctx.beginPath();ctx.ellipse(0,0,Math.max(1,11*(1-k)),Math.max(1,19*(1-k)),0,0,Math.PI*2);ctx.fill();
  }else if(f==='grapple'){
-  // Interlocking arcs close around the contact point rather than an impact.
-  ctx.lineWidth=3;for(let i=0;i<2;i++){ctx.beginPath();ctx.arc(i?8:-8,0,13+k*8,i?Math.PI*.6:-Math.PI*.4,i?Math.PI*1.8:Math.PI*.8);ctx.stroke()}
+  // The gripping hands supply the success cue without an abstract impact ring.
  }else{
   // A tiny contact flash and asymmetric fan of chips thrown away from the hit.
   ctx.rotate(Math.atan2(uy,ux));ctx.fillStyle='#fff4db';ctx.beginPath();ctx.ellipse(0,0,Math.max(1,7*(1-k)),Math.max(1,4*(1-k)),0,0,Math.PI*2);ctx.fill();
@@ -326,11 +377,81 @@ function physicalImpact(x:number,y:number,k:number,color:string,s:Shot,ux:number
  ctx.restore();
 }
 
-function closeStrike(ctx:CanvasRenderingContext2D, family:string, x:number, y:number, angle:number, progress:number, size:number, variant:number) {
+function grappleStrike(ctx:CanvasRenderingContext2D, sx:number, sy:number, ex:number, ey:number, progress:number, size:number, hit:boolean) {
+ const reach=Math.min(1,Math.max(0,progress)),ease=reach*reach*(3-2*reach);
+ const after=Math.max(0,progress-1),resolve=Math.min(1,after/.35),fade=1-Math.min(1,Math.max(0,after-.3)/.35);
+ const dx=ex-sx,dy=ey-sy,distance=Math.hypot(dx,dy),scale=size*.8;
+ const travel=hit?ease: ease*(1-resolve*.65);
+ ctx.save();ctx.translate(sx,sy);ctx.rotate(Math.atan2(dy,dx));ctx.globalAlpha*=fade;
+ for(const side of [-1,1]){
+  ctx.save();ctx.translate(distance*travel-(hit?resolve*6:0),side*(18*scale+(hit?-resolve*7:resolve*17)*scale));ctx.scale(scale,side*scale);
+  // Same skin shading, outline, wrist and knuckle detail as the brawling fist.
+  const skin=ctx.createLinearGradient(0,-15,0,16);skin.addColorStop(0,'#deb99a');skin.addColorStop(.48,'#b88a68');skin.addColorStop(1,'#79513d');
+  ctx.fillStyle=skin;ctx.strokeStyle='#644635';ctx.lineWidth=.9;ctx.lineJoin='round';
+  const curl=hit?resolve:0;
+  ctx.beginPath();ctx.moveTo(-39,-6);ctx.lineTo(-17,-7);ctx.quadraticCurveTo(-12,-14,-4,-12);
+  // Four separated fingers bend inward as the grip closes.
+  for(let i=0;i<4;i++){
+   const y=-11+i*6,tip=8- i*1.4-curl*8;
+   ctx.lineTo(tip,y);ctx.quadraticCurveTo(tip+5,y+2,tip+1,y+4);ctx.lineTo(-7+curl*3,y+4);
+  }
+  ctx.quadraticCurveTo(-14,13,-19,7);ctx.lineTo(-39,6);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-17,5);ctx.bezierCurveTo(-13,-2,-5,-2,-2,2);ctx.quadraticCurveTo(2,6,-4,8);ctx.quadraticCurveTo(-12,11,-17,5);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#8b6047';for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(-9,-8+i*6);ctx.lineTo(-5,-7+i*6);ctx.stroke();}
+  ctx.restore();
+ }
+ ctx.restore();
+}
+
+function closeStrike(ctx:CanvasRenderingContext2D, family:string, sourceX:number, sourceY:number, x:number, y:number, angle:number, progress:number, size:number, weapon:string, penetration=0) {
  const wind=.28, strike=Math.max(0,Math.min(1,(progress-wind)/(1-wind))), eased=1-Math.pow(1-strike,3);
  const recovery=Math.max(0,progress-1), fade=Math.max(0,1-recovery*2.5);
- const swing=progress<wind?-1.75-progress/wind*.35:-2.1*(1-eased)+recovery*.9;
- ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(size*.8,size*.8);ctx.globalAlpha*=fade;
+ const swing=-Math.PI/2*(1-eased);
+ const armed=family==='blade'||family==='melee';
+ const tip=armed?(weapon==='knife'?43:weapon==='melee'?74:76):14;
+ const distance=Math.hypot(x-sourceX,y-sourceY);
+ if(weapon==='whip'){
+  // Short wind-up, lengthening lash, a curl around the target, then a small tug.
+  ctx.save();ctx.translate(sourceX,sourceY);ctx.rotate(angle);ctx.globalAlpha*=fade;
+  ctx.lineCap='round';ctx.lineJoin='round';
+  const whipFade=1-Math.min(1,Math.max(0,progress-1.18)/.22);
+  const wire=(phase:number)=>{
+   ctx.beginPath();ctx.moveTo(0,0);
+   if(phase<.22){
+    const back=phase/.22;
+    ctx.bezierCurveTo(8*size,-12*size,-12*size,-22*size,(-6-18*back)*size,(-8-8*back)*size);return;
+   }
+   const cast=Math.min(1,(phase-.22)/.53),extend=cast*cast*(3-2*cast);
+   const radius=penetration>0?penetration/1.2:0;
+   const tug=Math.min(1,Math.max(0,(phase-1)/.25))*Math.min(14*size,radius*.4);
+   const center=distance+radius-tug,tipX=-24*size+(center+24*size)*extend;
+   const tipY=-16*size*(1-extend)-radius*.35*extend;
+   ctx.bezierCurveTo(tipX*.25,-(22*size+Math.sin(cast*Math.PI)*32*size),tipX*.72,tipY-12*size*(1-extend),tipX,tipY);
+   if(phase>=.75&&radius>0){
+    const curl=Math.min(1,(phase-.75)/.25),sweep=Math.PI*1.4*curl;
+    for(let i=1;i<=24;i++){const theta=-Math.PI/2+sweep*i/24;ctx.lineTo(center+Math.cos(theta)*radius,Math.sin(theta)*radius*.35);}
+   }
+  };
+  if(progress>.22&&progress<1.1){
+   ctx.strokeStyle='#66dfff';ctx.shadowBlur=8;ctx.shadowColor='#75eaff';ctx.lineWidth=3*size;
+   for(let i=3;i>0;i--){ctx.globalAlpha=whipFade*(.12-i*.025);wire(Math.max(0,progress-i*.035));ctx.stroke();}
+  }
+  const flicker=.82+.18*Math.sin(progress*83)*Math.sin(progress*137);
+  ctx.globalAlpha=whipFade*flicker;
+  ctx.shadowColor='#75eaff';ctx.shadowBlur=12+6*flicker;ctx.strokeStyle='#66dfff';ctx.lineWidth=4*size;wire(progress);ctx.stroke();
+  ctx.shadowBlur=0;ctx.strokeStyle='#efffff';ctx.lineWidth=1.5*size;wire(progress);ctx.stroke();
+  ctx.globalAlpha=whipFade;
+  // A small grip fixes the origin at the attacker rather than the defender.
+  ctx.strokeStyle='#354551';ctx.lineWidth=5*size;ctx.beginPath();ctx.moveTo(-9*size,0);ctx.lineTo(0,0);ctx.stroke();
+  ctx.restore();return;
+ }
+ // Preserve readable artwork at short range. A long weapon can overlap the
+ // defender at contact, but its grip must never travel back into the attacker.
+ const scale=size*.8;
+ const start=armed?0:-tip*scale;
+ const finish=armed?Math.max(0,distance-tip*scale):distance-tip*scale;
+ const anchor=start+(finish-start)*eased;
+ ctx.save();ctx.translate(sourceX,sourceY);ctx.rotate(angle);ctx.translate(anchor,0);ctx.scale(scale,scale);ctx.globalAlpha*=fade;
  const shape=(points:[number,number][],fill:string,stroke='#e4f4fc')=>{ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.beginPath();points.forEach(([px,py],i)=>i?ctx.lineTo(px,py):ctx.moveTo(px,py));ctx.closePath();ctx.fill();ctx.stroke()};
  const skin=ctx.createLinearGradient(0,-15,0,16);skin.addColorStop(0,'#deb99a');skin.addColorStop(.48,'#b88a68');skin.addColorStop(1,'#79513d');
  const fist=()=>{
@@ -340,37 +461,47 @@ function closeStrike(ctx:CanvasRenderingContext2D, family:string, x:number, y:nu
  };
  ctx.shadowBlur=0;
  if(family==='blade'||family==='melee') {
-  ctx.translate(-72,0);
   // Broad fading sweep follows the weapon tip, with an opaque weapon above it.
   if(progress>wind){for(let i=5;i>0;i--){ctx.save();ctx.globalAlpha*=.08+(5-i)*.025;ctx.rotate(swing-i*.13);shape([[8,-5],[70,-3],[78,0],[70,3],[8,5]],family==='blade'?'#afedff':'#d9b480');ctx.restore()}}
   ctx.rotate(swing);
   shape([[-24,-5],[0,-5],[0,5],[-24,5]],'#273746','#8eabb9');
   for(let i=-20;i<0;i+=5){ctx.strokeStyle='#7892a1';ctx.beginPath();ctx.moveTo(i,-4);ctx.lineTo(i+2,4);ctx.stroke()}
-  if(family==='blade') {
+  if(family==='blade'&&weapon!=='blade') {
+   const tip=weapon==='knife'?43:76;
+   // Straight blade with a distinct point, guard, and bright cutting edge.
+   shape([[2,-11],[6,-11],[6,11],[2,11]],'#77664b','#bba782');
+   shape([[7,-5],[tip-15,-5],[tip,0],[tip-15,5],[7,5]],'#a5b5bd','#53636c');
+   ctx.strokeStyle='#f0f5f5';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(8,4);ctx.lineTo(tip-15,4);ctx.lineTo(tip,0);ctx.stroke();
+  } else if(family==='blade') {
    // Compact round tsuba and a single-edged, gently curved katana blade.
    ctx.fillStyle='#322e29';ctx.strokeStyle='#a58d60';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(2,0,3,10,0,0,Math.PI*2);ctx.fill();ctx.stroke();
    ctx.fillStyle='#9eafb6';ctx.strokeStyle='#56656c';ctx.beginPath();ctx.moveTo(5,-3);ctx.quadraticCurveTo(44,-2,68,-10);ctx.lineTo(76,-12);ctx.lineTo(71,-6);ctx.quadraticCurveTo(44,4,5,3);ctx.closePath();ctx.fill();ctx.stroke();
    ctx.strokeStyle='#e5ecec';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(7,2);ctx.quadraticCurveTo(44,3,71,-7);ctx.lineTo(76,-12);ctx.stroke();
   }
-  else {shape([[2,-6],[55,-9],[55,9],[2,6]],'#596a78');shape([[44,-15],[70,-13],[75,-8],[75,8],[70,13],[44,15]],'#8395a0');shape([[46,-14],[68,-12],[72,-8],[46,-8]],'#d8e6ed');for(let i=10;i<40;i+=8){ctx.strokeStyle='#273746';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(i,-6);ctx.lineTo(i,6);ctx.stroke()}}
+  else {
+   // Narrow steel shaft with a hooked, split pry end.
+   ctx.strokeStyle='#34414b';ctx.lineWidth=10;ctx.lineCap='round';ctx.lineJoin='round';
+   ctx.beginPath();ctx.moveTo(-24,0);ctx.lineTo(57,0);ctx.quadraticCurveTo(74,0,74,-14);ctx.quadraticCurveTo(74,-24,63,-24);ctx.lineTo(56,-21);ctx.stroke();
+   ctx.strokeStyle='#95a5af';ctx.lineWidth=5;ctx.stroke();
+   ctx.strokeStyle='#d9e2e7';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-22,-2);ctx.lineTo(57,-2);ctx.quadraticCurveTo(71,-2,71,-14);ctx.stroke();
+   ctx.strokeStyle='#263039';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(54,-21);ctx.lineTo(61,-23);ctx.stroke();
+  }
  } else {
-  const reach=progress<wind?-22-progress/wind*9:-31+31*eased-recovery*55;
+  const reach=0;
   const lift=Math.sin((1-eased)*Math.PI)*12;
   if(progress>wind&&progress<1.15){ctx.strokeStyle=family==='martial'?'#8ee7ff':'#efbf87';ctx.lineWidth=3;for(let i=0;i<3;i++){ctx.globalAlpha=fade*(.28-i*.06);ctx.beginPath();ctx.moveTo(reach-66-i*8,lift-12+i*12);ctx.lineTo(reach-24,lift-12+i*12);ctx.stroke()}ctx.globalAlpha=fade;}
   ctx.translate(reach,lift);
+  fist();
   if(family==='martial'){
-   // Open palm with separated fingers, thumb and a narrow wrist.
-   ctx.fillStyle=skin;ctx.strokeStyle='#644635';ctx.lineWidth=.9;ctx.beginPath();
-   ctx.moveTo(-49,-7);ctx.quadraticCurveTo(-31,-9,-19,-7);ctx.quadraticCurveTo(-13,-11,-7,-11);
-   ctx.lineTo(15,-15);ctx.quadraticCurveTo(21,-15,20,-11);ctx.lineTo(2,-7);
-   ctx.lineTo(23,-8);ctx.quadraticCurveTo(29,-7,25,-3);ctx.lineTo(3,-2);
-   ctx.lineTo(24,-1);ctx.quadraticCurveTo(30,1,25,4);ctx.lineTo(2,4);
-   ctx.lineTo(18,6);ctx.quadraticCurveTo(24,9,18,11);ctx.lineTo(-4,8);
-   ctx.quadraticCurveTo(-6,10,-2,15);ctx.quadraticCurveTo(1,21,-4,21);ctx.quadraticCurveTo(-13,16,-18,8);
-   ctx.quadraticCurveTo(-33,9,-49,7);ctx.closePath();ctx.fill();ctx.stroke();
-   ctx.strokeStyle='#95694e';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(-12,-3);ctx.quadraticCurveTo(-4,0,-7,7);ctx.moveTo(-15,4);ctx.quadraticCurveTo(-8,1,-2,3);ctx.stroke();
+   // Separate black-belt emblem: clear air below the fist, symmetric sash and knot.
+   ctx.save();ctx.translate(-3,29);
+   shape([[-23,-5],[-5,-3],[0,1],[-5,5],[-23,3]],'#111318','#89929b');
+   shape([[23,-5],[5,-3],[0,1],[5,5],[23,3]],'#111318','#89929b');
+   shape([[-5,2],[0,5],[-9,21],[-17,17]],'#111318','#89929b');
+   shape([[5,2],[0,5],[9,21],[17,17]],'#111318','#89929b');
+   shape([[-5,-4],[5,-4],[7,2],[0,7],[-7,2]],'#252930','#a4adb5');
+   ctx.restore();
   }
-  else fist();
  }
  ctx.restore();
 }
@@ -401,7 +532,12 @@ function draw(now:number){if(!shot){base();return}const s=shot,g=s.gun,f=g.famil
   if(options.lightOnly)continue;
   if(age<65&&['gun','shotgun','rocket'].includes(f))muzzleFlash(ctx,sx,sy,(g.flash||28)*(1-age/90),1-age/65,Math.atan2(uy,ux));
   if(a>=0&&a<1&&!s.reduced){ctx.save();ctx.shadowColor=color;ctx.shadowBlur=9;
-   if(f==='data'){dataStream(sx,sy,ex,ey,a,color)}else if(f==='grapple'){ctx.strokeStyle=color;ctx.lineWidth=3;for(const offset of [-1,1]){ctx.beginPath();ctx.arc(ex,ey,24+8*offset,-1.4*offset,a*3*offset,offset<0);ctx.stroke()}}else if(f==='grenade'||f==='arrow'){
+   if(['thrownAxe','boomerang','throwingStar'].includes(f)){
+    const arc=f==='boomerang'?65:25;
+    const point=(p:number)=>({x:sx+dx*p-uy*Math.sin(p*Math.PI)*arc,y:sy+dy*p+ux*Math.sin(p*Math.PI)*arc});
+    const at=point(a);projectileTrail(ctx,f,color,a,len,point);
+    projectile(ctx,f,at.x,at.y,Math.atan2(dy,dx)+a*Math.PI*(f==='throwingStar'?10:6),color);
+   }else if(f==='data'){dataStream(sx,sy,ex,ey,a,color)}else if(f==='grapple'){/* Hands are drawn through the grip/release phase below. */}else if(f==='grenade'||f==='arrow'){
     const arc=f==='grenade'?150:20,x=sx+dx*a,y=sy+dy*a-Math.sin(a*Math.PI)*arc;
     projectileTrail(ctx,f,color,a,len,p=>({x:sx+dx*p,y:sy+dy*p-Math.sin(p*Math.PI)*arc}));
     projectile(ctx,f,x,y,f==='grenade'?a*Math.PI*3:Math.atan2(dy-Math.cos(a*Math.PI)*Math.PI*arc,dx),color);
@@ -411,13 +547,14 @@ function draw(now:number){if(!shot){base();return}const s=shot,g=s.gun,f=g.famil
      const spread=(j-(pellets-1)/2)*7,curve=s.p.kind==='smart'?20:0,x=sx+dx*a,y=sy+dy*a+spread*a+Math.sin(a*Math.PI)*curve;
      const angle=Math.atan2(dy+spread+Math.cos(a*Math.PI)*Math.PI*curve,dx);
      projectileTrail(ctx,f,color,a,len,p=>({x:sx+dx*p,y:sy+dy*p+spread*p+Math.sin(p*Math.PI)*curve}));
-     if(f==='rocket'){ctx.shadowBlur=0;line(x-Math.cos(angle)*68,y-Math.sin(angle)*68,x-Math.cos(angle)*35,y-Math.sin(angle)*35,'#9caaa52b',7)}
+     if(f==='rocket'){ctx.shadowBlur=0;line(x-Math.cos(angle)*68*PROJECTILE_SCALE,y-Math.sin(angle)*68*PROJECTILE_SCALE,x-Math.cos(angle)*35*PROJECTILE_SCALE,y-Math.sin(angle)*35*PROJECTILE_SCALE,'#9caaa52b',7*PROJECTILE_SCALE)}
      projectile(ctx,f,x,y,angle,color);
     }
    }
    ctx.restore();
   }
-  if(['melee','blade','punch','martial'].includes(f)&&a<1.4&&!s.reduced)closeStrike(ctx,f,ex,ey,Math.atan2(uy,ux),a,Math.max(.75,Math.min(1.8,(options.targetRadius??28)/28)),Math.floor(s.seed)%3);
+  if(f==='grapple'&&a<1.65&&!s.reduced)grappleStrike(ctx,sx,sy,target.x-aimX*(options.targetRadius??28),target.y-aimY*(options.targetRadius??28),a,Math.max(.75,Math.min(1.8,(options.sourceRadius??28)/28)),s.hit);
+  if(['melee','blade','punch','martial'].includes(f)&&a<1.4&&!s.reduced)closeStrike(ctx,f,sx,sy,ex,ey,Math.atan2(uy,ux),a,Math.max(.75,Math.min(1.8,(options.sourceRadius??28)/28)),options.weapon,s.hit?(options.targetRadius??28)*1.2:0);
   if(options.area&&['grenade','rocket'].includes(f)&&impactAge>=0){
    const cells=options.area();
    if(options.areaPending){

@@ -29,8 +29,9 @@ Chat-card skinning, dice replacement, compendium scene previews, native audio to
 - `weapon-effects.ts` registers independent client visual/audio switches, volume, and intensity. Fresh resolved Combat Tools message updates trigger effects; ready-time history is seeded without playback, and action identities prevent damage/recovery updates from replaying an attack.
 - `weapon-effect-events.ts` interprets exchange, revealed area-attack, grapple, grapple-follow-up, and netrunning flags. Shared AoE plays once, after placement and attack reveal. SMG/Rifle automatic modes use representative bursts.
 - `weapon-effect-player.ts` supplies the reviewed procedural weapon visuals, physical impacts, Quickhack data arcs, and cached/synthesized sounds. Screen-space overlays follow current token positions through canvas transforms and do not alter token documents or combat state.
+- Projectile bodies, halos, trails, and rocket exhaust render at 65% of their previous size.
 - Playback requires visible message content and current-scene participants. Player-hidden tokens, private netrunner identity, and hidden weapon categories are protected. At most eight simultaneous local effects are admitted; stopped/disabled/hidden-tab/scene-teardown effects are cleaned up. Audio requires a user gesture and does not replay cues missed before unlock.
-- Coverage includes all 15 reviewed weapon profiles, known ammo colors, browser rendering/audio cleanup, old history/deduplication, privacy, scene guards, independent sound/visual controls, and reduced motion. Live Foundry multiplayer validation remains pending.
+- Coverage includes all 21 weapon profiles, known ammo colors, browser rendering/audio cleanup, old history/deduplication, privacy, scene guards, independent sound/visual controls, and reduced motion. Live Foundry multiplayer validation remains pending.
 
 ## Close-combat visual upgrade
 
@@ -430,3 +431,13 @@ Provides Vision outside current token visibility (0.7.1): the player attack hand
 
 
 Hazard scene-effect cards use the shared full-width section flow rather than squeezing their entire contents beside the participant rail. Existing saved scene-effect cards are recognized as well.
+
+Combat and soundboard update (0.9.0):
+
+- Generic melee uses a hooked crowbar; swords, knives and katana/Wakizashi names select matching blade artwork. Full-size weapons swing from the attacker-facing edge without backward travel. Fists advance toward the defender and fade at contact.
+- Brawling uses a fist; martial arts adds a separate floating black-belt emblem. Grapple uses two hands with a closing grip and short pull on success, or separation and withdrawal on misses.
+- Improvised thrown weapons and Tomahawks use spinning axes; Boomerang/Boomarang uses a curved boomerang; Mono-Star uses a four-point throwing star. Grenade/Molotov area routing is preserved.
+- Monowire/Mono-Guard uses a glowing, flickering lash: compact wind-up, rapid extension, a flattened waist-level wrap on hits, and a short pullback. Misses do not wrap.
+- Distinct synthesized close-combat sounds cover punch/slap impacts, crowbar clanks, blade air swishes and exaggerated martial-arts whooshes. Misses retain swings without impact. Grenade/rocket explosion and debris amplitudes are 10% lower; launch/throw audio is unchanged.
+- Soundboard tiles toggle play/stop and show animated equalizer overlays during playback. Indicators clear on completion; reduced motion uses a static indicator and accessible labels switch between Play and Stop.
+- Generated previews share the runtime renderers. Build and targeted automated checks are separate from live Foundry/multiplayer validation.

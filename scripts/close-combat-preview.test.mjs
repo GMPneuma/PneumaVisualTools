@@ -1,2 +1,2 @@
 import {checkPreview} from './combat-preview-check.mjs';
-await checkPreview(['melee','blade','punch','grapple','martial']);
+await checkPreview(['melee','blade','sword','knife','punch','grapple','martial']);

@@ -90,7 +90,7 @@ export function registerWeaponEffects():void {
    // Resolve currently loaded ammo only from a visible, inspectable source.
    const item=effect.weaponId&&allowed(source)&&source.actor?.testUserPermission(game.user!,'LIMITED')?source.actor.items.get(effect.weaponId):undefined;
    if(item){const system=item.system as unknown as {weaponType?:string};
-    if(effect.weapon==='melee'||effect.weapon==='bow')weapon=weaponKey(system.weaponType??'',item.name??'');
+    if(effect.weapon==='melee'||effect.weapon==='bow'||effect.weapon==='thrownAxe')weapon=weaponKey(system.weaponType??'',item.name??'');
     if(ammo==='basic'){const loaded=(item as Item & {getInstalledItems?:(type:string)=>Item[]}).getInstalledItems?.('ammo')?.[0];ammo=ammoKey(String((loaded?.system as unknown as {type?:string}|undefined)?.type??''))}
    }
    const areaApi=combat as unknown as {api?:{getAreaEffectCells?:(id:string)=>number[][]}}|undefined;

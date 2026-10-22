@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {actionEffects,weaponKey,ammoKey} from '../dist/weapon-effect-events.js';
 const flags=value=>({'pneuma-combattools':{...value,rollsRevealed:true}});
+for(const name of ['Monowire','Mono-Guard','MONO GUARD','Heavy Monowire'])assert.equal(weaponKey('heavyMelee',name),'whip');
+for(const [name,expected] of [['Improvised','thrownAxe'],['Tomahawk','thrownAxe'],['Boomerang','boomerang'],['Boomarang','boomerang'],['Mono-Star','throwingStar'],['Mono Star','throwingStar'],['Grenade','grenade'],['Molotov Cocktail','grenade']])assert.equal(weaponKey('thrownWeapon',name),expected);
+for(const [type,title,expected] of [['heavyMelee','Crowbar','melee'],['heavyMelee','Sword','sword'],['lightMelee','Knife','knife'],['heavyMelee','Katana','blade'],['unarmed','Brawling','punch'],['martialArts','Karate','martial']])assert.equal(weaponKey(type,title),expected);
 const exchange={attacker:'Scene.s.Token.a',defender:'Scene.s.Token.b',state:'waiting',weaponType:'assaultRifle',attackMode:'autofire',hit:true};
 assert.deepEqual(actionEffects('a',flags({exchange})),[]);
 assert.deepEqual(actionEffects('a',{'pneuma-combattools':{exchange:{...exchange,state:'resolved'}}}),[],'resolved state alone does not mean dice finished');
@@ -98,7 +101,7 @@ try{
  await page.evaluate(()=>{game.combats.clear();hooks.canvasReady.forEach(fn=>fn());});
  assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'deleted encounter cannot recover old area');
  await page.evaluate(()=>{game.user.isGM=true;target.document.hidden=false;for(const weapon of Object.keys(window.allWeapons))playEffect({weapon,hit:true,visuals:true,sound:true,volume:.2,intensity:.7,positions:()=>({source:{x:160,y:350},target:{x:750,y:250}})});});
- assert.equal(await page.locator('.pneuma-weapon-effects').count(),15);
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),21);
  await page.waitForFunction(()=>document.querySelectorAll('.pneuma-weapon-effects').length===0);
  await page.evaluate(()=>{values.weaponAnimations=false;msg.id='sound-only';hooks.createChatMessage.forEach(fn=>fn(msg));});
  assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'sound independent of visuals');

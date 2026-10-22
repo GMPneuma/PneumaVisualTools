@@ -8,9 +8,10 @@ export function weaponKey(type:string,title=''):string {
  const kind=type.toLowerCase();
  if(kind==='martialarts')return 'martial';if(kind==='unarmed')return 'punch';
  if(kind.includes('smg'))return 'smg';if(kind==='assaultrifle')return /sniper/i.test(title)?'sniper':'rifle';if(kind==='sniperrifle')return 'sniper';
- if(kind==='shotgun')return 'shotgun';if(kind==='rocketlauncher')return 'rocket';if(kind==='grenadelauncher'||kind==='thrownweapon')return 'grenade';
+ if(kind==='shotgun')return 'shotgun';if(kind==='rocketlauncher')return 'rocket';if(kind==='grenadelauncher')return 'grenade';
+ if(kind==='thrownweapon')return /boom[ae]rang/i.test(title)?'boomerang':/mono[\s-]*star|shuriken|throwing star/i.test(title)?'throwingStar':/grenade|molotov/i.test(title)?'grenade':'thrownAxe';
  if(kind==='bow')return /crossbow/i.test(title)?'crossbow':'bow';
- if(kind.includes('melee'))return /sword|blade|katana|knife|machete|monoblade/i.test(title)?'blade':'melee';
+ if(kind.includes('melee'))return /mono[\s-]*(?:wire|guard)/i.test(title)?'whip':/katana|wakizashi/i.test(title)?'blade':/knife/i.test(title)?'knife':/sword/i.test(title)?'sword':/blade|machete/i.test(title)?'blade':'melee';
  return 'pistol';
 }
 export function ammoKey(value:string):string {const normalized=value.replace(/[\s_-]/g,'').toLowerCase();return ({armorpiercing:'armorPiercing',incendiary:'incendiary',expansive:'expansive',rubber:'rubber',smart:'smart'} as Record<string,string>)[normalized]??'basic'}
