@@ -68,7 +68,10 @@ try{
  assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'native refresh cannot reveal replaced marker');
  await page.evaluate(()=>hooks.canvasTearDown.forEach(fn=>fn()));
  assert.ok(await page.evaluate(()=>areaTemplate.renderable&&areaHighlight.renderable),'unresolved measurement box restored when visuals stop');
- await page.evaluate(()=>{hooks.canvasReady.forEach(fn=>fn());});
+ await page.evaluate(()=>{
+  const iterator=game.messages[Symbol.iterator];game.messages[Symbol.iterator]=()=>{throw Error('Resume traversed chat history');};
+  hooks.canvasReady.forEach(fn=>fn());game.messages[Symbol.iterator]=iterator;
+ });
  await page.waitForFunction(()=>!areaTemplate.renderable);
  assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'unresolved area recovers on scene reload without replaying flight');
  await page.evaluate(()=>{areaMsg.flags['pneuma-combattools'].aoe.resolutionComplete=true;areaMsg.flags['pneuma-combattools'].aoe.areaHidden=true;areaTemplate.document.hidden=true;hooks.updateChatMessage.forEach(fn=>fn(areaMsg));});

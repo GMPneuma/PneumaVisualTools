@@ -1,7 +1,7 @@
 /** Position and render-only updates do not change actor conditions. Unknown fields invalidate. */
 export function tokenEffectsChanged(changes:Record<string,unknown>):boolean {
- const visual=new Set(['x','y','elevation','rotation','width','height','texture','sort','locked','lockRotation','name','alpha']);
- const ignores=['flags.pneuma-combattools.movement','flags.pneuma-combattools.aoeEscape'];
+ const visual=new Set(['x','y','elevation','rotation','width','height','texture','sort','locked','lockRotation','name','alpha','_regions']);
+ const ignores=['flags.pneuma-combattools.movement','flags.pneuma-combattools.aoeEscape','flags.pneuma-scenetools.vehicleFootprint'];
  const meaningful=(value:Record<string,unknown>,prefix=''):boolean=>Object.entries(value).some(([key,entry])=>{
   const path=prefix?`${prefix}.${key}`:key;
   if(visual.has(path.split('.')[0]!)||ignores.some(ignore=>path===ignore||path.startsWith(ignore+'.')))return false;
@@ -38,4 +38,29 @@ export function watchScreenTokenVisibility(sync:()=>void){
   if(previous!==token.isVisible)batch.schedule();
  });
  Hooks.on('canvasTearDown',batch.cancel);
+}
+
+/** Batch actor hydration without visiting every scene actor for a document edit. */
+export function actorRefreshCandidates() {
+ let full=true;
+ const dirty=new Map<string,Actor>();
+ return {
+  all:()=>{full=true;},
+  mark:(document: Actor|Item|ActiveEffect|TokenDocument|undefined)=>{
+   if(!document){full=true;return;}
+   let current: unknown=document;
+   while(current){
+    const doc=current as {documentName?:string;uuid?:string;actor?:Actor;parent?:unknown};
+    if(doc.actor){dirty.set(doc.actor.uuid,doc.actor);return;}
+    if(doc.documentName==='Actor'||doc.uuid&&/(?:^|\.)Actor\.[^.]+$/.test(doc.uuid)){dirty.set(doc.uuid!,current as Actor);return;}
+    current=doc.parent;
+   }
+  },
+  take:(selected:Actor|null|undefined)=>{
+   const actors=new Map(dirty);dirty.clear();
+   if(full){for(const token of canvas.tokens?.placeables??[])if(token.actor)actors.set(token.actor.uuid,token.actor);full=false;}
+   if(selected)actors.set(selected.uuid,selected);
+   return actors;
+  }
+ };
 }

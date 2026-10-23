@@ -448,3 +448,13 @@ Combat and soundboard update (0.9.0):
 - Distinct synthesized close-combat sounds cover punch/slap impacts, crowbar clanks, blade air swishes and exaggerated martial-arts whooshes. Misses retain swings without impact. Grenade/rocket explosion and debris amplitudes are 10% lower; launch/throw audio is unchanged.
 - Soundboard tiles toggle play/stop and show animated equalizer overlays during playback. Indicators clear on completion; reduced motion uses a static indicator and accessible labels switch between Play and Stop.
 - Generated previews share the runtime renderers. Build and targeted automated checks are separate from live Foundry/multiplayer validation.
+
+## Refresh performance
+
+- Poison and radiation hydration batches affected actors on actor, item, effect, and token edits; scene entry and world-time changes retain full hydration.
+- Weapon-effect resume uses pending area-message candidates maintained at startup and chat-message create/update/delete, preserving encounter and visibility checks.
+- Playlist progress polling runs only for visible, connected, playing rows and stops while hidden or idle. Seeking no longer duplicates the soundboard-indicator call within its update hook.
+
+Validated with local compilation and automated regression fixtures; live Foundry performance is not established by those checks.
+
+Region-membership and SceneTools vehicle-footprint metadata no longer invalidate actor effects during movement. Combined updates containing actual condition changes still refresh effects.

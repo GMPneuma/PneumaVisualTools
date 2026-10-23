@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.2 - 2026-10-23
+
+- Batch poison/radiation hydration for affected actors instead of rescanning all scene actors on individual document edits.
+- Resume pending area effects from indexed messages instead of traversing chat history.
+- Poll audio progress only for visible, playing rows and remove duplicate soundboard-indicator updates during seeking.
+- Ignore Region-membership and vehicle-footprint movement metadata when refreshing effects; retain updates containing actual condition changes.
+
+Validation: strict TypeScript/module builds and automated runtime/browser regression fixtures. Live Foundry performance and multiplayer verification remain pending.
+
 ## 0.9.1 - 2026-10-22
 
 - Remove full-scene condition scans from token movement refreshes and inventory scans from the token-effects animation loop.

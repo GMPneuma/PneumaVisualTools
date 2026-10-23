@@ -24,7 +24,7 @@ try {
   window.ui={notifications:{error:e=>calls.push(e)}};
  });
  const code=(await readFile(new URL('../dist/audio-tools.js',import.meta.url),'utf8')).replace(/^export /gm,'');
- await page.addScriptTag({content:code+'\nwindow.audio={Soundboard,audioTime,parseAudioTime,seekAudio,playSoundboardOnce,registerAudioTools,mountSidebarProgress,updateSidebarProgress};'});
+ await page.addScriptTag({content:code+'\nwindow.audio={polling:()=>!!progressTimer,Soundboard,audioTime,parseAudioTime,seekAudio,playSoundboardOnce,registerAudioTools,mountSidebarProgress,updateSidebarProgress};'});
  await page.evaluate(()=>{audio.registerAudioTools(); window.app=new audio.Soundboard(); app.activateListeners([document.querySelector('#pvt-audio-tools')]);});
  assert.equal(await page.evaluate(()=>audio.parseAudioTime('1:02:03')),3723);
  assert.equal(await page.evaluate(()=>audio.parseAudioTime('1:99')),null);
@@ -177,12 +177,14 @@ try {
  await page.waitForFunction(()=>track.playing);
  await page.evaluate(async()=>{await track.update({playing:false});});
  assert.equal(await tile.locator('.pvt-sound-playing').isVisible(),false);
+ await page.waitForFunction(()=>!audio.polling());
+ await page.evaluate(()=>{track.playing=true;document.querySelector('#currently-playing').style.display='block';audio.updateSidebarProgress();});
+ await page.waitForFunction(()=>audio.polling());
+ await page.evaluate(()=>{document.querySelector('#currently-playing').style.display='none';});
+ await page.waitForFunction(()=>!audio.polling());
+ await page.evaluate(()=>{document.querySelector('#currently-playing').style.display='block';});
+ await page.waitForFunction(()=>audio.polling());
+ await page.evaluate(()=>{track.playing=false;audio.updateSidebarProgress();});
+ assert.equal(await page.evaluate(()=>audio.polling()),false);
  console.log('Audio fixtures passed, including soundboard toggle, animated overlay, reduced motion, playback completion, scrolling and nested folders.');
 } finally {await browser.close();}
-
-
-
-
-
-
-

@@ -1,4 +1,4 @@
-import {frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged,conditionPublisher} from './effect-refresh.js';
+import {actorRefreshCandidates,frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged,conditionPublisher} from './effect-refresh.js';
 import {hasPrimaryDrug} from './substance-effects.js';
 import {createPatternScreen} from './remaining-renderers.js';
 export type PatternKind='choking1'|'choking2'|'radiation'|'gas'|'blackLace'|'boost'|'synthcoke'|'berserker'|'primeTime'|'sixgun'|'timewarp';
@@ -24,10 +24,11 @@ export function actorPatternKinds(actor:Actor|undefined):PatternKind[] {
 export function registerRemainingEffects():void {
  const publish=conditionPublisher('pneumaVisualToolsPatternsChanged');
  const screens=new Map(patternKinds.map(kind=>[kind,createPatternScreen(kind)]));let ready=false;
+ const candidates=actorRefreshCandidates();
  const update=()=>{
   if(!ready)return;
   const selected=canvas.tokens?.controlled?.filter(t=>t.actor?.isOwner&&t.isVisible),actor=selected?.length===1?selected[0]!.actor:game.user?.character;
-  const actors=new Map<string,Actor>();if(actor)actors.set(actor.uuid,actor);for(const t of canvas.tokens?.placeables??[])if(t.actor)actors.set(t.actor.uuid,t.actor);
+  const actors=candidates.take(actor);
   const now=Number(game.time?.worldTime??0);
   for(const [uuid,entries] of held)for(const [kind,entry] of entries)if(!entry.combat&&now>=entry.expires){entries.delete(kind);const set=cleared.get(uuid)??new Set<PatternKind>();set.add(kind);cleared.set(uuid,set);}
   for(const candidate of actors.values())for(const kind of (Object.keys(aliases) as PatternKind[]).filter(kind=>kind!=='gas')){
@@ -49,7 +50,10 @@ export function registerRemainingEffects():void {
  watchScreenTokenVisibility(sync);
  Hooks.once('ready',()=>{ready=true;sync();});
  Hooks.on('updateCombat',(combat:Combat,changes:Record<string,unknown>)=>{if(!combat.started||'round' in changes||'turn' in changes)clear(combat,!combat.started);else sync();});Hooks.on('deleteCombat',(combat:Combat)=>clear(combat,true));
- for(const hook of ['canvasReady','controlToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','updateWorldTime','updateUser','pneumaVisualToolsScreenEffectsChanged','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
- Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes))sync();});
+ for(const hook of ['controlToken','deleteToken','updateUser','pneumaVisualToolsScreenEffectsChanged','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
+ for(const hook of ['canvasReady','updateWorldTime'])Hooks.on(hook,()=>{candidates.all();sync();});
+ for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,(doc:Actor|Item|ActiveEffect)=>{candidates.mark(doc);sync();});
+ Hooks.on('createToken',(doc:TokenDocument)=>{candidates.mark(doc);sync();});
+ Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes)){candidates.mark(_doc);sync();}});
  const stop=()=>{for(const screen of screens.values())screen.stop();};Hooks.on('canvasTearDown',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});window.addEventListener('pagehide',stop);
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {tokenEffectsChanged,frameRefresh,conditionPublisher,watchScreenTokenVisibility} from '../dist/effect-refresh.js';
+import {actorRefreshCandidates,tokenEffectsChanged,frameRefresh,conditionPublisher,watchScreenTokenVisibility} from '../dist/effect-refresh.js';
 
 for(const changes of [{x:10,y:20},{rotation:90,width:2,'texture.scaleX':-1},{x:20,flags:{'pneuma-combattools':{movement:{spent:2}}}},{'flags.pneuma-combattools.aoeEscape':{id:'move'}}])assert.equal(tokenEffectsChanged(changes),false);
 for(const changes of [{hidden:true},{actorId:'new'},{delta:{effects:[]}},{'delta.items':[]},{flags:{'pneuma-combattools':{flashbang:{id:'new'}}}},{unknown:true}])assert.equal(tokenEffectsChanged(changes),true);
@@ -26,3 +26,13 @@ flush();assert.equal(runs,before);
 token.isVisible=false;hooks.get('refreshToken')(token);flush();assert.equal(runs,before+1);
 token.isVisible=true;hooks.get('refreshToken')(token);hooks.get('canvasTearDown')();flush();assert.equal(runs,before+1);
 console.log('Movement field filtering, frame batching, targeted condition publication and visibility transitions passed');
+
+const actorA={uuid:'Actor.a'},actorB={uuid:'Scene.s.Token.b.Actor.b'};
+globalThis.canvas={tokens:{placeables:[{actor:actorA},{actor:actorB}]}};
+const candidates=actorRefreshCandidates();assert.equal(candidates.take().size,2);assert.equal(candidates.take().size,0);
+candidates.mark({parent:{parent:actorB}});assert.deepEqual([...candidates.take().keys()],[actorB.uuid]);
+candidates.mark({actor:actorA});candidates.mark(actorA);assert.deepEqual([...candidates.take().keys()],[actorA.uuid]);
+assert.deepEqual([...candidates.take(actorB).keys()],[actorB.uuid]);candidates.all();assert.equal(candidates.take().size,2);
+
+for(const changes of [{_regions:['r']},{flags:{'pneuma-scenetools':{vehicleFootprint:{width:2,height:3}}}}])assert.equal(tokenEffectsChanged(changes),false);
+assert.equal(tokenEffectsChanged({_regions:['r'],delta:{effects:[]}}),true);

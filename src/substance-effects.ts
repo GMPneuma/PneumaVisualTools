@@ -1,4 +1,4 @@
-import {frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged,conditionPublisher} from './effect-refresh.js';
+import {actorRefreshCandidates,frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged,conditionPublisher} from './effect-refresh.js';
 import {createSubstanceOverlay} from './substance-overlay.js';
 import {createSmashScreenOverlay} from './smash-overlay.js';
 const MODULE='pneuma-visualtools';
@@ -36,16 +36,14 @@ export function registerSubstanceEffects():void {
  const publish=conditionPublisher('pneumaVisualToolsExposureChanged');
  const poison=createSubstanceOverlay('poison'),glass=createSubstanceOverlay('blueGlass'),smash=createSmashScreenOverlay();
  let ready=false;
+ const candidates=actorRefreshCandidates();
  const update=()=>{
   if(!ready)return;
   const selected=canvas.tokens?.controlled?.filter(token=>token.actor?.isOwner&&token.isVisible);
   const actor=selected?.length===1?selected[0]!.actor:game.user?.character;
   const now=Number(game.time?.worldTime??0);
   for(const [uuid,entry] of exposures)if(!entry.combat&&now>=entry.expires){exposures.delete(uuid);cleared.add(uuid);}
-  // Hydrate existing conditions for selected characters and all map tokens.
-  const actors=new Map<string,Actor>();
-  if(actor)actors.set(actor.uuid,actor);
-  for(const token of canvas.tokens?.placeables??[])if(token.actor)actors.set(token.actor.uuid,token.actor);
+  const actors=candidates.take(actor);
   for(const candidate of actors.values()) {
    if(!activePoison(candidate)){cleared.delete(candidate.uuid);continue;}
    if(cleared.has(candidate.uuid)||exposures.has(candidate.uuid))continue;
@@ -75,8 +73,11 @@ export function registerSubstanceEffects():void {
   sync();
  });
  Hooks.on('deleteCombat',(combat:Combat)=>{for(const [uuid,entry] of exposures)if(entry.combat===combat.id){exposures.delete(uuid);cleared.add(uuid);}sync();});
- for(const hook of ['controlToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','updateUser','canvasReady','updateWorldTime'])Hooks.on(hook,sync);
- Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes))sync();});
+ for(const hook of ['controlToken','deleteToken','updateUser','pneumaVisualToolsScreenEffectsChanged','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
+ for(const hook of ['canvasReady','updateWorldTime'])Hooks.on(hook,()=>{candidates.all();sync();});
+ for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,(doc:Actor|Item|ActiveEffect)=>{candidates.mark(doc);sync();});
+ Hooks.on('createToken',(doc:TokenDocument)=>{candidates.mark(doc);sync();});
+ Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes)){candidates.mark(_doc);sync();}});
  Hooks.on('canvasTearDown',()=>{poison.stop();glass.stop();smash.stop();});
  document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});
  window.addEventListener('pagehide',()=>{poison.stop();glass.stop();smash.stop();});

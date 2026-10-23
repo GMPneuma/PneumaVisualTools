@@ -61,8 +61,14 @@ export function registerWeaponEffects():void {
  registerWeaponLightSettings();
  registerWeaponLightCleanup();
  const seen=new Set<string>(),active=new Set<()=>void>(),areaRuns=new Map<string,()=>void>(),runs=new Map<string,()=>void>(),messages=new Map<string,ChatMessage>(),displays=new Map<string,ReturnType<typeof hideAreaDuringPlayback>>();let ready=false;
+ const resumable=new Map<string,ChatMessage>();
+ const index=(message:ChatMessage)=>{
+  const aoe=(message.flags as Record<string,{aoe?:{phase?:string;resolutionComplete?:boolean}}> | undefined)?.['pneuma-combattools']?.aoe;
+  if(aoe?.phase==='responses'&&!aoe.resolutionComplete)resumable.set(message.id??'',message);
+  else resumable.delete(message.id??'');
+ };
  const stop=()=>{for(const end of [...active])end();active.clear();stopWeaponAudio()};
- const resume=()=>{if(ready&&!document.hidden&&canvas.ready)for(const message of game.messages??[])run(message,true)};
+ const resume=()=>{if(ready&&!document.hidden&&canvas.ready)for(const message of resumable.values())run(message,true)};
  const restart=()=>{stop();resume()};
  game.settings!.register(MODULE,'weaponAnimations',{name:'Show attack effects',hint:'Animate newly resolved Combat Tools attacks, area attacks, grapples, and netrunning actions on the current scene. Respects message visibility and reduced motion.',scope:'client',config:true,type:Boolean,default:true,onChange:restart});
  game.settings!.register(MODULE,'weaponSounds',{name:'Play attack sounds',hint:'Local attack and impact sounds for visible actions. Browser audio unlocks after your first click or keypress. Independent of attack visuals.',scope:'client',config:true,type:Boolean,default:true,onChange:restart});
@@ -72,7 +78,7 @@ export function registerWeaponEffects():void {
  // historic attack when a damage receipt or recovery notice is updated later.
  const remember=(key:string)=>{seen.add(key)};
  function run(message:ChatMessage,recover=false):void {
-  if(!ready)return;messages.set(message.id??'',message);
+  index(message);if(!ready)return;messages.set(message.id??'',message);
   for(const effect of actionEffects(message.id??'',message.flags,message.content??'')){
    const replay=seen.has(effect.key);
    if(replay&&(!effect.areaMessage||!recover||areaRuns.has(effect.key)||!areaPending(message)||!areaTemplates(effect.areaMessage).some(t=>!t.document.hidden&&!foundry.utils.getProperty(t.document,'flags.pneuma-combattools.originalAim'))))continue;remember(effect.key);
@@ -134,7 +140,7 @@ export function registerWeaponEffects():void {
    if(light.ready)void light.ready.then(start).catch(error=>{end();console.warn('Pneuma Visual Tools: prepared attack playback failed',error);});else start();
   }
  }
- Hooks.once('ready',()=>{for(const message of game.messages??[])for(const effect of actionEffects(message.id??'',message.flags,message.content??''))remember(effect.key);ready=true;resume();
+ Hooks.once('ready',()=>{for(const message of game.messages??[]){index(message);for(const effect of actionEffects(message.id??'',message.flags,message.content??''))remember(effect.key);}ready=true;resume();
   const unlock=()=>{if(game.settings!.get(MODULE,'weaponSounds'))void unlockWeaponAudio().catch(()=>{})};document.addEventListener('pointerdown',unlock);document.addEventListener('keydown',unlock);
  });
  Hooks.on('createChatMessage',(message:ChatMessage)=>run(message));Hooks.on('updateChatMessage',(message:ChatMessage)=>run(message,true));
@@ -145,6 +151,6 @@ export function registerWeaponEffects():void {
   if(typeof id!=='string')return;
   const message=messages.get(id);if(message)for(const effect of actionEffects(id,message.flags))areaRuns.get(effect.key)?.();
  });
- Hooks.on('canvasReady',resume);Hooks.on('refreshMeasuredTemplate',()=>{for(const display of displays.values())display.hide()});Hooks.on('updateMeasuredTemplate',()=>{for(const display of displays.values())display.hide()});Hooks.on('canvasTearDown',stop);Hooks.on('deleteChatMessage',(message:ChatMessage)=>{messages.delete(message.id??'');for(const effect of actionEffects(message.id??'',message.flags)){remember(effect.key);runs.get(effect.key)?.();}});
+ Hooks.on('canvasReady',resume);Hooks.on('refreshMeasuredTemplate',()=>{for(const display of displays.values())display.hide()});Hooks.on('updateMeasuredTemplate',()=>{for(const display of displays.values())display.hide()});Hooks.on('canvasTearDown',stop);Hooks.on('deleteChatMessage',(message:ChatMessage)=>{messages.delete(message.id??'');resumable.delete(message.id??'');for(const effect of actionEffects(message.id??'',message.flags)){remember(effect.key);runs.get(effect.key)?.();}});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else resume()});window.addEventListener('pagehide',stop);
 }

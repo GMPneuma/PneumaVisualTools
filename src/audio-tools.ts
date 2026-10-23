@@ -69,9 +69,27 @@ export function updateSoundboardIndicators(): void {
 function description(track: PlaylistSound): string {
   return String(track.description ?? '').trim() || String(foundry.utils.getProperty(track.flags, MODULE + '.soundDescription') ?? '').trim();
 }
+const progressRows = new Map<HTMLElement, boolean>();
+let progressTimer: ReturnType<typeof setInterval> | undefined;
+const progressObserver = new IntersectionObserver(entries => {
+  for (const entry of entries) progressRows.set(entry.target as HTMLElement, entry.isIntersecting);
+  refreshProgressPolling();
+});
+function refreshProgressPolling(update=true): void {
+  const active: HTMLElement[] = [];
+  for (const [row, visible] of progressRows) {
+    if (!row.isConnected) { progressObserver.unobserve(row); progressRows.delete(row); continue; }
+    const track = game.playlists?.get(row.dataset.playlistId ?? '')?.sounds.get(row.dataset.soundId ?? '');
+    if (visible && !document.hidden && track?.playing) active.push(row);
+  }
+  if (update) updateProgressRows(active);
+  if (active.length && !progressTimer) progressTimer = setInterval(refreshProgressPolling, 500);
+  else if (!active.length && progressTimer) {clearInterval(progressTimer); progressTimer = undefined;}
+}
 /** Separate from the native .sound-volume slider: values are seconds. */
 export function mountSidebarProgress(root: HTMLElement): void {
   root.querySelectorAll<HTMLElement>('#currently-playing .sound[data-sound-id]').forEach(row => {
+    if (!progressRows.has(row)) {progressRows.set(row, false); progressObserver.observe(row);}
     if (row.querySelector('[data-pvt-progress]')) return;
     const group = document.createElement('div'); group.className = 'pvt-sidebar-progress';
     group.dataset.pvtProgress = '';
@@ -115,10 +133,14 @@ export function mountSidebarProgress(root: HTMLElement): void {
   updateSidebarProgress(root);
 }
 export function updateSidebarProgress(root: ParentNode = document): void {
-  root.querySelectorAll<HTMLElement>('#currently-playing .sound[data-sound-id]').forEach(row => {
+  updateProgressRows(Array.from(root.querySelectorAll<HTMLElement>('#currently-playing .sound[data-sound-id]')));
+  refreshProgressPolling(false);
+}
+function updateProgressRows(rows: Iterable<HTMLElement>): void {
+  for (const row of rows) {
     const track = game.playlists?.get(row.dataset.playlistId ?? '')?.sounds.get(row.dataset.soundId ?? '');
     const slider = row.querySelector<HTMLInputElement>('[data-pvt-sidebar-seek]');
-    if (!track || !slider || slider.dataset.seeking) return;
+    if (!track || !slider || slider.dataset.seeking) continue;
     const reportedDuration = track.sound?.duration;
     if (reportedDuration && Number.isFinite(reportedDuration)) slider.dataset.pvtDuration = String(reportedDuration);
     const duration = reportedDuration && Number.isFinite(reportedDuration) ? reportedDuration : Number(slider.dataset.pvtDuration);
@@ -129,7 +151,7 @@ export function updateSidebarProgress(root: ParentNode = document): void {
     if (!slider.dataset.interacting) {
       slider.max = String(loaded ? duration : 0); slider.value = String(current);
     }
-  });
+  }
 }
 export class Soundboard extends Application {
   static override get defaultOptions() {
@@ -260,11 +282,13 @@ export function registerAudioTools(): void {
   for (const hook of ['createPlaylist', 'updatePlaylist', 'deletePlaylist', 'createPlaylistSound', 'deletePlaylistSound']) Hooks.on(hook, refresh);
   Hooks.on('updatePlaylistSound', (_track: PlaylistSound, _change: unknown, options: {pvtSeek?: boolean}) => {
     updateSoundboardIndicators();
-    if (options?.pvtSeek) {updateSidebarProgress(); updateSoundboardIndicators();} else refresh();
+    updateSidebarProgress();
+    if (!options?.pvtSeek) refresh();
   });
   for (const hook of ['createFolder', 'updateFolder', 'deleteFolder']) Hooks.on(hook, refresh);
   Hooks.once('ready', async () => {await loadTemplates([`modules/${MODULE}/soundboard-folder.hbs`, `modules/${MODULE}/soundboard-tile.hbs`]);});
-  Hooks.once('ready', () => {setInterval(() => {updateSidebarProgress();}, 500);});
+  document.addEventListener('visibilitychange', () => refreshProgressPolling());
+  window.addEventListener('pagehide', () => {if (progressTimer) clearInterval(progressTimer); progressTimer = undefined;});
 }
 
 
