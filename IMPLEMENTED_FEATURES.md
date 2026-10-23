@@ -1,5 +1,12 @@
 # Implemented Features
 
+## Movement performance optimization (0.9.1)
+
+- Token refreshes update overlay visibility and changed dimensions without scanning scene actors or inventories. Attached graphics and the existing render-time alpha mask follow movement and rotation.
+- Actor, item, and effect changes invalidate only their actor's tokens, coalesced per animation frame. Token animation reads cached effect kinds and flash timing; hidden tokens skip painting. World-time, combat, user, preview, and global preference changes retain broader invalidation for expiry and visibility.
+- Screen-effect handlers batch document bursts and ignore position/render-only token updates, including CombatTools movement bookkeeping. Selected-token visibility transitions still refresh the screen. Held-condition notifications identify only actors whose state changed.
+- Lifecycle and workload tests cover movement refresh storms, targeted invalidation, reduced motion, condition expiry, visibility, toggles, and teardown. Local validation does not establish live Foundry FPS or multiplayer behavior.
+
 ## 0.5.0 validation
 
 Released scope is recorded in CHANGELOG.md. All 40 local test scripts pass, including the complete chat-card browser suite; module validation and the TypeScript build pass. Earlier dated development notes below retain their historical context. Live Foundry and multiplayer verification remain separate.

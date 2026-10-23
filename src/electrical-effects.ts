@@ -1,3 +1,4 @@
+import {frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged,conditionPublisher} from './effect-refresh.js';
 import {createElectricalOverlay} from './electrical-overlay.js';
 export type ElectricalKind='electrical'|'emp';
 type Entry={combat?:string,expires:number};
@@ -16,8 +17,9 @@ export function hasEMP(actor:Actor|undefined):boolean {
 }
 /** Prepared renderer API; gameplay integrations will call this later. */
 export function registerElectricalEffects():void {
+ const publish=conditionPublisher('pneumaVisualToolsElectricalChanged');
  const electrical=createElectricalOverlay('electrical'),emp=createElectricalOverlay('emp');let ready=false;
- const sync=()=>{
+ const update=()=>{
   if(!ready)return;
   const selected=canvas.tokens?.controlled?.filter(token=>token.actor?.isOwner&&token.isVisible);
   const actor=selected?.length===1?selected[0]!.actor:game.user?.character;
@@ -26,8 +28,11 @@ export function registerElectricalEffects():void {
   const visible=!document.hidden&&game.settings!.get('pneuma-visualtools','screenEffects');
   if(visible&&hasElectricalShock(actor??undefined))electrical.start();else electrical.stop();
   if(visible&&hasEMP(actor??undefined))emp.start();else emp.stop();
-  Hooks.callAll('pneumaVisualToolsElectricalChanged');
+  publish(Array.from(held,([uuid,entries])=>[uuid,[...entries]] as const));
  };
+ const refresh=frameRefresh(update),sync=refresh.schedule;
+ Hooks.on('canvasTearDown',refresh.cancel);
+ window.addEventListener('pagehide',refresh.cancel);
  const activate=(actor:Actor,kind:ElectricalKind)=>{
   if(kind!=='electrical'&&kind!=='emp')return;
   const combat=game.combats?.find(c=>c.started&&c.combatants.some(member=>member.actor?.uuid===actor.uuid));
@@ -35,9 +40,11 @@ export function registerElectricalEffects():void {
  };
  const module=game.modules!.get('pneuma-visualtools') as unknown as {api?:Record<string,unknown>};
  module.api={...module.api,activateElectricalEffect:activate};
+ watchScreenTokenVisibility(sync);
  Hooks.once('ready',()=>{ready=true;sync();});
  Hooks.on('updateCombat',(combat:Combat,changes:Record<string,unknown>)=>{for(const [uuid,entries] of held){for(const [kind,entry] of entries)if(entry.combat===combat.id&&(!combat.started||(('turn' in changes||'round' in changes)&&combat.combatant?.actor?.uuid===uuid)))entries.delete(kind);if(!entries.size)held.delete(uuid);}sync();});
  Hooks.on('deleteCombat',(combat:Combat)=>{for(const [uuid,entries] of held){for(const [kind,entry] of entries)if(entry.combat===combat.id)entries.delete(kind);if(!entries.size)held.delete(uuid);}sync();});
- for(const hook of ['controlToken','updateToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','canvasReady','updateWorldTime','updateUser','pneumaVisualToolsScreenEffectsChanged'])Hooks.on(hook,sync);
- Hooks.on('canvasTearDown',()=>{electrical.stop();emp.stop();});document.addEventListener('visibilitychange',sync);window.addEventListener('pagehide',()=>{electrical.stop();emp.stop();});
+ for(const hook of ['controlToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','canvasReady','updateWorldTime','updateUser','pneumaVisualToolsScreenEffectsChanged'])Hooks.on(hook,sync);
+ Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes))sync();});
+ Hooks.on('canvasTearDown',()=>{electrical.stop();emp.stop();});document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});window.addEventListener('pagehide',()=>{electrical.stop();emp.stop();});
 }

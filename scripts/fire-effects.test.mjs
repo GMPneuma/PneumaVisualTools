@@ -1,3 +1,4 @@
+import {installEffectHarness} from './effect-test-harness.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
@@ -5,6 +6,7 @@ const hooks={},settings=new Map([['screenEffects',{scope:'client',onChange:()=>h
 const effect={disabled:false,isSuppressed:false,statuses:new Set(['y4y0rvsz17aj0r4g']),name:'On Fire (Strong)'};
 const actor={effects:[effect],isOwner:true};
 const context=vm.createContext({game:{settings:{get:()=>enabled,register:(m,k,v)=>settings.set(k,v)},user:{character:actor}},canvas:{tokens:{controlled:[]}},Hooks:{once:(k,f)=>hooks[k]=f,on:(k,f)=>hooks[k]=f},document:{hidden:false,addEventListener(){}},window:{addEventListener(){}},createFlameOverlay:()=>({start:n=>active=n,stop:()=>active=0})});
+const flush=await installEffectHarness(context,hooks);
 vm.runInContext((await readFile('dist/fire-status.js','utf8')).replace(/export /g,''),context);
 vm.runInContext((await readFile('dist/fire-effects.js','utf8')).replace(/^import .*;\s*/gm,'').replace(/export /g,'')+'\nregisterFireEffects();',context);
 hooks.ready();assert.equal(active,2);effect.disabled=true;hooks.updateActiveEffect();assert.equal(active,0);effect.disabled=false;enabled=false;settings.get('screenEffects').onChange();assert.equal(active,0);enabled=true;hooks.updateActiveEffect();assert.equal(active,2);hooks.canvasTearDown();assert.equal(active,0);

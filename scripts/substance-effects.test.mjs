@@ -1,3 +1,4 @@
+import {installEffectHarness} from './effect-test-harness.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
@@ -9,6 +10,7 @@ const other={uuid:'Actor.other'};
 const combat={id:'combat',started:true,combatants:[{actor},{actor:other}],combatant:{actor:other}};
 const game={settings:{get:(m,k)=>settings.get(k)?.enabled!==false,register:(m,k,v)=>settings.set(k,v)},user:{character:actor},combats:[combat],time:{worldTime:0}};
 const context=vm.createContext({game,canvas:{tokens:{controlled:[]}},Hooks:{callAll(){},once:(k,f)=>hooks[k]=f,on:(k,f)=>hooks[k]=f},document:{hidden:false,addEventListener(){}},window:{addEventListener(){}},createSmashScreenOverlay:()=>({start:()=>smashActive=true,stop:()=>smashActive=false}),createSubstanceOverlay:kind=>({start:()=>active[kind]=true,stop:()=>active[kind]=false})});
+const flush=await installEffectHarness(context,hooks);
 vm.runInContext((await readFile('dist/substance-effects.js','utf8')).replace(/^import .*;\s*/gm,'').replace(/export /g,'')+'\nregisterSubstanceEffects();',context);
 hooks.ready();assert.equal(active.blueGlass,true);
 hooks.pneumaCombatToolsExposure(actor.uuid,'poison');assert.equal(active.poison,true);

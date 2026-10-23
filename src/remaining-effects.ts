@@ -1,3 +1,4 @@
+import {frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged,conditionPublisher} from './effect-refresh.js';
 import {hasPrimaryDrug} from './substance-effects.js';
 import {createPatternScreen} from './remaining-renderers.js';
 export type PatternKind='choking1'|'choking2'|'radiation'|'gas'|'blackLace'|'boost'|'synthcoke'|'berserker'|'primeTime'|'sixgun'|'timewarp';
@@ -21,8 +22,9 @@ export function actorPatternKinds(actor:Actor|undefined):PatternKind[] {
  return result;
 }
 export function registerRemainingEffects():void {
+ const publish=conditionPublisher('pneumaVisualToolsPatternsChanged');
  const screens=new Map(patternKinds.map(kind=>[kind,createPatternScreen(kind)]));let ready=false;
- const sync=()=>{
+ const update=()=>{
   if(!ready)return;
   const selected=canvas.tokens?.controlled?.filter(t=>t.actor?.isOwner&&t.isVisible),actor=selected?.length===1?selected[0]!.actor:game.user?.character;
   const actors=new Map<string,Actor>();if(actor)actors.set(actor.uuid,actor);for(const t of canvas.tokens?.placeables??[])if(t.actor)actors.set(t.actor.uuid,t.actor);
@@ -36,13 +38,18 @@ export function registerRemainingEffects():void {
   }
   const active=new Set(actorPatternKinds(actor??undefined));
   for(const [kind,screen] of screens)if(!document.hidden&&game.settings!.get('pneuma-visualtools','screenEffects')&&active.has(kind))screen.start();else screen.stop();
-  Hooks.callAll('pneumaVisualToolsPatternsChanged');
+  publish(Array.from(held,([uuid,entries])=>[uuid,[...entries]] as const));
  };
+ const refresh=frameRefresh(update),sync=refresh.schedule;
+ Hooks.on('canvasTearDown',refresh.cancel);
+ window.addEventListener('pagehide',refresh.cancel);
  const module=game.modules!.get('pneuma-visualtools') as unknown as {api?:Record<string,unknown>};
  module.api={...module.api,activatePatternEffect:(actor:Actor,kind:PatternKind)=>{if(!patternKinds.includes(kind))return;const combat=game.combats?.find(c=>c.started&&c.combatants.some(m=>m.actor?.uuid===actor.uuid));const entries=held.get(actor.uuid)??new Map();entries.set(kind,{combat:combat?.id,expires:Number(game.time?.worldTime??0)+6});held.set(actor.uuid,entries);cleared.get(actor.uuid)?.delete(kind);sync();}};
  const clear=(combat:Combat,end:boolean)=>{for(const [uuid,entries] of held)for(const [kind,entry] of entries)if(entry.combat===combat.id&&(end||combat.combatant?.actor?.uuid===uuid)){entries.delete(kind);const set=cleared.get(uuid)??new Set<PatternKind>();set.add(kind);cleared.set(uuid,set);}sync();};
+ watchScreenTokenVisibility(sync);
  Hooks.once('ready',()=>{ready=true;sync();});
  Hooks.on('updateCombat',(combat:Combat,changes:Record<string,unknown>)=>{if(!combat.started||'round' in changes||'turn' in changes)clear(combat,!combat.started);else sync();});Hooks.on('deleteCombat',(combat:Combat)=>clear(combat,true));
- for(const hook of ['canvasReady','controlToken','updateToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','updateWorldTime','updateUser','pneumaVisualToolsScreenEffectsChanged','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
- const stop=()=>{for(const screen of screens.values())screen.stop();};Hooks.on('canvasTearDown',stop);document.addEventListener('visibilitychange',sync);window.addEventListener('pagehide',stop);
+ for(const hook of ['canvasReady','controlToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','updateWorldTime','updateUser','pneumaVisualToolsScreenEffectsChanged','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
+ Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes))sync();});
+ const stop=()=>{for(const screen of screens.values())screen.stop();};Hooks.on('canvasTearDown',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});window.addEventListener('pagehide',stop);
 }

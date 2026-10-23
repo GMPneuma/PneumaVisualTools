@@ -1,3 +1,4 @@
+import {frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged,conditionPublisher} from './effect-refresh.js';
 import {createSubstanceOverlay} from './substance-overlay.js';
 import {createSmashScreenOverlay} from './smash-overlay.js';
 const MODULE='pneuma-visualtools';
@@ -32,9 +33,10 @@ export function hasPrimaryDrug(actor:Actor|undefined,drug:string,statusId:string
  });
 }
 export function registerSubstanceEffects():void {
+ const publish=conditionPublisher('pneumaVisualToolsExposureChanged');
  const poison=createSubstanceOverlay('poison'),glass=createSubstanceOverlay('blueGlass'),smash=createSmashScreenOverlay();
  let ready=false;
- const sync=()=>{
+ const update=()=>{
   if(!ready)return;
   const selected=canvas.tokens?.controlled?.filter(token=>token.actor?.isOwner&&token.isVisible);
   const actor=selected?.length===1?selected[0]!.actor:game.user?.character;
@@ -50,13 +52,17 @@ export function registerSubstanceEffects():void {
    const combat=game.combats?.find(c=>c.started&&c.combatants.some(member=>member.actor?.uuid===candidate.uuid));
    exposures.set(candidate.uuid,{combat:combat?.id,expires:now+6});
   }
-  Hooks.callAll('pneumaVisualToolsExposureChanged');
+  publish(exposures.entries());
   const visible=!document.hidden&&!!actor;
   if(visible&&game.settings!.get(MODULE,'screenEffects')&&exposures.has(actor!.uuid))poison.start();else poison.stop();
   if(visible&&game.settings!.get(MODULE,'screenEffects')&&hasBlueGlass(actor??undefined))glass.start();else glass.stop();
   if(visible&&game.settings!.get(MODULE,'screenEffects')&&hasSmash(actor??undefined))smash.start();else smash.stop();
  };
+ const refresh=frameRefresh(update),sync=refresh.schedule;
+ Hooks.on('canvasTearDown',refresh.cancel);
+ window.addEventListener('pagehide',refresh.cancel);
  Hooks.on('pneumaVisualToolsScreenEffectsChanged',sync);
+ watchScreenTokenVisibility(sync);
  Hooks.once('ready',()=>{ready=true;sync();});
  Hooks.on('pneumaCombatToolsExposure',(uuid:string,kind:string)=>{
   if(kind!=='poison')return;
@@ -69,8 +75,9 @@ export function registerSubstanceEffects():void {
   sync();
  });
  Hooks.on('deleteCombat',(combat:Combat)=>{for(const [uuid,entry] of exposures)if(entry.combat===combat.id){exposures.delete(uuid);cleared.add(uuid);}sync();});
- for(const hook of ['controlToken','updateToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','updateUser','canvasReady','updateWorldTime'])Hooks.on(hook,sync);
+ for(const hook of ['controlToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','updateUser','canvasReady','updateWorldTime'])Hooks.on(hook,sync);
+ Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes))sync();});
  Hooks.on('canvasTearDown',()=>{poison.stop();glass.stop();smash.stop();});
- document.addEventListener('visibilitychange',sync);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});
  window.addEventListener('pagehide',()=>{poison.stop();glass.stop();smash.stop();});
 }

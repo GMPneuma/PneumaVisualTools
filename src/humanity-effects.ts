@@ -1,3 +1,4 @@
+import {frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged} from './effect-refresh.js';
 import {createHumanityOverlay, type HumanityStage} from './humanity-overlay.js';
 const MODULE='pneuma-visualtools';
 export function humanityStage(value:unknown):HumanityStage|undefined {
@@ -6,7 +7,7 @@ export function humanityStage(value:unknown):HumanityStage|undefined {
 }
 export function registerHumanityEffects():void {
  const overlay=createHumanityOverlay();let ready=false;
- const sync=()=>{
+ const update=()=>{
   if(!ready)return;
   if(document.hidden||!game.settings!.get(MODULE,'screenEffects')){overlay.stop();return;}
   const selected=canvas.tokens?.controlled?.filter(token=>token.actor?.isOwner&&token.isVisible);
@@ -14,10 +15,15 @@ export function registerHumanityEffects():void {
   const value=(actor?.system as {derivedStats?:{humanity?:{value?:unknown}}}|undefined)?.derivedStats?.humanity?.value;
   const stage=humanityStage(value);if(stage)overlay.start(stage);else overlay.stop();
  };
+ const refresh=frameRefresh(update),sync=refresh.schedule;
+ Hooks.on('canvasTearDown',refresh.cancel);
+ window.addEventListener('pagehide',refresh.cancel);
  Hooks.on('pneumaVisualToolsScreenEffectsChanged',sync);
+ watchScreenTokenVisibility(sync);
  Hooks.once('ready',()=>{ready=true;sync();});
- for(const hook of ['controlToken','updateToken','deleteToken','updateActor','updateUser','canvasReady','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,sync);
+ for(const hook of ['controlToken','deleteToken','updateActor','updateUser','canvasReady','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,sync);
+ Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes))sync();});
  Hooks.on('canvasTearDown',()=>overlay.stop());
- document.addEventListener('visibilitychange',sync);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});
  window.addEventListener('pagehide',()=>overlay.stop());
 }

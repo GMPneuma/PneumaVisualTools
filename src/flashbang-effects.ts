@@ -1,3 +1,4 @@
+import {frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged} from './effect-refresh.js';
 import {mountScreenEffect,removeScreenEffect} from './screen-effect-area.js';
 const MODULE='pneuma-visualtools';
 export function flashbangState(actor:Actor|undefined):{id:string;created:number}|undefined {
@@ -9,7 +10,7 @@ export function registerFlashbangEffects():void {
  let ready=false,layer:HTMLDivElement|undefined,key:string|undefined,flash:HTMLDivElement|undefined;
  const seen=new Set<string>(),reduced=matchMedia('(prefers-reduced-motion: reduce)');
  const stop=()=>{flash?.getAnimations().forEach(animation=>animation.cancel());flash?.remove();flash=undefined;layer?.getAnimations({subtree:true}).forEach(animation=>animation.cancel());removeScreenEffect(layer);layer=undefined;key=undefined;};
- const sync=()=>{
+ const update=()=>{
   if(!ready)return;
   const selected=canvas.tokens?.controlled?.filter(token=>token.actor?.isOwner&&token.isVisible);
   const actor=selected?.length===1?selected[0]!.actor:game.user?.character;
@@ -26,7 +27,12 @@ export function registerFlashbangEffects():void {
    const animation=pulse.animate([{opacity:1},{opacity:.8,offset:.15},{opacity:0}],{duration:1100,easing:'ease-out'});animation.onfinish=()=>{pulse.remove();if(flash===pulse)flash=undefined;};
   }
  };
+ const refresh=frameRefresh(update),sync=refresh.schedule;
+ Hooks.on('canvasTearDown',refresh.cancel);
+ window.addEventListener('pagehide',refresh.cancel);
+ watchScreenTokenVisibility(sync);
  Hooks.once('ready',()=>{ready=true;sync();});
- for(const hook of ['canvasReady','controlToken','updateToken','deleteToken','updateActor','updateCombat','deleteCombat','updateWorldTime','updateUser','pneumaVisualToolsScreenEffectsChanged','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
- Hooks.on('canvasTearDown',stop);document.addEventListener('visibilitychange',sync);window.addEventListener('pagehide',stop);reduced.addEventListener('change',()=>{stop();sync();});
+ for(const hook of ['canvasReady','controlToken','deleteToken','updateActor','updateCombat','deleteCombat','updateWorldTime','updateUser','pneumaVisualToolsScreenEffectsChanged','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
+ Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes))sync();});
+ Hooks.on('canvasTearDown',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});window.addEventListener('pagehide',stop);reduced.addEventListener('change',()=>{stop();sync();});
 }

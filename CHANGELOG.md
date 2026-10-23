@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.1 - 2026-10-22
+
+- Remove full-scene condition scans from token movement refreshes and inventory scans from the token-effects animation loop.
+- Cache token effect state, batch document updates, and refresh only affected actors' tokens.
+- Skip position-only screen-effect updates, including CombatTools movement bookkeeping; retain selected-token visibility transitions.
+- Publish held-condition changes only for affected actors and preserve expiry, previews, reduced motion, preferences, and teardown.
+
+Validation: strict TypeScript/module build and nine focused test scripts. A simulated 100 movement frames caused zero additional condition scans. Live Foundry performance and multiplayer verification remain pending; additional browser tests could not run because Playwright was unavailable.
+
+
 ## 0.9.0 - 2026-10-21
 
 - Reduce projectile bodies, halos, trails and rocket exhaust by 35%.
