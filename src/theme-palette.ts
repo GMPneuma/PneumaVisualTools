@@ -1,19 +1,20 @@
+import {normalizeBase, type BaseSkin} from './base-skins.js';
 export const COLOR_ROLES = [
-  {key: 'deep', label: 'Deep accent', hint: 'Strong accent text and outlines'},
-  {key: 'main', label: 'Main accent', hint: 'Active tabs, buttons and borders'},
+  {key: 'deep', label: 'Deep accent', hint: 'Highlighted icons'},
+  {key: 'main', label: 'Main accent', hint: 'Active tabs and accent borders'},
   {key: 'middle', label: 'Middle accent', hint: 'Hover and interaction accents'},
-  {key: 'bright', label: 'Bright accent', hint: 'Section headings and pills'},
+  {key: 'bright', label: 'Bright accent', hint: 'Tab underlays'},
   {key: 'pale', label: 'Pale accent', hint: 'Highlighted tab text'},
   {key: 'name', label: 'Chat names', hint: 'Sender names on chat backgrounds'},
-  {key: 'odd', label: 'Tinted row 1', hint: 'Alternating rows and selected panels'},
-  {key: 'even', label: 'Tinted row 2', hint: 'Other alternating rows and links'},
+  {key: 'odd', label: 'Tinted row 1', hint: 'Alternating rows when row tinting is enabled'},
+  {key: 'even', label: 'Tinted row 2', hint: 'Other rows when row tinting is enabled'},
 ] as const;
 export type ColorRole = typeof COLOR_ROLES[number]['key'];
 export type Palette = Record<ColorRole, string>;
 export type ThemeMode = 'light' | 'dark';
-export type CustomTheme = {enabled: boolean; mode: ThemeMode | 'automatic'; method:'simple'|'manual'; seed:string; light: Palette; dark: Palette};
+export type CustomTheme = {base: BaseSkin | null; enabled: boolean; tintRows: boolean; colorizeButtons: boolean; colorizeGlows: boolean; mode: ThemeMode | 'automatic'; method:'simple'|'manual'; seed:string; light: Palette; dark: Palette};
 export const DEFAULT_THEME: CustomTheme = {
-  enabled: false, mode: 'automatic', method:'simple',seed:'#4d771f',
+  base: null, enabled: false, tintRows: false, colorizeButtons: true, colorizeGlows: true, mode: 'automatic', method:'simple',seed:'#4d771f',
   light: {deep:'#263f0e',main:'#4d771f',middle:'#5f9028',bright:'#92d050',pale:'#b5ffa1',name:'#365a18',odd:'#d9e7cc',even:'#edf4e7'},
   dark: {deep:'#a9cf86',main:'#456b2a',middle:'#557c35',bright:'#78a84f',pale:'#9dcc7c',name:'#9dcc7c',odd:'#20271d',even:'#293126'},
 };
@@ -24,14 +25,20 @@ export const NEUTRALS = {
 export function normalizeTheme(value: unknown): CustomTheme {
   const v = (value && typeof value === 'object' ? value : {}) as Partial<CustomTheme>;
   const result: CustomTheme = structuredClone(DEFAULT_THEME);
-  result.enabled = v.enabled === true;
+  result.base = normalizeBase(v.base);
+  result.enabled = result.base !== 'pneuma-hub' && v.enabled === true;
+  result.tintRows = v.tintRows === true;
+  result.colorizeButtons = v.colorizeButtons !== false;
+  result.colorizeGlows = v.colorizeGlows !== false;
   result.mode = v.mode === 'light' || v.mode === 'dark' ? v.mode : 'automatic';
-  result.method=v.method==='manual' ? 'manual' : 'simple';
-  if (typeof v.seed==='string' && /^#[0-9a-f]{6}$/i.test(v.seed)) result.seed=v.seed.toLowerCase();
-  for (const mode of ['light','dark'] as const) for (const {key} of COLOR_ROLES) {
-    const color = v[mode]?.[key];
-    if (typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)) result[mode][key] = color.toLowerCase();
-  }
+  result.method='simple';
+  const valid=(color:unknown):color is string=>typeof color==='string' && /^#[0-9a-f]{6}$/i.test(color);
+  // Migrate manual palettes to their primary color; keep presets usable.
+  const legacyMain=v.mode==='dark'||v.base==='default-dark'||v.base==='pneuma-dark'?v.dark?.main:v.light?.main;
+  const primary=v.method==='manual'&&valid(legacyMain)?legacyMain:v.seed;
+  if(valid(primary))result.seed=primary.toLowerCase();
+  result.light=generatePalette(result.seed,'light');
+  result.dark=generatePalette(result.seed,'dark');
   return result;
 }
 export function contrast(a: string, b: string): number {
@@ -43,7 +50,8 @@ export function contrast(a: string, b: string): number {
   return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
 }
 export function onColor(background: string): string {
-  return contrast('#111111',background) >= contrast('#ffffff',background) ? '#111111' : '#ffffff';
+  const dark=contrast('#111111',background)>=4.5?'#111111':'#000000';
+  return contrast(dark,background) >= contrast('#ffffff',background) ? dark : '#ffffff';
 }
 function hsl(hex: string): [number,number,number] {
   const [r,g,b] = [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255) as [number,number,number];
@@ -59,8 +67,9 @@ function hexHsl(h: number,s: number,l: number): string {
 export function generatePalette(seed: string, mode: ThemeMode): Palette {
   const [h,s] = hsl(seed);
   const template = DEFAULT_THEME[mode];
-  const result = {...template, main:seed};
+  const result = {...template, main:seed.toLowerCase()};
   for (const {key} of COLOR_ROLES) {
+    if(key==='main')continue; // Primary Color is exact, including saturation and brightness.
     const [,,tl] = hsl(template[key]);
     result[key] = hexHsl(h, s === 0 ? 0 : Math.min(.85, s*(key === 'odd' || key === 'even' ? .35 : 1)), tl);
   }
@@ -70,52 +79,32 @@ export function generatePalette(seed: string, mode: ThemeMode): Palette {
     const toward=contrast('#ffffff',background)>contrast('#111111',background) ? 1 : 0;
     for(let step=1;contrast(result[key],background)<target && step<=100;step++) result[key]=hexHsl(hue,saturation,lightness+(toward-lightness)*step/100);
   };
-  fit('main',n.surface2,3);fit('middle',n.surface0,3);
+  fit('middle',n.surface0,3);
   fit('deep',n.surface3,4.5);fit('name',n.chat,4.5);
   fit('bright','#111111',4.5);fit('pale',result.main,4.5);
   return result;
 }
-export function paletteVariables(p: Palette, mode: ThemeMode): Record<string,string> {
-  const n=NEUTRALS[mode];
+/** Override explicit accent roles only. CPR base colors also feed surfaces,
+ * ordinary text and semantic success/failure indicators, so leave them native. */
+export function paletteVariables(p: Palette, _mode: ThemeMode, tintRows = false, colorizeGlows = true): Record<string,string> {
   const vars:Record<string,string> = {
-    '--pgt-green-900':p.deep,'--pgt-green-700':p.main,'--pgt-green-600':p.middle,'--pgt-green-400':p.bright,'--pgt-green-200':p.pale,
-    '--pgt-chat-name':p.name,'--pgt-row-odd':p.odd,'--pgt-row-even':p.even,
-    '--pgt-surface-0':n.surface0,'--pgt-surface-1':n.surface1,'--pgt-surface-2':n.surface2,'--pgt-surface-3':n.surface3,'--pgt-surface-chat':n.chat,
-    '--pgt-text':n.text,'--pgt-text-strong':n.strong,'--pgt-border-muted':n.border,'--pgt-tab-inactive':n.inactive,
-    '--pgt-tab-text':onColor(p.main),'--pgt-text-inverse':onColor(p.main),'--pgt-roll-text':onColor(p.main),
-    '--pgt-skill-header':p.bright,'--pgt-skill-pill':p.bright,'--pgt-skill-pill-text':onColor(p.bright),
-    '--pgt-skill-text':n.strong,'--pgt-skill-input':n.surface0,'--pgt-skill-row-odd':n.surface2,'--pgt-skill-row-even':n.surface1,
-    '--pgt-gear-row-odd':n.surface2,'--pgt-gear-row-even':n.surface1,'--pgt-section-header':'#111111',
-    '--pgt-chat-border':p.main,'--pgt-ui-accent':p.main,'--pgt-ui-highlight':p.middle,'--pgt-focus-ring':`${p.main}73`,
-    '--pvt-custom-on-hover':onColor(p.middle), '--pvt-custom-on-odd':onColor(p.odd),'--pvt-custom-on-even':onColor(p.even),
+    '--pvt-custom-main':p.main, '--pvt-custom-name':p.name,
+    '--pvt-custom-on-main':onColor(p.main),
   };
-  // Define native aliases at the same scope as the palette. Inherited root aliases
-  // otherwise keep their already-resolved system colors, including red dividers.
+  // Rebind accent aliases at their declaration scope, leaving neutral roles alone.
   const groups:[string,string[]][] = [
-    [p.main,['color-red','background-border','background-tab-active','background-chat-card-block','background-chat-border','background-dialog-border','background-foundry-hover','darkmode-main','pause-highlight1','text-content-link-icon','text-header-line','text-header-arrow','text-icon-highlight','background-toggle-checked','icon-actor-image-overlay-border']],
-    [p.middle,['background-editor-button-hover','darkmode-red']],
-    [p.bright,['background-pill','background-tab-underlay','text-header','pause-highlight2']],
-    [p.pale,['text-tab-highlight']],
-    [p.odd,['color-pink','background-row-odd','background-cyberdeck-section-header','background-dialog-selected','background-editor-button-selected','background-journal-blockquote','darkmode-bluish-grey']],
-    [p.even,['background-row-even','background-content-link']],
-    [n.surface0,['background-foundry-input','background-editor-button-active']],
-    [n.surface1,['color-white','background-chat-card-block-before','background-foundry-button']],
-    [n.surface2,['background-box','background-editor-button','darkmode-background']],
-    [n.surface3,['color-light-grey','background-window']],
-    [n.chat,['background-chat-card']],
-    [n.border,['color-dark-grey']],
-    [n.inactive,['background-tab-inactive']],
-    ['#111111',['background-header','background-editor-header','background-dialog-hr-gradient-start','background-dialog-hr-gradient-end','darkmode-header']],
-    [p.main,['background-dialog-hr-gradient-middle']],
-    [n.text,['text-chat-normal','text-normal','text-window','text-icon-normal','text-hint','text-foundry-hint','text-mook-normal','darkmode-text-main']],
-    [n.strong,['text-foundry-input','text-input']],
-    [onColor(p.main),['text-tab-normal','text-dir-list','text-editor-header','text-mook-header','text-mook-name','text-pause','pause-text','text-journal-table-header']],
-    [onColor(p.bright),['text-pill']],
+    [p.main,['background-border','background-tab-active','background-dialog-border','text-header-line','text-header-arrow','background-toggle-checked','icon-actor-image-overlay-border']],
     [p.middle,['text-foundry-hover']],
-    [mode==='dark'?'#ff5b6f':'#b71924',['text-chat-failure']],
-    [mode==='dark'?'#64d98b':'#287a35',['text-chat-success']],
+    [p.deep,['text-icon-highlight']],
+    [p.bright,['background-tab-underlay']],
+    [p.pale,['text-tab-highlight']],
   ];
-  for(const [value,keys] of groups) for(const key of keys) vars[`--cpr-${key}`]=value;
+  if(colorizeGlows){
+    vars['--color-shadow-primary']=p.main;vars['--color-shadow-highlight']=p.main;
+    vars['--cpr-background-foundry-hover']=p.main;
+  }
+  if (tintRows) groups.push([p.odd,['background-row-odd']]);
+  for(const [value,keys] of groups) for(const key of keys) vars['--cpr-'+key]=value;
   return vars;
 }
 export function contrastWarnings(p: Palette, mode: ThemeMode): string[] {

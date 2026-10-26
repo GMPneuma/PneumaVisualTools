@@ -1,4 +1,8 @@
 /* Native CPR v0.92.4 theme/tab/dialog rules, read from the installed system main.css on 2026-10-06. Source: https://gitlab.com/cyberpunk-red-team/fvtt-cyberpunk-red-core (GPL-3.0). */
+/* Native lists.less rule: header fills must survive alternating-row rules. */
+.items-list .items-header {
+  background-color:var(--cpr-background-header) !important;
+}
 .tab-label {
   display: flex;
   justify-content: center;
@@ -213,3 +217,6 @@ html[data-cpr-theme="darkmode"] {
   --cpr-icon-actor-image-overlay-border: #3b444b;
 }
 
+
+/* CPR v0.92.4 foundry-overrides.less: native sheet link hover glow. */
+.sheet a:hover { text-shadow:0 0 0.5rem var(--cpr-background-foundry-hover); }

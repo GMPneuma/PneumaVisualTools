@@ -7,7 +7,7 @@ declare global {interface SettingConfig {
 const groups = [
  ['Chat Cards','chatCards','chatSkin','chatPortraitSource','chatFallbackImage'],
  ['Chat Dice','chatDiceEnabled','chatDiceMenu'],
- ['Colors','customThemeEnabled','themeCustomizer'],
+ ['Visual Skinning','visualSkinningEnabled','themeCustomizer'],
  ['Scene Previews','scenePreviewsEnabled'],
  ['Audio & Soundboard','audioToolsEnabled'],
   ['Attack Visuals','weaponAnimations','weaponIntensity','weaponSounds','weaponVolume','weaponLighting','weaponLightVision','weaponLightMenu'],

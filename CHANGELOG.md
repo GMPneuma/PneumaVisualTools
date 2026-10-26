@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0 - 2026-10-26
+
+- Separate base appearance from colorization with Dark, Light, Pneuma Dark, Pneuma Light and fixed Pneuma Hub skins.
+- Replace manual shade controls with one exact Primary Color, automatically deriving supporting accents and readable text. Existing manual presets migrate using their main accent.
+- Add independent Colorize Button Outlines, Colorize Hover Glows and Colorize Alternating Rows options. Preserve native row order and stock rows; apply a moderate theme tint only to alternating rows.
+- Refine Hub with thinner neutral structural frames, gold selected-tab text and underlines, muted blue diagonal accents, pale cyan section headings, dark header backgrounds, blue buttons and normal-weight gold stat badges.
+- Add an Enable visual skinning master switch for base skins and colorization, including Hub. Turning it off restores native styling while preserving saved choices.
+- Improve Pneuma Dark button visibility, Pneuma Light title-bar contrast, and field outlines without increasing row height.
+- Simplify the editor: a half-width Base dropdown and centrally placed Colorize checkbox on one row, built-in presets on the left, player presets on the right, Primary Color and options below. Disabled color options retain their values; remove redundant footer controls.
+
+Validation: strict TypeScript/module build and theme/settings browser regression fixtures. Live Foundry multiplayer validation remains pending.
+
+
 ## 0.9.2 - 2026-10-23
 
 - Batch poison/radiation hydration for affected actors instead of rescanning all scene actors on individual document edits.
