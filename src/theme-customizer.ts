@@ -1,5 +1,5 @@
 import {BASE_SKINS, baseMode, normalizeBase, baseVariables, adaptPalette, baseContrastWarnings} from './base-skins.js';
-import {DEFAULT_THEME, normalizeTheme, generatePalette, paletteVariables, type CustomTheme, type ThemeMode} from './theme-palette.js';
+import {COLOR_ROLES, DEFAULT_THEME, normalizeTheme, generatePalette, paletteVariables, type CustomTheme, type ThemeMode} from './theme-palette.js';
 import {PNEUMA_PRESETS,normalizePersonalPresets,type ThemePreset} from './theme-presets.js';
 declare global {interface SettingConfig {'pneuma-visualtools.customTheme': CustomTheme; 'pneuma-visualtools.visualSkinningEnabled': boolean}}
 declare global {interface FlagConfig {User:{'pneuma-visualtools':{themePresets:(ThemePreset|null)[]}}}}
@@ -26,6 +26,7 @@ export function applyCustomTheme(): void {
     if(nativeTheme!==undefined){if(nativeTheme===null)root.removeAttribute('data-cpr-theme');else root.setAttribute('data-cpr-theme',nativeTheme);nativeTheme=undefined;}
   }
   root.classList.toggle('pvt-custom-theme',theme.enabled);
+  root.classList.toggle('pvt-full-custom',theme.enabled && theme.method==='manual');
   root.classList.toggle('pvt-tinted-rows',theme.enabled && theme.tintRows);
   root.classList.toggle('pvt-colored-buttons',theme.enabled && theme.colorizeButtons);
   const writeStyle=(id:string,css:string):void=>{
@@ -43,8 +44,8 @@ export function applyCustomTheme(): void {
   writeStyle('pvt-base-palette',baseCSS?'html[data-pvt-base] '+scope+' {'+baseCSS+'}':'');
   activeMode=effectiveThemeMode(theme);
   const effectiveBase=base??(activeMode==='dark'?'default-dark':'default-light');
-  const palette=adaptPalette(theme[activeMode],effectiveBase);
-  writeStyle('pvt-custom-palette',theme.enabled?'html.pvt-custom-theme '+scope+' {'+declarations(paletteVariables(palette,activeMode,theme.tintRows,theme.colorizeGlows))+'}':'');
+  const palette=theme.method==='manual'?theme[activeMode]:adaptPalette(generatePalette(theme.seed,activeMode),effectiveBase);
+  writeStyle('pvt-custom-palette',theme.enabled?'html.pvt-custom-theme '+scope+' {'+declarations(paletteVariables(palette,activeMode,theme.tintRows,theme.colorizeGlows,theme.method==='manual'))+'}':'');
 
 }
 export class ThemeCustomizer extends FormApplication {
@@ -66,13 +67,15 @@ export class ThemeCustomizer extends FormApplication {
       hardTheme:this.draft.base==='pneuma-hub',colorEnabled:this.draft.base!=='pneuma-hub'&&this.draft.enabled,tintRows:this.draft.tintRows,colorizeButtons:this.draft.colorizeButtons,colorizeGlows:this.draft.colorizeGlows,
       bases:BASE_SKINS.map(b=>({...b,selected:b.id===(this.draft.base??(this.editing==='dark'?'default-dark':'default-light'))})),
       modes:[{id:'light',label:'Light'},{id:'dark',label:'Dark'}].map(m=>({...m,selected:m.id===this.editing})),
-      mainAccent:this.draft.seed,
+      mainAccent:this.draft.seed,manual:this.draft.method==='manual',
+      customPalettes:(['light','dark'] as const).map(mode=>({label:mode==='light'?'Light bases':'Dark bases',colors:COLOR_ROLES.map(role=>({...role,name:`custom-${mode}-${role.key}`,value:this.draft[mode][role.key]}))})),
       legacyActive:game.modules?.get('pneuma-green-theme')?.active,
       pneumaPresets:PNEUMA_PRESETS.map((preset,index)=>({index,name:preset.name})),
-      personalPresets:normalizePersonalPresets(game.user?.getFlag(MODULE,'themePresets')).map((preset,index)=>({index,slot:index+1,name:preset?.name||`My theme ${index+1}`,empty:!preset,accent:preset?.theme.seed??'transparent'})),
+      personalPresets:normalizePersonalPresets(game.user?.getFlag(MODULE,'themePresets')).map((preset,index)=>({index,slot:index+1,name:preset?.name||`My theme ${index+1}`,empty:!preset,accent:preset?(preset.theme.method==='manual'?preset.theme[effectiveThemeMode(this.draft)].main:preset.theme.seed):'transparent'})),
     };
   }
   private readDraft(root: HTMLElement): void {
+    this.readCustom(root);
     this.draft.colorizeButtons=root.querySelector<HTMLInputElement>('[name="colorizeButtons"]')?.checked===true;
     this.draft.colorizeGlows=root.querySelector<HTMLInputElement>('[name="colorizeGlows"]')?.checked===true;
     this.draft.tintRows=root.querySelector<HTMLInputElement>('[name="tintRows"]')?.checked === true;
@@ -81,8 +84,12 @@ export class ThemeCustomizer extends FormApplication {
     const primary=root.querySelector<HTMLInputElement>('[name="main"]')?.value;
     if(primary && /^#[0-9a-f]{6}$/i.test(primary)) {
       this.draft.seed=primary.toLowerCase();
-      this.draft.light=generatePalette(this.draft.seed,'light');
-      this.draft.dark=generatePalette(this.draft.seed,'dark');
+    }
+  }
+  private readCustom(root:HTMLElement):void {
+    for(const mode of ['light','dark'] as const) for(const {key} of COLOR_ROLES) {
+      const value=root.querySelector<HTMLInputElement>(`[name="custom-${mode}-${key}"]`)?.value;
+      if(value && /^#[0-9a-f]{6}$/i.test(value))this.draft[mode][key]=value.toLowerCase();
     }
   }
   private preview(root: HTMLElement): void {
@@ -90,7 +97,8 @@ export class ThemeCustomizer extends FormApplication {
     const base=this.draft.base??(this.editing==='dark'?'default-dark':'default-light');
     if(base==='pneuma-hub'){root.querySelector<HTMLElement>('[data-status]')!.textContent='Hub uses fixed colors.';return;}
     if(!this.draft.enabled){root.querySelector<HTMLElement>('[data-status]')!.textContent='';return;}
-    const warnings=baseContrastWarnings(adaptPalette(this.draft[this.editing],base),base,this.draft.tintRows);
+    const palette=this.draft.method==='manual'?this.draft[this.editing]:adaptPalette(generatePalette(this.draft.seed,this.editing),base);
+    const warnings=baseContrastWarnings(palette,base,this.draft.tintRows);
     const status=root.querySelector<HTMLElement>('[data-status]')!;
     status.textContent=warnings.length ? `Low contrast: ${warnings.join('; ')}. Adjust these colors if text or controls are hard to read.` : '';
   }
@@ -98,13 +106,18 @@ export class ThemeCustomizer extends FormApplication {
     super.activateListeners(html);
     const root=html[0]; if (!root) return;
     this.preview(root);
+    root.querySelector<HTMLSelectElement>('[name="method"]')?.addEventListener('change',()=>{
+      this.readDraft(root);
+      this.draft.method=root.querySelector<HTMLSelectElement>('[name="method"]')!.value==='manual'?'manual':'simple';
+      this.render(false);
+    });
     root.querySelectorAll('[name="tintRows"],[name="colorizeButtons"],[name="colorizeGlows"]').forEach(input=>input.addEventListener('change',()=>{this.readDraft(root);this.preview(root);}));
     root.querySelector<HTMLInputElement>('[name="colorEnabled"]')?.addEventListener('change',()=>{this.readDraft(root);this.editing=effectiveThemeMode(this.draft);this.render(false);});
     root.querySelector<HTMLSelectElement>('[name="base"]')?.addEventListener('change',()=>{
       this.readDraft(root);this.editing=effectiveThemeMode(this.draft);this.render(false);
     });
     root.querySelectorAll<HTMLElement>('[data-pneuma-preset]').forEach(button=>button.addEventListener('click',()=>{
-      this.readDraft(root);const preset=PNEUMA_PRESETS[Number(button.dataset.pneumaPreset)];if(preset)this.loadPreset(preset.theme);
+      this.readDraft(root);const preset=PNEUMA_PRESETS[Number(button.dataset.pneumaPreset)];if(preset && this.draft.base!=='pneuma-hub'){this.draft.seed=preset.theme.seed;this.draft.method='simple';this.draft.enabled=true;this.render(false);}
     }));
     root.querySelectorAll<HTMLElement>('[data-load-preset]').forEach(button=>button.addEventListener('click',()=>{
       this.readDraft(root);const preset=normalizePersonalPresets(game.user?.getFlag(MODULE,'themePresets'))[Number(button.dataset.loadPreset)];if(preset)this.loadPreset(preset.theme);
@@ -142,12 +155,20 @@ export class ThemeCustomizer extends FormApplication {
   }
   protected override async _updateObject(_event: Event, data: Record<string,unknown>): Promise<void> {
     const next=structuredClone(this.draft);
-    if(data.colorEnabled && data.base!=='pneuma-hub') {
+    if(data.colorEnabled && data.base!=='pneuma-hub' && next.method==='simple') {
       const primary=String(data.main);
       if(!/^#[0-9a-f]{6}$/i.test(primary))throw Error('Use a six-digit hex color, such as #4d771f.');
       next.seed=primary.toLowerCase();
     }
-    next.method='simple';
+    if(next.method==='manual' && data.colorEnabled && data.base!=='pneuma-hub') {
+      for(const mode of ['light','dark'] as const) for(const {key} of COLOR_ROLES) {
+        const value=data[`custom-${mode}-${key}`];
+        if(typeof value==='string') {
+          if(!/^#[0-9a-f]{6}$/i.test(value))throw Error('Use six-digit hex colors.');
+          next[mode][key]=value.toLowerCase();
+        }
+      }
+    }
     // Base and colorization are saved independently.
     next.enabled=Boolean(data.colorEnabled);
     if(data.colorEnabled && data.base!=='pneuma-hub'){next.tintRows=Boolean(data.tintRows);next.colorizeButtons=Boolean(data.colorizeButtons);next.colorizeGlows=Boolean(data.colorizeGlows);}

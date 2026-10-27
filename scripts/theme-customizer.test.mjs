@@ -17,10 +17,10 @@ for(const key of ['--color-shadow-primary','--color-shadow-highlight','--cpr-bac
 for(const mode of ['light','dark']) {
  const old={...structuredClone(DEFAULT_THEME),method:'manual',mode,light:{...DEFAULT_THEME.light,main:'#ff8800',bright:'#ff0000'},dark:{...DEFAULT_THEME.dark,main:'#3388cc',bright:'#00ff00'}};
  const migrated=normalizeTheme(old);
- assert.equal(migrated.seed,old[mode].main);
- assert.equal(migrated.method,'simple');
- assert.deepEqual(migrated.light,generatePalette(migrated.seed,'light'));
- assert.deepEqual(migrated.dark,generatePalette(migrated.seed,'dark'));
+ assert.equal(migrated.seed,old.seed);
+ assert.equal(migrated.method,'manual');
+ assert.deepEqual(migrated.light,old.light);
+ assert.deepEqual(migrated.dark,old.dark);
  assert.deepEqual(normalizeTheme(migrated),migrated,'Migration is stable');
 }
 
@@ -261,5 +261,43 @@ try {
  await page.evaluate(()=>{window.editor=new ThemeCustomizer();editor.render(true);});
  await page.locator('button[type="submit"]').click();
  assert.equal(await page.evaluate(()=>settings.customTheme.enabled),false,'Hub saves with colorization disabled');
+ // Independent Full Custom palettes reproduce a yellow/cyan player theme.
+ await page.evaluate(()=>{window.editor=new ThemeCustomizer();editor.render(true);});
+ await page.locator('[name="base"]').selectOption('pneuma-dark');
+ await page.locator('[name="colorEnabled"]').check();
+ await page.locator('[name="method"]').selectOption('manual');
+ assert.equal(await page.locator('[name="main"]').count(),0,'Primary is absent in Full Custom');
+ for(const [role,color] of Object.entries({main:'#ffff00',bright:'#ffff00',pale:'#000000',headerText:'#00ffff',headerBackground:'#101010',badgeBackground:'#00ffff',badgeText:'#000000',inactiveTabText:'#000000',odd:'#191919',even:'#222222'})) {
+   await page.locator('[name="custom-dark-'+role+'"]').fill(color);
+ }
+ await page.locator('[name="tintRows"]').check();
+ assert.equal(await page.locator('#native .tab-label.active').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 0)');
+ assert.equal(await page.locator('#native .text-pill').evaluate(e=>getComputedStyle(e).color),'rgb(0, 0, 0)');
+ assert.equal(await page.locator('#native').evaluate(e=>getComputedStyle(e).getPropertyValue('--cpr-background-pill').trim()),'#00ffff');
+ assert.equal(await page.locator('#native').evaluate(e=>getComputedStyle(e).getPropertyValue('--cpr-text-header').trim()),'#00ffff');
+ await page.locator('[name="method"]').selectOption('simple');
+ await page.locator('[name="main"]').fill('#ff0000');
+ await page.locator('[name="method"]').selectOption('manual');
+ assert.equal(await page.locator('[name="custom-dark-main"]').inputValue(),'#ffff00','Primary edits preserve custom palette');
+ await page.locator('.pvt-advanced summary').click();
+ await page.locator('[data-save-preset="0"]').click();
+ await page.waitForFunction(()=>flags.bob.themePresets?.[0]?.theme.method==='manual');
+ assert.equal(await page.evaluate(()=>flags.bob.themePresets[0].theme.seed),'#ff0000');
+ assert.equal(await page.evaluate(()=>flags.bob.themePresets[0].theme.dark.headerText),'#00ffff');
+ await page.locator('button[type="submit"]').click();
+ assert.equal(await page.evaluate(()=>settings.customTheme.method),'manual');
+ assert.equal(await page.evaluate(()=>settings.customTheme.seed),'#ff0000');
+ await page.evaluate(()=>{window.editor=new ThemeCustomizer();editor.render(true);});
+ assert.equal(await page.locator('[name="custom-dark-badgeBackground"]').inputValue(),'#00ffff');
+ await page.locator('[name="method"]').selectOption('simple');
+ assert.equal(await page.locator('[name="main"]').inputValue(),'#ff0000');
+ await page.locator('[data-load-preset="0"]').first().click();
+ assert.equal(await page.locator('[name="method"]').inputValue(),'manual');
+ assert.equal(await page.locator('[name="custom-dark-headerText"]').inputValue(),'#00ffff');
+ await page.locator('[name="base"]').selectOption('pneuma-hub');
+ assert.equal(await page.locator('[name="method"]').isDisabled(),true);
+ assert.equal(await page.locator('#pvt-custom-palette').count(),0);
+ await page.locator('[data-cancel]').click();
+ assert.equal(await page.evaluate(()=>document.documentElement.dataset.pvtBase),'pneuma-dark','Cancel restores saved custom theme');
  console.log('Theme checks passed: fixed Hub palette and GM-style stat pills, five bases, native defaults, independent colorization, adapted contrast, settings surface preservation, row tint, Apply/Cancel, presets and player isolation.');
 }finally{await browser.close();}

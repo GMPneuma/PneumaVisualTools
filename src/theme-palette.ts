@@ -1,5 +1,10 @@
 import {normalizeBase, type BaseSkin} from './base-skins.js';
 export const COLOR_ROLES = [
+  {key: 'headerText', label: 'Section heading text', hint: 'Section titles and column labels'},
+  {key: 'headerBackground', label: 'Section heading background', hint: 'Header strips'},
+  {key: 'badgeBackground', label: 'Stat badge background', hint: 'Skill stat abbreviations'},
+  {key: 'badgeText', label: 'Stat badge text', hint: 'Text inside skill stat badges'},
+  {key: 'inactiveTabText', label: 'Inactive tab text', hint: 'Unselected sheet tabs'},
   {key: 'deep', label: 'Deep accent', hint: 'Highlighted icons'},
   {key: 'main', label: 'Main accent', hint: 'Active tabs and accent borders'},
   {key: 'middle', label: 'Middle accent', hint: 'Hover and interaction accents'},
@@ -15,8 +20,8 @@ export type ThemeMode = 'light' | 'dark';
 export type CustomTheme = {base: BaseSkin | null; enabled: boolean; tintRows: boolean; colorizeButtons: boolean; colorizeGlows: boolean; mode: ThemeMode | 'automatic'; method:'simple'|'manual'; seed:string; light: Palette; dark: Palette};
 export const DEFAULT_THEME: CustomTheme = {
   base: null, enabled: false, tintRows: false, colorizeButtons: true, colorizeGlows: true, mode: 'automatic', method:'simple',seed:'#4d771f',
-  light: {deep:'#263f0e',main:'#4d771f',middle:'#5f9028',bright:'#92d050',pale:'#b5ffa1',name:'#365a18',odd:'#d9e7cc',even:'#edf4e7'},
-  dark: {deep:'#a9cf86',main:'#456b2a',middle:'#557c35',bright:'#78a84f',pale:'#9dcc7c',name:'#9dcc7c',odd:'#20271d',even:'#293126'},
+  light: {headerText:'#ffffff',headerBackground:'#0d0b0c',badgeBackground:'#202020',badgeText:'#ffffff',inactiveTabText:'#ffffff',deep:'#263f0e',main:'#4d771f',middle:'#5f9028',bright:'#92d050',pale:'#b5ffa1',name:'#365a18',odd:'#d9e7cc',even:'#edf4e7'},
+  dark: {headerText:'#e8e8e8',headerBackground:'#181818',badgeBackground:'#181818',badgeText:'#e8e8e8',inactiveTabText:'#e8e8e8',deep:'#a9cf86',main:'#456b2a',middle:'#557c35',bright:'#78a84f',pale:'#9dcc7c',name:'#9dcc7c',odd:'#20271d',even:'#293126'},
 };
 export const NEUTRALS = {
   light: {surface0:'#ffffff',surface1:'#eeeeee',surface2:'#dddddd',surface3:'#cccccc',chat:'#c0c0c0',border:'#888888',text:'#222222',strong:'#111111',inactive:'#202020'},
@@ -31,14 +36,14 @@ export function normalizeTheme(value: unknown): CustomTheme {
   result.colorizeButtons = v.colorizeButtons !== false;
   result.colorizeGlows = v.colorizeGlows !== false;
   result.mode = v.mode === 'light' || v.mode === 'dark' ? v.mode : 'automatic';
-  result.method='simple';
+  result.method=v.method==='manual'?'manual':'simple';
   const valid=(color:unknown):color is string=>typeof color==='string' && /^#[0-9a-f]{6}$/i.test(color);
-  // Migrate manual palettes to their primary color; keep presets usable.
-  const legacyMain=v.mode==='dark'||v.base==='default-dark'||v.base==='pneuma-dark'?v.dark?.main:v.light?.main;
-  const primary=v.method==='manual'&&valid(legacyMain)?legacyMain:v.seed;
-  if(valid(primary))result.seed=primary.toLowerCase();
-  result.light=generatePalette(result.seed,'light');
-  result.dark=generatePalette(result.seed,'dark');
+  if(valid(v.seed))result.seed=v.seed.toLowerCase();
+  // Independent custom palettes are retained even while Primary Color is active.
+  for(const mode of ['light','dark'] as const) for(const {key} of COLOR_ROLES) {
+    const color=v[mode]?.[key];
+    if(valid(color))result[mode][key]=color.toLowerCase();
+  }
   return result;
 }
 export function contrast(a: string, b: string): number {
@@ -86,10 +91,10 @@ export function generatePalette(seed: string, mode: ThemeMode): Palette {
 }
 /** Override explicit accent roles only. CPR base colors also feed surfaces,
  * ordinary text and semantic success/failure indicators, so leave them native. */
-export function paletteVariables(p: Palette, _mode: ThemeMode, tintRows = false, colorizeGlows = true): Record<string,string> {
+export function paletteVariables(p: Palette, _mode: ThemeMode, tintRows = false, colorizeGlows = true, manual = false): Record<string,string> {
   const vars:Record<string,string> = {
     '--pvt-custom-main':p.main, '--pvt-custom-name':p.name,
-    '--pvt-custom-on-main':onColor(p.main),
+    '--pvt-custom-on-main':manual?p.pale:onColor(p.main),
   };
   // Rebind accent aliases at their declaration scope, leaving neutral roles alone.
   const groups:[string,string[]][] = [
@@ -99,11 +104,16 @@ export function paletteVariables(p: Palette, _mode: ThemeMode, tintRows = false,
     [p.bright,['background-tab-underlay']],
     [p.pale,['text-tab-highlight']],
   ];
-  if(colorizeGlows){
-    vars['--color-shadow-primary']=p.main;vars['--color-shadow-highlight']=p.main;
-    vars['--cpr-background-foundry-hover']=p.main;
+  if(manual) {
+    groups.push([p.headerText,['text-header']], [p.headerBackground,['background-header','background-cyberdeck-section-header']],
+      [p.badgeBackground,['background-pill']], [p.badgeText,['text-pill']], [p.inactiveTabText,['text-tab-normal']]);
+    vars['--pvt-custom-badge-text']=p.badgeText;
   }
-  if (tintRows) groups.push([p.odd,['background-row-odd']]);
+  if(colorizeGlows){
+    vars['--color-shadow-primary']=manual?p.middle:p.main;vars['--color-shadow-highlight']=manual?p.middle:p.main;
+    vars['--cpr-background-foundry-hover']=manual?p.middle:p.main;
+  }
+  if (tintRows) {groups.push([p.odd,['background-row-odd']]);if(manual)groups.push([p.even,['background-row-even']]);}
   for(const [value,keys] of groups) for(const key of keys) vars['--cpr-'+key]=value;
   return vars;
 }

@@ -8,10 +8,21 @@
     <div class="pvt-preset-columns">
       <section class="pvt-pneuma-presets"><h3>Pneuma presets</h3><div class="pvt-theme-toolbar" role="group" aria-label="Pneuma presets">{{#each pneumaPresets}}<button type="button" data-pneuma-preset="{{index}}">{{name}}</button>{{/each}}</div></section>
     <fieldset class="pvt-player-presets"><legend>Player presets</legend>
-      {{#each personalPresets}}<div class="pvt-personal-preset"><button type="button" class="pvt-preset-swatch" data-load-preset="{{index}}" style="background-color:{{accent}}" title="{{name}} — saved Primary Color {{accent}}" aria-label="Select {{name}}" {{#if empty}}disabled{{/if}}></button><input type="text" value="{{name}}" maxlength="32" data-preset-name="{{index}}" aria-label="Preset {{slot}} name"><button type="button" data-load-preset="{{index}}" {{#if empty}}disabled{{/if}}>Select</button><button type="button" data-save-preset="{{index}}">Save {{slot}}</button></div>{{/each}}
+      {{#each personalPresets}}<div class="pvt-personal-preset"><button type="button" class="pvt-preset-swatch" data-load-preset="{{index}}" style="background-color:{{accent}}" title="{{name}} — saved accent {{accent}}" aria-label="Select {{name}}" {{#if empty}}disabled{{/if}}></button><input type="text" value="{{name}}" maxlength="32" data-preset-name="{{index}}" aria-label="Preset {{slot}} name"><button type="button" data-load-preset="{{index}}" {{#if empty}}disabled{{/if}}>Select</button><button type="button" data-save-preset="{{index}}">Save {{slot}}</button></div>{{/each}}
     </fieldset>
     </div>
+    <div class="form-group"><label for="pvt-method">Color mode</label><select id="pvt-method" name="method"><option value="simple" {{#unless manual}}selected{{/unless}}>Primary Color</option><option value="manual" {{#if manual}}selected{{/if}}>Full Custom</option></select></div>
+    {{#if manual}}
+    <details class="pvt-advanced" open><summary>Advanced — Full Custom</summary>
+      <div class="pvt-custom-palettes">
+      {{#each customPalettes}}<fieldset><legend>{{label}}</legend>
+      {{#each colors}}<div class="pvt-theme-color"><label for="pvt-{{name}}">{{label}}<small>{{hint}}</small></label><input type="color" value="{{value}}" data-picker="{{name}}" aria-label="{{label}} color picker"><input id="pvt-{{name}}" name="{{name}}" data-hex type="text" value="{{value}}" pattern="#[0-9a-fA-F]{6}" maxlength="7" required aria-label="{{label}} hex color"></div>{{/each}}
+      </fieldset>{{/each}}
+      </div>
+    </details>
+    {{else}}
     <div class="pvt-theme-color pvt-main-accent"><label for="pvt-color-main">Primary Color</label><input type="color" value="{{mainAccent}}" data-picker="main" data-seed aria-label="Primary Color color picker"><input id="pvt-color-main" name="main" data-hex type="text" value="{{mainAccent}}" pattern="#[0-9a-fA-F]{6}" maxlength="7" required aria-label="Primary Color hex color"></div>
+    {{/if}}
   <div class="form-group pvt-row-tint"><label for="pvt-color-buttons">Colorize Button Outlines</label><div class="form-fields"><input id="pvt-color-buttons" name="colorizeButtons" type="checkbox" {{#if colorizeButtons}}checked{{/if}}></div></div>
   <div class="form-group pvt-row-tint"><label for="pvt-color-glows">Colorize Hover Glows</label><div class="form-fields"><input id="pvt-color-glows" name="colorizeGlows" type="checkbox" {{#if colorizeGlows}}checked{{/if}}></div></div>
   <div class="form-group pvt-row-tint"><label for="pvt-tint-rows">Colorize Alternating Rows</label><div class="form-fields"><input id="pvt-tint-rows" name="tintRows" type="checkbox" {{#if tintRows}}checked{{/if}}></div></div>

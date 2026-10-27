@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.1 - 2026-10-26
+
+- Restore independent Full Custom colorization alongside Primary Color mode, with collapsible Advanced controls and side-by-side Light/Dark palettes.
+- Save both configurations and the active mode in themes and player presets. Changing Primary Color or selecting built-in presets preserves custom palettes.
+- Add exact controls for section headings, stat badge fill/text, inactive tabs, accent colors and alternating rows; Full Custom does not regenerate or automatically adjust entered colors.
+- Keep Pneuma Hub fixed and non-customizable.
+
+Validation: strict TypeScript/module build, theme/settings browser checks, and custom-palette Apply/Cancel and preset round trips. Live Foundry multiplayer validation remains pending.
+
 ## 0.10.0 - 2026-10-26
 
 - Separate base appearance from colorization with Dark, Light, Pneuma Dark, Pneuma Light and fixed Pneuma Hub skins.

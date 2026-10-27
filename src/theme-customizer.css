@@ -184,3 +184,11 @@ html[data-pvt-base="pneuma-light"] :is(.window-app,.application) .window-header 
 #pvt-theme-customizer .pvt-skin-controls select {width:100%;min-width:0;}
 #pvt-theme-customizer .pvt-colorize-toggle {display:flex;align-items:center;gap:6px;white-space:nowrap;}
 #pvt-theme-customizer .pvt-colorize-toggle input {flex:0 0 auto;width:auto;margin:0;}
+
+/* Full Custom owns badge foregrounds independently from diagonal accents. */
+html.pvt-custom-theme.pvt-full-custom:is([data-pvt-base],:root) .sheet .skills-tab .text-pill {color:var(--pvt-custom-badge-text);}
+#pvt-theme-customizer .pvt-advanced summary {cursor:pointer;margin:10px 0;font-weight:600;}
+#pvt-theme-customizer .pvt-advanced .pvt-theme-color {margin:6px 0;}
+#pvt-theme-customizer .pvt-custom-palettes {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+#pvt-theme-customizer .pvt-custom-palettes > fieldset {min-width:0;margin:0;padding:8px;}
+#pvt-theme-customizer .pvt-custom-palettes .pvt-theme-color {grid-template-columns:minmax(0,1fr) 28px 72px;gap:4px;}
