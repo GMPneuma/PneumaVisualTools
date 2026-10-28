@@ -1,5 +1,9 @@
 # Implemented Features
 
+- SceneTools Scanner reveal button uses the active chat theme's GM-action colors, hover/focus styling and GM marker through scoped CSS, including buttons inserted after card rendering. No CombatTools dependency. Local/unreleased; live Foundry verification pending.
+
+- Treatment participant sidebar (local/unreleased, 2026-10-28): medical cards show acting character, Treatment and patient in the existing left participant rail instead of a duplicate line below the roll. Saved medical participant UUIDs supply patient portraits through the existing visibility checks; historical cards can use their visible participant line. Roll values, native controls and outcomes remain unchanged. Build/type and focused browser checks passed; live Foundry verification pending.
+
 ## Movement performance optimization (0.9.1)
 
 - Token refreshes update overlay visibility and changed dimensions without scanning scene actors or inventories. Attached graphics and the existing render-time alpha mask follow movement and rotation.
@@ -475,3 +479,5 @@ The visual-skinning Base dropdown occupies 45% of its control row, keeping the a
 
 Full Custom colorization: a separate mode with collapsible Advanced controls and independent Light/Dark palettes. All saved palette fields and Primary Color are retained across mode changes, Apply, Cancel and player presets. Full Custom applies exact colors without primary generation or contrast fitting; primary mode generates its palette from the seed at render time. Independent controls include section heading text/background, skill badge fill/text, inactive tab text, main/interaction/icon/diagonal/tab-text/chat accents and both alternating rows. Optional row/glow/button switches still apply. Built-in presets change Primary Color without replacing custom palettes. Hub remains fixed and disables all color editing. Browser checks cover a yellow-frame/cyan-heading/cyan-badge example and mode/preset round trips.
 Full Custom displays Light and Dark palette fields side by side in compact equal-width columns.
+
+- Preview effects is a GM-only settings menu using Foundry native restricted-menu visibility; it is excluded from the Crew Tools User Settings menu.

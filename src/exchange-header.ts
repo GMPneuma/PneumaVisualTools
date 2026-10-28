@@ -101,11 +101,12 @@ export function decorateRailDefender(message: ChatMessage, root: HTMLElement, op
   if (!image) {
     const flags = (message.flags as Record<string, {
       exchange?: ExchangeHeaderData;
+      medicalParticipants?: ExchangeHeaderData;
       grapple?: {target?: {token?: string; actor?: string}};
       grappleParticipants?: {target?: {token?: string; actor?: string}};
       quickhack?: {type?: string; targetTokenUuid?: string; targetActorUuid?: string};
     }>)?.['pneuma-combattools'];
-    const data = flags?.exchange ?? {
+    const data = flags?.exchange ?? flags?.medicalParticipants ?? {
       attackerName: '', defenderName: '', title: '',
       defender: flags?.grapple?.target?.token ?? flags?.grappleParticipants?.target?.token ?? (['jackIn', 'quickhack', 'breach'].includes(flags?.quickhack?.type ?? '') ? flags?.quickhack?.targetTokenUuid : undefined),
       defenderActor: flags?.grapple?.target?.actor ?? flags?.grappleParticipants?.target?.actor ?? (['jackIn', 'quickhack', 'breach'].includes(flags?.quickhack?.type ?? '') ? flags?.quickhack?.targetActorUuid : undefined),

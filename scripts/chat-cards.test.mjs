@@ -61,6 +61,34 @@ try {
     window.hooks.renderChatMessage(window.msg,[window.fixture("roll")]);
     window.hooks.renderChatMessage(window.msg,[window.fixture("text",false)]);
   });
+  await page.evaluate(()=>{
+    for(const legacy of [false,true]) {
+      const card=window.fixture('treatment-'+legacy);
+      card.querySelector('.rollcard').classList.add('pneuma-treatment-card');
+      card.querySelector('.text-normal').textContent='QuickFix — Broken Ribs — Paramedic DV13';
+      card.querySelector('.rollcard-subtitle-center').textContent='Skill';
+      card.querySelector('[data-action="rollDamage"]').remove();
+      card.querySelector('.message-content').insertAdjacentHTML('beforeend','<section class="pneuma-treatment-result"><p class="pneuma-treatment-patient">Torch → Treatment → Tabloid</p><p class="pneuma-combat-outcome">Fail · 13 vs DV13</p></section>');
+      const msg={...window.msg,flags:legacy?{}:{'pneuma-combattools':{medicalParticipants:{attackerName:'Torch',defenderName:'Tabloid',title:'QuickFix',action:'Treatment'}}}};
+      window.hooks.renderChatMessage(msg,[card]);
+      window.hooks.renderChatMessage(msg,[card]);
+    }
+  });
+  for(const legacy of [false,true]) {
+    const card=page.locator('#treatment-'+legacy);
+    assert.equal(await card.locator('.pneuma-rail-action').innerText(),'Treatment');
+    assert.equal(await card.locator('.pneuma-participant-rail .message-sender').innerText(),'Torch');
+    assert.equal(await card.locator('.pneuma-exchange-defender').innerText(),'Tabloid');
+    assert.equal(await card.locator('.pneuma-treatment-patient').isVisible(),false);
+    assert.equal(await card.locator('.pneuma-combat-outcome').isVisible(),true);
+    assert.equal(await card.locator('.pneuma-participant-rail').count(),1);
+    for(const width of [260,400]) {
+      await card.evaluate((el,width)=>el.style.width=width+'px',width);
+      assert.ok(await card.evaluate(el=>el.scrollWidth<=el.clientWidth),'Treatment card must fit narrow chat');
+    }
+  }
+  await page.locator('#treatment-false').screenshot({path:'docs/treatment-rail-check.png'});
+  if(process.env.PNEUMA_TREATMENT_ONLY){console.log('Treatment participant rail, historical fallback, duplicate render and narrow layout checks passed.');await browser.close();process.exit(0);}
   assert.equal(await page.locator("#roll .pneuma-chat-portrait").count(),1);
   assert.equal(await page.locator("#text .pneuma-chat-portrait").count(),1);
   assert.equal(await page.locator("#roll .pneuma-chat-portrait img").count(),0);

@@ -314,6 +314,20 @@
 .chat-message.pneuma-chat-card button:not(.pneuma-chat-button) { background: var(--pvt-button-bg); color: var(--pvt-button-ink); border: 1px solid var(--pvt-button-border); border-radius: 2px; box-shadow: none; font: inherit; font-size: 12px; line-height: 1.3; padding: 4px 6px; }
 .chat-message.pneuma-chat-card button:not(.pneuma-chat-button):hover:not(:disabled) { background: var(--pvt-button-hover); }
 .chat-message.pneuma-chat-card button:not(.pneuma-chat-button):disabled { opacity: .5; }
+/* SceneTools owns the action and GM access; CSS also covers late insertion.
+ * No CombatTools renderer or CSS is required. */
+.chat-message.pneuma-chat-card button.pneuma-open-scanner[data-pneuma-chat-action="scanner"] {
+  background: var(--pvt-damage-button-bg); color: var(--pvt-damage-button-ink);
+  border: 1px solid var(--pvt-damage-button-border); border-radius: 2px;
+  padding: 4px 6px; margin: 6px 0 2px; min-height: 28px; height: auto;
+  font: inherit; font-size: 12px; line-height: 1.3; white-space: normal; box-shadow: none;
+}
+.chat-message.pneuma-chat-card button.pneuma-open-scanner[data-pneuma-chat-action="scanner"][data-chat-role="gm"]::before {
+  content: "GM"; display: inline-block; margin-right: 6px; padding: 1px 3px;
+  border: 1px solid currentColor; border-radius: 2px; font-size: 9px; line-height: 1.2;
+}
+.chat-message.pneuma-chat-card button.pneuma-open-scanner[data-pneuma-chat-action="scanner"]:hover:not(:disabled) { background: var(--pvt-gm-hover); border-color: var(--pvt-damage-button-border); }
+.chat-message.pneuma-chat-card button.pneuma-open-scanner[data-pneuma-chat-action="scanner"]:focus-visible { outline: 2px solid var(--pvt-accent); outline-offset: 2px; }
 .chat-message.pneuma-chat-card .pneuma-damage-recovery-controls { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 5px; min-width: 0; }
 .chat-message.pneuma-chat-card .pneuma-damage-recovery-controls button { flex: 0 1 auto; max-width: 100%; overflow-wrap: normal; word-break: normal; }
 .chat-message.pneuma-chat-card .pneuma-instant-effect button { width: auto; max-width: 100%; white-space: normal; }

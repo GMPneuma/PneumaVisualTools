@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.2 - 2026-10-28
+
+- Move treatment actor, action and patient details into the chat-card left rail, keeping roll results readable.
+- Style the Scene Tools Scanner reveal button consistently with GM chat actions.
+- Make Preview effects a GM-only settings button and exclude it from the Crew Tools User Settings list.
+
+Validation: production build and automated checks. Live Foundry multiplayer verification remains pending.
+
 ## 0.10.1 - 2026-10-26
 
 - Restore independent Full Custom colorization alongside Primary Color mode, with collapsible Advanced controls and side-by-side Light/Dark palettes.

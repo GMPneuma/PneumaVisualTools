@@ -141,10 +141,11 @@ function arrangeCardHeader(root: HTMLElement): void {
   const grapple = root.querySelector('.pneuma-grapple-card');
   const adHocDamage = root.querySelector<HTMLElement>('.pneuma-manual-card[data-manual-kind="damage"]');
   const recovery = !!root.querySelector('.pneuma-ma-recovery-result');
+  const treatment = root.classList.contains('pneuma-treatment-rail');
   const ammo = root.querySelector<HTMLElement>('.pneuma-ammo-notice');
   const noticeAction = ammo?.dataset.ammoAction === 'reload' ? 'Reload' : ammo?.dataset.ammoAction === 'change' ? 'Change Ammo'
     : root.querySelector('.pneuma-self-action-report') ? 'Get Up' : '';
-  const plain = !noticeAction && !title && !net && !grapple && !root.querySelector('.rollcard, .dice-roll, .pneuma-custom-roll-card, .pneuma-instant-card, .pneuma-injury-card, .pneuma-emp-card, .pneuma-status-cleanup-card');
+  const plain = !treatment && !noticeAction && !title && !net && !grapple && !root.querySelector('.rollcard, .dice-roll, .pneuma-custom-roll-card, .pneuma-instant-card, .pneuma-injury-card, .pneuma-emp-card, .pneuma-status-cleanup-card');
   if (!title) {
     title = document.createElement('div'); title.className = 'pneuma-card-title';
     const text = document.createElement('h3');
@@ -166,7 +167,7 @@ function arrangeCardHeader(root: HTMLElement): void {
   const critical = independent && (!!root.querySelector('.pneuma-manual-card[data-manual-kind="critical"]') || /critical\s+injur/i.test(title.textContent ?? ''));
   // D6 is also used by injury tables; dice shape is not an action type.
   const damage = !!adHocDamage || independent && !critical && !skill && !stat && !role && !initiative && /\bdamage\b/i.test(kindText);
-  const generic = independent && !noticeAction && !critical && !skill && !stat && !role && !initiative && !damage && !plain;
+  const generic = independent && !treatment && !noticeAction && !critical && !skill && !stat && !role && !initiative && !damage && !plain;
   root.classList.toggle('pneuma-plain-chat', plain);
   if (skill || stat || role) header.classList.add('pneuma-heading-check');
   if (nativeKind && (skill || stat || role || initiative)) nativeKind.classList.add('pneuma-relocated-heading');
@@ -185,6 +186,7 @@ function arrangeCardHeader(root: HTMLElement): void {
   if (root.querySelector('.pneuma-scene-effect-card')) action.textContent = 'Hazard';
   if (noticeAction) action.textContent = noticeAction;
   if (critical) action.textContent = 'Critical Injury';
+  if (treatment) action.textContent = 'Treatment';
   if (adHocDamage) {
     action.textContent = 'Damage';
     root.classList.add('pneuma-adhoc-damage');
@@ -279,6 +281,18 @@ function arrangeRailAction(root: HTMLElement, message?: ChatMessage): void {
     if (!target) { target = document.createElement('span'); target.className = 'pneuma-exchange-defender'; rail.append(target); }
     target.textContent = text;
   };
+  const patient = root.querySelector<HTMLElement>('.pneuma-treatment-patient');
+  if (patient && message?.visible && message.isContentVisible !== false && (!message.blind || game.user!.isGM)) {
+    const medical = (message.flags as Record<string, {medicalParticipants?: {attackerName?: string; defenderName?: string}}> | undefined)?.['pneuma-combattools']?.medicalParticipants;
+    const names = patient.textContent?.trim().match(/^(.+?)\s*→\s*Treatment\s*→\s*(.+)$/);
+    const source = medical?.attackerName ?? names?.[1], target = medical?.defenderName ?? names?.[2];
+    if (typeof source === 'string' && source.trim() && typeof target === 'string' && target.trim()) {
+      setName(source); setAction('Treatment'); setTarget(target);
+      patient.classList.add('pneuma-relocated-heading');
+      root.classList.add('pneuma-treatment-rail');
+      return;
+    }
+  }
   const grappleHeading = root.querySelector<HTMLElement>('.pneuma-grapple-card > .rollcard > .rollcard-top');
   const grapple = grappleHeading?.textContent?.trim().match(/^(Grab|Break Grapple|Release|Choke|Throw):\s*(.+?)\s*→\s*(.+)$/);
   if (grapple) {
