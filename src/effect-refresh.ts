@@ -11,6 +11,17 @@ export function tokenEffectsChanged(changes:Record<string,unknown>):boolean {
  return meaningful(changes);
 }
 
+/** Combat bookkeeping such as movement and summaries does not change visuals. */
+export function combatVisualsChanged(changes:Record<string,unknown>):boolean {
+ if(!Object.keys(changes).length)return true;
+ const relevant=['started','active','flags.pneuma-combattools.flashbangVisuals','flags.pneuma-combattools.visualExposures','flags.pneuma-combattools.evasionEpoch'];
+ const walk=(value:Record<string,unknown>,prefix=''):boolean=>Object.entries(value).some(([key,entry])=>{
+  const path=(prefix?prefix+'.':'')+key.replace(/(^|\.)-=/g,'$1');
+  return relevant.some(field=>path===field||path.startsWith(field+'.'))||!!entry&&typeof entry==='object'&&!Array.isArray(entry)&&walk(entry as Record<string,unknown>,path);
+ });
+ return walk(changes);
+}
+
 /** Publish only actors whose held condition state actually changed. */
 export function conditionPublisher(hook:string){
  let previous=new Map<string,string>();
@@ -44,8 +55,12 @@ export function watchScreenTokenVisibility(sync:()=>void){
 export function actorRefreshCandidates() {
  let full=true;
  const dirty=new Map<string,Actor>();
+ const watched=new Map<string,Actor>();
+ const live=new Set<string>();
  return {
   all:()=>{full=true;},
+  time:()=>{for(const [id,actor] of watched)dirty.set(id,actor);},
+  clear:()=>{dirty.clear();watched.clear();live.clear();full=true;},
   mark:(document: Actor|Item|ActiveEffect|TokenDocument|undefined)=>{
    if(!document){full=true;return;}
    let current: unknown=document;
@@ -57,9 +72,14 @@ export function actorRefreshCandidates() {
    }
   },
   take:(selected:Actor|null|undefined)=>{
-   const actors=new Map(dirty);dirty.clear();
-   if(full){for(const token of canvas.tokens?.placeables??[])if(token.actor)actors.set(token.actor.uuid,token.actor);full=false;}
+   const actors=new Map(full?[]:dirty);dirty.clear();
+   if(full){watched.clear();live.clear();for(const token of canvas.tokens?.placeables??[])if(token.actor){actors.set(token.actor.uuid,token.actor);live.add(token.actor.uuid);}full=false;}
    if(selected)actors.set(selected.uuid,selected);
+   for(const id of watched.keys())if(!live.has(id)&&id!==selected?.uuid)watched.delete(id);
+   for(const [id,actor] of actors){
+    const hasEffects=[...(actor.allApplicableEffects?.()??actor.effects??[])].length>0||[...(actor.items??[])].some(item=>[...(item.effects??[])].length>0);
+    if(hasEffects&&(live.has(id)||id===selected?.uuid))watched.set(id,actor);else watched.delete(id);
+   }
    return actors;
   }
  };

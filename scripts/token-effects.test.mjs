@@ -13,6 +13,7 @@ const token={actor,renderable:true,isVisible:true,w:100,h:100,children:[],addChi
 const canvas={ready:true,tokens:{placeables:[token]},app:{ticker:{add:f=>tickers.add(f),remove:f=>tickers.delete(f)}}};
 const media={matches:false,addEventListener:(k,f)=>hooks.motion=f};
 const context=vm.createContext({requestAnimationFrame:fn=>{frames.set(++frameId,fn);return frameId;},cancelAnimationFrame:id=>frames.delete(id),patternKinds:["blackLace","gas","berserker","primeTime","sixgun","timewarp"],PIXI:{Graphics},matchMedia:()=>media,Math,game:{settings:{get:()=>settings.get('tokenEffects').enabled!==false,register:(m,k,v)=>settings.set(k,v)}},canvas,Hooks:{once:(k,f)=>hooks[k]=f,on:(k,f)=>hooks[k]=f},document:{hidden:false,addEventListener(){}},window:{addEventListener(){}},createTokenEffectMask:()=>{masksCreated++;return {destroy(){masksDestroyed++;}};},createTokenPoisonFog:()=>({container:{},update(){},destroy(){}}),createTokenBlueGlassCloud:()=>({container:{},update(){},destroy(){}}),createTokenFireParticles:()=>({container:{},update(){},destroy(){}}),tokenPreview:t=>t===token?preview:undefined,anyTokenPreview:()=>!!preview,actorPatternKinds:()=>{checks++;return patterns;},createPatternToken:()=>{patternCreated++;return {container:{},update(){},destroy(){patternDestroyed++;}};},flashbangState:()=>undefined,hasElectricalShock:()=>false,hasEMP:()=>false,hasSmash:()=>smash,createTokenSmashOverlay:()=>{smashCreated++;return {container:{},update(){},destroy(){smashDestroyed++;}};},hasBlueGlass:()=>glass,hasPoisonExposure:()=>poison,burningStrength,humanityStage:v=>v<10?'cyberpsycho':undefined});
+vm.runInContext((await readFile('dist/actor-effect-snapshot.js','utf8')).replace(/export /g,''),context);
 vm.runInContext((await readFile('dist/effect-refresh.js','utf8')).replace(/export /g,''),context);
 vm.runInContext((await readFile('dist/token-effects.js','utf8')).replace(/^import .*;\s*/gm,'').replace(/export /g,'')+'\nregisterTokenEffects();',context);
 assert.equal(vm.runInContext('tokenEffectKinds(canvas.tokens.placeables[0].actor).join(",")',context),'poison,blueGlass,fire2');
@@ -58,3 +59,15 @@ preview=undefined;hooks.pneumaVisualToolsPreviewChanged();flush();assert.equal(t
 settings.get('tokenEffects').enabled=true;patterns=[];effect.disabled=true;hooks.canvasReady();flush();
 before=checks;for(let i=0;i<100;i++)hooks.refreshToken(token);flush();assert.equal(checks,before,'effect-free tokens also avoid movement scans');
 console.log('Preview preference independence and effect-free movement passed');
+
+// Clock and turn updates skip actors with no condition sources.
+const empty=Array.from({length:100},(_,i)=>({...token,children:[],actor:{documentName:'Actor',uuid:'Actor.empty'+i,effects:[],items:[]}}));
+canvas.tokens.placeables=[token,...empty];effect.duration={seconds:60,startTime:0};hooks.canvasReady();flush();
+before=checks;
+for(let i=0;i<100;i++){hooks.updateCombat({}, {name:'renamed'});flush();}
+assert.equal(checks,before,'unrelated combat edits do not rescan scene actors');
+for(let i=0;i<100;i++){hooks.updateWorldTime();flush();}
+assert.equal(checks,before+100,'100 clock updates evaluate only the timed actor');
+hooks.updateCombat({}, {turn:1});flush();assert.equal(checks,before+101);
+hooks.updateCombat({}, {'flags.pneuma-combattools.flashbangVisuals.new':{}});flush();assert.equal(checks,before+202,'new combat visual flags discover newly affected actors');
+hooks.canvasTearDown();

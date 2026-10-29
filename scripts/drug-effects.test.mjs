@@ -16,6 +16,7 @@ for(const [cols,rows] of [[4,22],[4,7]]){
  assert.equal(new Set(vm.runInContext('shieldOrder('+cells.length*2+')',rendererContext)).size,cells.length*2);
 }
 const context=vm.createContext({game:{time:{worldTime:20}}});
+vm.runInContext((await readFile('dist/actor-effect-snapshot.js','utf8')).replace(/export /g,''),context);
 vm.runInContext((await readFile('dist/substance-effects.js','utf8')).replace(/^import .*;\s*/gm,'').replace(/^export /gm,''),context);
 for(const [kind,name,id] of drugs){
  const effect={name,statuses:new Set([id]),duration:{seconds:60,startTime:0},disabled:false};

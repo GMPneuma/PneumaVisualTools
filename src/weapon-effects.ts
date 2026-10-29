@@ -14,11 +14,12 @@ interface LiveToken {document:{uuid:string;hidden?:boolean;elevation?:number;par
 interface Viewport {stage?:{worldTransform:{a:number;b:number;c:number;d:number;tx:number;ty:number}};app?:{view:HTMLCanvasElement;renderer:{screen:{width:number;height:number}}}}
 function token(uuid:string):LiveToken|undefined {return (canvas.tokens?.placeables as unknown as LiveToken[]|undefined)?.find(t=>t.document.uuid===uuid)}
 function allowed(t:LiveToken):boolean {return !!game.user?.isGM||(!t.document.hidden&&t.isVisible)}
-function screen(p:Point):Point|undefined {
+function screenProjection():((p:Point)=>Point)|undefined {
  const view=canvas as unknown as Viewport,m=view.stage?.worldTransform,app=view.app;if(!m||!app)return;
  const rect=app.view.getBoundingClientRect(),w=app.renderer.screen.width,h=app.renderer.screen.height;if(!(w>0&&h>0))return;
- return {x:rect.left+(m.a*p.x+m.c*p.y+m.tx)*rect.width/w,y:rect.top+(m.b*p.x+m.d*p.y+m.ty)*rect.height/h};
+ return p=>({x:rect.left+(m.a*p.x+m.c*p.y+m.tx)*rect.width/w,y:rect.top+(m.b*p.x+m.d*p.y+m.ty)*rect.height/h});
 }
+function screen(p:Point):Point|undefined {return screenProjection()?.(p);}
 function world(p:Point):Point|undefined {
  const view=canvas as unknown as Viewport,m=view.stage?.worldTransform,app=view.app;if(!m||!app)return;
  const rect=app.view.getBoundingClientRect(),det=m.a*m.d-m.b*m.c;if(!rect.width||!rect.height||!det)return;
@@ -119,9 +120,9 @@ export function registerWeaponEffects():void {
    const initial=positions();if(!initial){light.stop();continue;}
    const sourceEdge=screen({x:source.center.x+source.w/2,y:source.center.y});
    const targetEdge=target?screen({x:target.center.x+target.w/2,y:target.center.y}):undefined;
-   const area=effect.areaMessage?()=>areaCells.map(cell=>{
-    const points:Point[]=[];for(let i=0;i<cell.length;i+=2){const p=screen({x:cell[i]!,y:cell[i+1]!});if(!p)return [];points.push(p)}return points;
-   }).filter(cell=>cell.length>=3):undefined;
+   const area=effect.areaMessage?()=>{const project=screenProjection();if(!project)return [];return areaCells.map(cell=>{
+    const points:Point[]=[];for(let i=0;i<cell.length;i+=2){const p=project({x:cell[i]!,y:cell[i+1]!});if(!p)return [];points.push(p)}return points;
+   }).filter(cell=>cell.length>=3);}:undefined;
 
 
    const onLightPulse=(phase:'source'|'impact',point:Point)=>{

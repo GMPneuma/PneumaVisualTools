@@ -1,6 +1,8 @@
 # Implemented Features
 
-- SceneTools Scanner reveal button uses the active chat theme's GM-action colors, hover/focus styling and GM marker through scoped CSS, including buttons inserted after card rendering. No CombatTools dependency. Local/unreleased; live Foundry verification pending.
+- Area-effect masks reuse translated geometry during canvas panning and rebuild for zoom or footprint changes; area projection reads the viewport once per footprint. Token condition checks share an evaluation-local inventory snapshot. Unrelated combat updates skip token condition scans; clock/turn refreshes target existing or timed effects, and screen-effect clock hydration visits actors with condition sources. Document updates still invalidate effects and expiry remains active. v0.10.3; live Foundry verification pending.
+
+- SceneTools Scanner reveal button uses the active chat theme's GM-action colors, hover/focus styling and GM marker through scoped CSS, including buttons inserted after card rendering. No CombatTools dependency. v0.10.3; live Foundry verification pending.
 
 - Treatment participant sidebar (local/unreleased, 2026-10-28): medical cards show acting character, Treatment and patient in the existing left participant rail instead of a duplicate line below the roll. Saved medical participant UUIDs supply patient portraits through the existing visibility checks; historical cards can use their visible participant line. Roll values, native controls and outcomes remain unchanged. Build/type and focused browser checks passed; live Foundry verification pending.
 

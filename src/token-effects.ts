@@ -1,4 +1,5 @@
-import {frameRefresh,tokenEffectsChanged} from './effect-refresh.js';
+import {actorEffectSnapshot} from './actor-effect-snapshot.js';
+import {frameRefresh,tokenEffectsChanged,combatVisualsChanged} from './effect-refresh.js';
 import {createConditionToken} from './condition-renderers.js';
 import {hasBlueGlass,hasPoisonExposure,hasSmash} from './substance-effects.js';
 import {createTokenSmashOverlay} from './smash-overlay.js';
@@ -15,19 +16,20 @@ import {createTokenFireParticles} from './token-fire-particles.js';
 import {createTokenBlueGlassCloud} from './blue-glass-cloud.js';
 const MODULE='pneuma-visualtools';
 declare global {interface SettingConfig {'pneuma-visualtools.tokenEffects':boolean}}
-export function tokenEffectKinds(actor:Actor|undefined):string[] {
+export function tokenEffectKinds(actor:Actor|undefined,snapshot?:ReturnType<typeof actorEffectSnapshot>):string[] {
  if(!actor)return [];
+ snapshot??=actorEffectSnapshot(actor);
  const kinds:string[]=[];
- kinds.push(...actorPatternKinds(actor));
+ kinds.push(...actorPatternKinds(actor,snapshot));
  if(hasPoisonExposure(actor.uuid))kinds.push('poison');
- if(hasBlueGlass(actor))kinds.push('blueGlass');
- if(hasSmash(actor))kinds.push('smash');
+ if(hasBlueGlass(actor,snapshot.all))kinds.push('blueGlass');
+ if(hasSmash(actor,snapshot.all))kinds.push('smash');
  if(hasElectricalShock(actor))kinds.push('electrical');
- if(hasEMP(actor))kinds.push('emp');
+ if(hasEMP(actor,snapshot.native))kinds.push('emp');
  const dazzle=flashbangState(actor);if(dazzle)kinds.push(`dazzle:${dazzle.id}`);
  const combat=game.modules?.get('pneuma-combattools') as unknown as {active?:boolean,api?:{hasNeuralIntrusion?:(actor:Actor)=>boolean}}|undefined;
  if(combat?.active&&combat.api?.hasNeuralIntrusion?.(actor))kinds.push('intrusion');
- const fire=burningStrength(actor);if(fire)kinds.push(`fire${fire}`);
+ const fire=burningStrength(actor,snapshot.native);if(fire)kinds.push(`fire${fire}`);
  return kinds;
 }
 export function registerTokenEffects():void {
@@ -84,7 +86,7 @@ export function registerTokenEffects():void {
   }
  }
  // Condition state is independent of movement and retained while a token is hidden.
- const states=new Map<Token,{key:string;dazzleCreated?:number}>();
+ const states=new Map<Token,{key:string;dazzleCreated?:number;timed:boolean}>();
  const pending=new Set<Token>();let all=true;
  const batch=frameRefresh(flush);
  function queue(token?:Token) {if(token)pending.add(token);else all=true;batch.schedule();}
@@ -121,11 +123,11 @@ export function registerTokenEffects():void {
   const tokens=all?canvas.tokens?.placeables??[]:[...pending];
   if(all){const live=new Set(tokens);for(const token of states.keys())if(!live.has(token)){states.delete(token);remove(token);}}
   pending.clear();all=false;
-  const actors=new Map<Actor,{key:string;dazzleCreated?:number}>();
+  const actors=new Map<Actor,{key:string;dazzleCreated?:number;timed:boolean}>();
   for(const token of tokens){
    if(token.destroyed||token.isPreview)continue;
    const actor=token.actor;let state=actor?actors.get(actor):undefined;
-   if(!state){state={key:game.settings!.get(MODULE,'tokenEffects')?tokenEffectKinds(actor??undefined).join(','):'',dazzleCreated:flashbangState(actor??undefined)?.created};if(actor)actors.set(actor,state);}
+   if(!state){const snapshot=actor?actorEffectSnapshot(actor):undefined;state={key:game.settings!.get(MODULE,'tokenEffects')?tokenEffectKinds(actor??undefined,snapshot).join(','):'',dazzleCreated:flashbangState(actor??undefined)?.created,timed:!!snapshot?.timed};if(actor)actors.set(actor,state);}
    states.set(token,state);reconcile(token);
   }
   tickerState();
@@ -139,7 +141,13 @@ export function registerTokenEffects():void {
  game.settings!.register(MODULE,'tokenEffects',{name:'Enable Token Effects',hint:'Map token overlays for Poison, Blue Glass, Smash, On Fire and detected Neural Intrusion; EMP follows native EMP statuses or Combat Tools disablements; Electrical Shock awaits gameplay integration. Uses the same triggers and expiry as screen effects. Independent of screen preferences. Visible tokens only; reduced motion uses stationary overlays. Local preference.',scope:'client',config:true,type:Boolean,default:true,onChange:sync});
  Hooks.once('ready',()=>{ready=true;sync();});
  Hooks.on('pneumaVisualToolsPreviewChanged',sync);
- for(const hook of ['canvasReady','updateUser','updateWorldTime','updateCombat','deleteCombat','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
+ for(const hook of ['canvasReady','updateUser','deleteCombat','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
+ const refreshTimed=()=>{for(const [token,state] of states)if(state.timed||state.key)queue(token);};
+ Hooks.on('updateWorldTime',refreshTimed);
+ Hooks.on('updateCombat',(_combat:Combat,changes:Record<string,unknown>={})=>{
+  if(combatVisualsChanged(changes))sync();
+  else if('round' in changes||'turn' in changes)refreshTimed();
+ });
  for(const hook of ['pneumaVisualToolsExposureChanged','pneumaVisualToolsElectricalChanged','pneumaCombatToolsNeuralIntrusionChanged','pneumaVisualToolsPatternsChanged'])Hooks.on(hook,(uuid?:string)=>{if(uuid){for(const token of canvas.tokens?.placeables??[])if(token.actor?.uuid===uuid)queue(token);}else sync();});
  for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,actorChanged);
  Hooks.on('drawToken',(token:Token)=>queue(token));

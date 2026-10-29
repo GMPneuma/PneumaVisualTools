@@ -262,9 +262,10 @@ function createAreaBurst(){
  const mask=document.createElement('canvas'),surface=document.createElement('canvas');
  let key='',left=0,top=0,scale=1,polygons:Point[][]=[];
  function prepare(cells:Point[][]){
-  const next=JSON.stringify(cells);if(next===key)return;key=next;
   const points=cells.flat();if(!points.length)return;
   left=Math.min(...points.map(p=>p.x))-2;top=Math.min(...points.map(p=>p.y))-2;
+  const local=cells.map(cell=>cell.map(p=>({x:Math.round((p.x-left)*1e6)/1e6,y:Math.round((p.y-top)*1e6)/1e6})));
+  const next=JSON.stringify(local);if(next===key)return;key=next;
   const w=Math.max(...points.map(p=>p.x))-left+2,h=Math.max(...points.map(p=>p.y))-top+2;
   scale=Math.min(1,512/Math.max(w,h));mask.width=surface.width=Math.max(1,Math.ceil(w*scale));mask.height=surface.height=Math.max(1,Math.ceil(h*scale));
   polygons=cells.map(cell=>cell.map(p=>({x:(p.x-left)*scale,y:(p.y-top)*scale})));

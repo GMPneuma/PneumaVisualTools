@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.3 - 2026-10-28
+
+- Reuse grenade area masks during camera pans and reduce repeated viewport reads.
+- Share actor effect snapshots across condition checks and limit clock refreshes to relevant effect sources.
+- Clear effect tracking on canvas teardown and refresh membership when token actor links change.
+
+Validation: production build and automated checks. Live Foundry multiplayer verification remains pending.
+
 ## 0.10.2 - 2026-10-28
 
 - Move treatment actor, action and patient details into the chat-card left rail, keeping roll results readable.
