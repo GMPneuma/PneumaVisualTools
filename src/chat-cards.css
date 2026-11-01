@@ -372,6 +372,14 @@
 .chat-message.pneuma-chat-card .pneuma-aoe-resolution-target .pneuma-damage-applied-row { position: relative; }
 .chat-message.pneuma-chat-card .pneuma-aoe-resolution-target:has(.pneuma-reversal-status) > .pneuma-aoe-name { padding-right: 68px; }
 .chat-message.pneuma-chat-card .pneuma-aoe-resolution-target .pneuma-damage-applied-row > :is(.pneuma-applied-location, .pneuma-damage-undo) { flex-shrink: 0; white-space: nowrap; }
+/* Damage recipients and injury actions each need the full application row. */
+.chat-message.pneuma-chat-card .pneuma-damage-controls > :is(.pneuma-damage-recipient, .pneuma-critical-row) {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.chat-message.pneuma-chat-card .pneuma-critical-row > strong { min-width: 0; overflow-wrap: break-word; }
+.chat-message.pneuma-chat-card .pneuma-critical-row > button { max-width: 100%; }
+
 .chat-message.pneuma-chat-card .pneuma-damage-applications > .pneuma-damage-applied {
   padding: 3px 0; margin: 0; border-bottom: 1px solid var(--pvt-line);
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.5 - 2026-11-01
+
+- Give damage recipients and critical-injury controls full-width rows so injury actions cannot squeeze recipient labels into vertical columns.
+- Cover initial and pending injury actions alongside CombatTools styles at narrow chat widths.
+
+Validation: production build and browser layout regression. Live Foundry verification remains pending.
+
 ## 0.10.4 - 2026-11-01
 
 - Place ammunition labels on a full-width line above compact damage dice, preventing long names from collapsing into a vertical column.
