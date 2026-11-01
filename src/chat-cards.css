@@ -687,9 +687,10 @@
 :is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .d6-dice-div { grid-area: dice !important; justify-self: start; }
 :is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .d6-number-div { grid-area: total !important; justify-self: end; }
 :is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-rollcard-data {
-  grid-template-columns: minmax(0, 1fr) auto var(--pvt-total-size) !important;
-  grid-template-areas: "ammo dice total" "details details details" !important;
+  grid-template-columns: minmax(0, 1fr) var(--pvt-total-size) !important;
+  grid-template-areas: "ammo ammo" "dice total" "details details" !important;
 }
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .pneuma-damage-ammo { min-width: 0; overflow-wrap: normal; }
 :is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-dice-div { justify-self: end; }
 
 /* Native critical-injury descriptions belong below both dice and total. */

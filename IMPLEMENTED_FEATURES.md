@@ -1,5 +1,7 @@
 # Implemented Features
 
+- Compact damage cards give the ammunition label a full-width line above the dice, preventing long ammunition names from collapsing into a vertical column. v0.10.4; live Foundry verification pending.
+
 - Area-effect masks reuse translated geometry during canvas panning and rebuild for zoom or footprint changes; area projection reads the viewport once per footprint. Token condition checks share an evaluation-local inventory snapshot. Unrelated combat updates skip token condition scans; clock/turn refreshes target existing or timed effects, and screen-effect clock hydration visits actors with condition sources. Document updates still invalidate effects and expiry remains active. v0.10.3; live Foundry verification pending.
 
 - SceneTools Scanner reveal button uses the active chat theme's GM-action colors, hover/focus styling and GM marker through scoped CSS, including buttons inserted after card rendering. No CombatTools dependency. v0.10.3; live Foundry verification pending.

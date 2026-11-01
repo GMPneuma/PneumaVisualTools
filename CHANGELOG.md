@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.4 - 2026-11-01
+
+- Place ammunition labels on a full-width line above compact damage dice, preventing long names from collapsing into a vertical column.
+
+Validation: production build and automated checks. Live Foundry verification remains pending.
+
 ## 0.10.3 - 2026-10-28
 
 - Reuse grenade area masks during camera pans and reduce repeated viewport reads.

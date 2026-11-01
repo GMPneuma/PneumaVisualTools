@@ -24,5 +24,22 @@ try {
   },{type});
   assert.deepEqual(geometry,{left:true,visible:true,fits:true},context+' '+type+' '+count+' '+width);
  }
- console.log('Ultra Compact single/critical D10, D6 and generic dice remain left of totals across medical, skill, role, grapple, QuickHack, attack/defense and ordinary wrappers at 260/300/400px.');
+ for (const width of [260,300,400]) {
+  await page.evaluate(width=>{
+   const root=document.createElement('article');
+   root.className='chat-message pneuma-chat-card pneuma-skin-compact';
+   root.style.width=width+'px';
+   root.innerHTML='<section class="pneuma-resolution-damage-roll"><div class="d6-rollcard-data"><span class="pneuma-damage-ammo">Armor-Piercing</span><div class="d6-dice-div" style="width:164px;height:80px">6 3 3 4<br>6 2 3 1</div><div class="d6-number-div">28</div><div class="d6-data-div">Critical Damage: 5</div></div></section>';
+   document.body.replaceChildren(root);
+  },width);
+  const geometry=await page.evaluate(()=>{
+   const ammo=document.querySelector('.pneuma-damage-ammo').getBoundingClientRect();
+   const dice=document.querySelector('.d6-dice-div').getBoundingClientRect();
+   const total=document.querySelector('.d6-number-div').getBoundingClientRect();
+   const root=document.querySelector('article');
+   return {horizontal:ammo.width>ammo.height,aboveDice:ammo.bottom<=dice.top+1,separate:dice.right<=total.left+1,fits:root.scrollWidth<=root.clientWidth};
+  });
+  assert.deepEqual(geometry,{horizontal:true,aboveDice:true,separate:true,fits:true},'Rocket ammunition at '+width);
+ }
+ console.log('Compact dice and ammunition layout passed at 260/300/400px.');
 } finally {await browser.close();}
