@@ -453,6 +453,13 @@
 .chat-message.pneuma-chat-card .pvt-damage-footer {
   display: flex; align-items: center; gap: 6px; min-width: 0; margin-top: 4px;
 }
+.chat-message.pneuma-chat-card .pvt-damage-caption {
+  display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; grid-column: 1 / -1;
+}
+.chat-message.pneuma-chat-card .pvt-damage-caption > .pneuma-damage-ammo { margin: 0; text-align: left; }
+.chat-message.pneuma-chat-card .pvt-damage-caption > button.pneuma-modify-damage {
+  position: static; flex: 0 0 auto; width: auto; min-width: 24px; min-height: 24px; margin: 0 0 0 auto;
+}
 .chat-message.pneuma-chat-card .pvt-damage-footer > :is(.pneuma-aoe-effects-picker, .pneuma-damage-effects-slot) {
   min-width: 0; margin: 0 0 0 auto;
 }

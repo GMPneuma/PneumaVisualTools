@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.7 - 2026-11-11
+
+- Moved the Modify Damage pencil from the damage total to the right side of the ammo line in all four chat skins. The pencil now has its own click target.
+
 ## 0.10.6 - 2026-11-11
 
 - Show base values, individual modifiers, dice and total together in a compact roll hover. Align the rows, use the skin colors for bonuses and penalties, and omit redundant Attack Bonus suffixes.

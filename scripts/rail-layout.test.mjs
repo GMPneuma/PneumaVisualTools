@@ -134,6 +134,22 @@ try {
  assert.equal(await page.locator('#attack-false .pvt-damage-toggle').count(),1);
  assert.equal(await page.locator('#attack-false .pvt-damage-footer > .pneuma-damage-ammo').count(),1);
  assert.equal(await page.evaluate(()=>savedAmmo===document.querySelector('#attack-false .pneuma-damage-ammo')),true);
+ await page.evaluate(()=>{
+  const root=document.querySelector('#attack-false');
+  const pencil=document.createElement('button');
+  pencil.className='pneuma-modify-damage';
+  pencil.onclick=()=>pencil.dataset.clicked='yes';
+  root.querySelector('.d6-number-div').append(pencil);
+ });
+ for(const skin of ['cyberpunk','technical','compact','compact-hub']){
+  await page.evaluate(skin=>applyChatSkin(document.querySelector('#attack-false'),skin),skin);
+  const pencil=page.locator('#attack-false .pvt-damage-caption > .pneuma-modify-damage');
+  const ammo=await page.locator('#attack-false .pvt-damage-caption > .pneuma-damage-ammo').boundingBox();
+  const button=await pencil.boundingBox();
+  assert.ok(ammo && button && ammo.y < button.y+button.height && button.y < ammo.y+ammo.height,skin+' ammo and pencil share a line');
+  await pencil.click();
+  assert.equal(await pencil.getAttribute('data-clicked'),'yes');
+ }
  await page.evaluate(()=>applyChatSkin(document.querySelector('#attack-false'),'compact'));
  assert.equal(await page.locator('#plain .pneuma-rail-arrow').count(),0);
  assert.equal(await page.locator('#grenade .pneuma-rail-action').innerText(),'Throw');

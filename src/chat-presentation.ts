@@ -820,7 +820,22 @@ export function arrangeDamageSections(root: HTMLElement): void {
     const footer = section.querySelector<HTMLElement>('.pvt-damage-footer');
     const roll = section.querySelector<HTMLElement>('.d6-rollcard-data');
     const ammo = section.querySelector<HTMLElement>('.pneuma-damage-ammo');
-    if (ammo && compact && roll && roll.previousElementSibling !== ammo) roll.before(ammo);
+    const pencil = section.querySelector<HTMLButtonElement>('button.pneuma-modify-damage');
+    let caption = section.querySelector<HTMLElement>('.pvt-damage-caption');
+    if (pencil && !caption) {
+      caption = document.createElement('div');
+      caption.className = 'pvt-damage-caption';
+    }
+    if (caption && pencil) {
+      if (ammo && ammo.parentElement !== caption) caption.prepend(ammo);
+      if (pencil.parentElement !== caption) caption.append(pencil);
+      if (compact && roll) {
+        if (roll.previousElementSibling !== caption) roll.before(caption);
+      } else {
+        const host = footer ?? section.querySelector('.pneuma-resolution-damage-roll-body, .pneuma-resolution-body') ?? section;
+        if (caption.parentElement !== host) host.prepend(caption);
+      }
+    } else if (ammo && compact && roll && roll.previousElementSibling !== ammo) roll.before(ammo);
     else if (ammo && !compact && footer && ammo.parentElement !== footer) footer.prepend(ammo);
     section.querySelectorAll<HTMLElement>('.pneuma-damage-ammo').forEach(ammo => {
       ammo.hidden = /^basic$/i.test(ammo.textContent?.trim() ?? '');
