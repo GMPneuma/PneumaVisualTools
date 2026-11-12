@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.8 - 2026-11-12
+
+- Removed Rajdhani from chat skins so enabling another module that supplies it no longer changes the preferred typeface. Cards now prefer Roboto Condensed, then Arial Narrow and sans-serif.
+- Restored normal font inheritance by removing the forced font override on individual chat-card elements.
+
 ## 0.10.7 - 2026-11-11
 
 - Moved the Modify Damage pencil from the damage total to the right side of the ammo line in all four chat skins. The pencil now has its own click target.

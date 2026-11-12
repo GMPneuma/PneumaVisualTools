@@ -43,14 +43,10 @@
   border: 1px solid var(--pvt-frame); border-radius: 0;
   background: var(--pvt-bg); color: var(--pvt-ink);
   box-shadow: var(--pvt-card-shadow); overflow: visible;
-  --pvt-card-font: "Rajdhani", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --pvt-card-font: "Roboto Condensed", "Arial Narrow", sans-serif;
+  font-family: var(--pvt-card-font);
   line-height: 1.3; text-shadow: none; color-scheme: var(--pvt-color-scheme);
 }
-/* Other chat modules may set fonts directly on card text. Protect only the
- * family so heading sizes, weights and Font Awesome glyphs retain their styles. */
-:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card,
-:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card
-  :where(header, section, div, h1, h2, h3, h4, h5, h6, p, span, strong, b, em, a, time, button, label, summary, small, th, td):not(:where(.fa, .fas, .far, .fab, .fal, .fad, .fat, [class^="fa-"], [class*=" fa-"], [data-icon])) { font-family: var(--pvt-card-font) !important; }
 .chat-message.pneuma-chat-card > .message-header,
 .chat-message.pneuma-chat-card .pneuma-card-heading,
 .chat-message.pneuma-chat-card .pvt-section-flow { display: contents; }
@@ -366,7 +362,7 @@
   width: var(--pvt-mini-size); height: var(--pvt-mini-size); flex: 0 0 var(--pvt-mini-size);
   margin: 0; padding: 0; border: 1px solid var(--pvt-mini-color, var(--pvt-mini-border)); border-radius: 0;
   color: var(--pvt-mini-color, var(--pvt-mini-ink)); background: var(--pvt-panel);
-  font: 700 20px/1 "Rajdhani", "Roboto Condensed", "Arial Narrow", sans-serif;
+  font: 700 20px/1 var(--pvt-card-font);
   font-variant-numeric: tabular-nums; text-decoration: none; text-shadow: none; list-style: none;
 }
 .chat-message.pneuma-chat-card .pneuma-mini-result-row { display: grid; grid-template-columns: minmax(0, 1fr) var(--pvt-mini-size); align-items: center; gap: 4px 8px; width: 100%; min-width: 0; margin: 3px 0; }
