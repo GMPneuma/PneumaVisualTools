@@ -454,8 +454,10 @@
 }
 .chat-message.pneuma-chat-card .pvt-damage-caption > .pneuma-damage-ammo { margin: 0; text-align: left; }
 .chat-message.pneuma-chat-card .pvt-damage-caption > button.pneuma-modify-damage {
-  position: static; flex: 0 0 auto; width: auto; min-width: 24px; min-height: 24px; margin: 0 0 0 auto;
+  position: static; display: inline-grid; place-items: center; flex: 0 0 auto; box-sizing: border-box;
+  width: 18px; height: 18px; min-width: 0; min-height: 0; padding: 0; margin: 0 0 0 auto; font-size: 10px; line-height: 1;
 }
+.chat-message.pneuma-chat-card .pvt-damage-caption > .pneuma-modify-damage > i { margin: 0; }
 .chat-message.pneuma-chat-card .pvt-damage-footer > :is(.pneuma-aoe-effects-picker, .pneuma-damage-effects-slot) {
   min-width: 0; margin: 0 0 0 auto;
 }
@@ -639,7 +641,7 @@
   --pneuma-chat-button-height: 24px; --pneuma-chat-button-font-size: 11px;
   --pneuma-chat-button-padding: 2px 4px;
 }
-.chat-message.pneuma-chat-card.pneuma-skin-compact button:not(.pneuma-chat-button):not(.pvt-damage-toggle) { min-height: 24px; height: auto; padding: 2px 4px; font-size: 11px; line-height: 1.2; }
+.chat-message.pneuma-chat-card.pneuma-skin-compact button:not(.pneuma-chat-button):not(.pvt-damage-toggle, .pneuma-modify-damage) { min-height: 24px; height: auto; padding: 2px 4px; font-size: 11px; line-height: 1.2; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact :is(.pneuma-aoe-target, .pneuma-aoe-resolution-target) .pneuma-chat-button { min-height: 24px !important; height: auto !important; padding: 2px 4px !important; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-combat-outcome .pneuma-result-damage[aria-label] { min-width: 84px !important; min-height: 26px !important; padding: 3px 6px !important; --pneuma-chat-button-font-size: 10px; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-result-damage[aria-label]:not(.pneuma-chat-busy)::after { font-size: 10px; }

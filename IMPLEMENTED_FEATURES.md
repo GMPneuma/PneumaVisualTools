@@ -226,7 +226,7 @@ Ultra Compact Damage/Apply spacing (2026-10-06, unreleased): reduce section gutt
 
 Ultra Compact multi-target density (2026-10-06, unreleased): zero damage-to-ammo footer margin, 2px damage-dice row gaps, 24px recipient/effect rows, 20px recipient portraits, 1px effect gaps/padding, and 2px recipient separators. Native receipt disclosure and application ancestry remain intact.
 
-Ultra Compact damage row (2026-10-06, unreleased): ammo appears on its own line above the dice; balanced damage dice and result align right. Damage stays expanded with no collapse control. Switching to another skin restores ammo to its footer and recreates the collapse control. Existing ammo/control nodes retain identity.
+Ultra Compact damage row (2026-10-06, unreleased): ammo appears on its own line below the dice; balanced damage dice and result align right. Damage stays expanded with no collapse control. Switching to another skin restores ammo to its footer and recreates the collapse control. Existing ammo/control nodes retain identity.
 
 Ultra Compact damage spacing correction (2026-10-06, unreleased): add 2px horizontal space to balanced damage dice tracks, use a 90px dice group, allow native damage grid rows to size to content, and hide footers containing only empty effect slots.
 

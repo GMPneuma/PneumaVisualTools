@@ -107,7 +107,7 @@ try {
    const rects=[...group.children].map(img=>img.getBoundingClientRect());
    const bounds=group.getBoundingClientRect();
    const ammo=root.querySelector(".pneuma-damage-ammo").getBoundingClientRect();
-   if(ammo.bottom>bounds.top+1 || ammo.height>30)throw Error("Ammo caption wraps or overlaps dice at "+width+"px");
+   if(ammo.top<bounds.bottom-1 || ammo.height>30)throw Error("Ammo caption wraps or overlaps dice at "+width+"px");
    if(width>=300 && rects.some(rect=>Math.abs(rect.width-32)>0.1))throw Error(JSON.stringify({width,count,parent:group.parentElement.clientWidth,group:group.clientWidth,faces:rects.map(r=>r.width),size:getComputedStyle(group).getPropertyValue("--pvt-damage-size")}));
    for(let i=0;i<rects.length;i++){
     if(rects[i].right>bounds.right+1)throw Error('Damage die escapes group');
@@ -129,7 +129,7 @@ try {
  assert.deepEqual(critical,[32,32],'Compact critical injury retains readable D6 faces');
  assert.equal(await page.locator('#attack-false .pvt-damage-toggle').count(),0);
  assert.equal(await page.locator('#attack-false .pvt-damage-collapsed').count(),0);
- assert.equal(await page.locator('#attack-false .pneuma-damage-ammo + .d6-rollcard-data').count(),1);
+ assert.equal(await page.locator('#attack-false .d6-rollcard-data + .pneuma-damage-ammo').count(),1);
  await page.evaluate(()=>applyChatSkin(document.querySelector('#attack-false'),'technical'));
  assert.equal(await page.locator('#attack-false .pvt-damage-toggle').count(),1);
  assert.equal(await page.locator('#attack-false .pvt-damage-footer > .pneuma-damage-ammo').count(),1);
@@ -147,6 +147,7 @@ try {
   const ammo=await page.locator('#attack-false .pvt-damage-caption > .pneuma-damage-ammo').boundingBox();
   const button=await pencil.boundingBox();
   assert.ok(ammo && button && ammo.y < button.y+button.height && button.y < ammo.y+ammo.height,skin+' ammo and pencil share a line');
+  assert.ok(button.width <= 18 && button.height <= 18, skin+' compact pencil size');
   await pencil.click();
   assert.equal(await pencil.getAttribute('data-clicked'),'yes');
  }

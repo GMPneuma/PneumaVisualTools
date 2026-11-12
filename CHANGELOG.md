@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.9 - 2026-11-12
+
+- Reduced the damage-edit pencil to 18 pixels and tucked it at the right edge of the ammo line. Ultra Compact now displays ammunition below the dice and damage total.
+
 ## 0.10.8 - 2026-11-12
 
 - Removed Rajdhani from chat skins so enabling another module that supplies it no longer changes the preferred typeface. Cards now prefer Roboto Condensed, then Arial Narrow and sans-serif.

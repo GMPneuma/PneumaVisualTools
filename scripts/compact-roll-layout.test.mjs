@@ -29,7 +29,7 @@ try {
    const root=document.createElement('article');
    root.className='chat-message pneuma-chat-card pneuma-skin-compact';
    root.style.width=width+'px';
-   root.innerHTML='<section class="pneuma-resolution-damage-roll"><span class="pneuma-damage-ammo">Armor-Piercing</span><div class="d6-rollcard-data"><div class="d6-dice-div" style="width:164px;height:80px">6 3 3 4<br>6 2 3 1</div><div class="d6-number-div">28</div><div class="d6-data-div">Critical Damage: 5</div></div></section>';
+   root.innerHTML='<section class="pneuma-resolution-damage-roll"><div class="d6-rollcard-data"><div class="d6-dice-div" style="width:164px;height:80px">6 3 3 4<br>6 2 3 1</div><div class="d6-number-div">28</div><div class="d6-data-div">Critical Damage: 5</div></div><span class="pneuma-damage-ammo">Armor-Piercing</span></section>';
    document.body.replaceChildren(root);
   },width);
   const geometry=await page.evaluate(()=>{
@@ -37,9 +37,9 @@ try {
    const dice=document.querySelector('.d6-dice-div').getBoundingClientRect();
    const total=document.querySelector('.d6-number-div').getBoundingClientRect();
    const root=document.querySelector('article');
-   return {horizontal:ammo.width>ammo.height,aboveDice:ammo.bottom<=dice.top+1,separate:dice.right<=total.left+1,fits:root.scrollWidth<=root.clientWidth};
+   return {horizontal:ammo.width>ammo.height,belowDice:ammo.top>=dice.bottom-1,separate:dice.right<=total.left+1,fits:root.scrollWidth<=root.clientWidth};
   });
-  assert.deepEqual(geometry,{horizontal:true,aboveDice:true,separate:true,fits:true},'Rocket ammunition at '+width);
+  assert.deepEqual(geometry,{horizontal:true,belowDice:true,separate:true,fits:true},'Rocket ammunition at '+width);
  }
  const combatCSS=await readFile(new URL('../../PneumaCombatTools/src/styles/pneuma-combattools.css',import.meta.url),'utf8');
  await page.addStyleTag({content:combatCSS});

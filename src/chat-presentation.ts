@@ -830,12 +830,12 @@ export function arrangeDamageSections(root: HTMLElement): void {
       if (ammo && ammo.parentElement !== caption) caption.prepend(ammo);
       if (pencil.parentElement !== caption) caption.append(pencil);
       if (compact && roll) {
-        if (roll.previousElementSibling !== caption) roll.before(caption);
+        if (roll.nextElementSibling !== caption) roll.after(caption);
       } else {
         const host = footer ?? section.querySelector('.pneuma-resolution-damage-roll-body, .pneuma-resolution-body') ?? section;
         if (caption.parentElement !== host) host.prepend(caption);
       }
-    } else if (ammo && compact && roll && roll.previousElementSibling !== ammo) roll.before(ammo);
+    } else if (ammo && compact && roll && roll.nextElementSibling !== ammo) roll.after(ammo);
     else if (ammo && !compact && footer && ammo.parentElement !== footer) footer.prepend(ammo);
     section.querySelectorAll<HTMLElement>('.pneuma-damage-ammo').forEach(ammo => {
       ammo.hidden = /^basic$/i.test(ammo.textContent?.trim() ?? '');
