@@ -226,7 +226,7 @@ Ultra Compact Damage/Apply spacing (2026-10-06, unreleased): reduce section gutt
 
 Ultra Compact multi-target density (2026-10-06, unreleased): zero damage-to-ammo footer margin, 2px damage-dice row gaps, 24px recipient/effect rows, 20px recipient portraits, 1px effect gaps/padding, and 2px recipient separators. Native receipt disclosure and application ancestry remain intact.
 
-Ultra Compact damage row (2026-10-06, unreleased): ammo moves into the left roll cell; balanced damage dice and result align right. Damage stays expanded with no collapse control. Switching to another skin restores ammo to its footer and recreates the collapse control. Existing ammo/control nodes retain identity.
+Ultra Compact damage row (2026-10-06, unreleased): ammo appears on its own line above the dice; balanced damage dice and result align right. Damage stays expanded with no collapse control. Switching to another skin restores ammo to its footer and recreates the collapse control. Existing ammo/control nodes retain identity.
 
 Ultra Compact damage spacing correction (2026-10-06, unreleased): add 2px horizontal space to balanced damage dice tracks, use a 90px dice group, allow native damage grid rows to size to content, and hide footers containing only empty effect slots.
 
@@ -266,7 +266,7 @@ Compact damage face-size restoration (2026-10-07, unreleased): expand the dice g
 
 Compact critical-injury dice (2026-10-07, unreleased): all compact D6 groups receive a face-count-based width, including native critical-injury cards outside the Damage section. Prevent intrinsic grid feedback shrinking two dice to tiny faces; retain 32px faces where space permits.
 
-Compact D6 total alignment (2026-10-07, unreleased): protect native roll grid columns/cells and fill the available frame so critical-injury results align to the right edge, separated from dice. Damage/ammo three-column placement remains intact.
+Compact D6 total alignment (2026-10-07, unreleased): protect native roll grid columns/cells and fill the available frame so critical-injury results align to the right edge, separated from dice. The ammo caption spans the roll width.
 
 Critical-injury native grid mapping (2026-10-07, unreleased): map rollcard-critinjury-data to the compact details row. Its native d6-data area previously created an implicit column, causing overlap and incorrect total alignment. Regression includes the actual extra injury-description row.
 
@@ -487,3 +487,6 @@ Full Custom colorization: a separate mode with collapsible Advanced controls and
 Full Custom displays Light and Dark palette fields side by side in compact equal-width columns.
 
 - Preview effects is a GM-only settings menu using Foundry native restricted-menu visibility; it is excluded from the Crew Tools User Settings menu.
+Roll hovers use a content-sized table capped at the viewport width with 14px type and right-aligned labels, item names and values. Horizontal section labels use the active theme accent and are vertically centered beside their rows. A contrasting theme-derived background, border and shadow distinguish the hover from the card beneath it. The generic Roll details heading is omitted. Full-width rules separate sections, with a thicker rule before Total. They group native base values and expanded modifiers, show saved dice, and separate the final total. Positive and negative modifiers use the active theme colors. Modifier labels omit the trailing (Attack Bonus) tag.
+
+Administer Pharma offer buttons use the active chat skin for Use Now and Reject, including saved CrewTools offers.

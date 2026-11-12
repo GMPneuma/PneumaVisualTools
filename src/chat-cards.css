@@ -43,9 +43,14 @@
   border: 1px solid var(--pvt-frame); border-radius: 0;
   background: var(--pvt-bg); color: var(--pvt-ink);
   box-shadow: var(--pvt-card-shadow); overflow: visible;
-  font-family: "Rajdhani", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --pvt-card-font: "Rajdhani", "Roboto Condensed", "Arial Narrow", sans-serif;
   line-height: 1.3; text-shadow: none; color-scheme: var(--pvt-color-scheme);
 }
+/* Other chat modules may set fonts directly on card text. Protect only the
+ * family so heading sizes, weights and Font Awesome glyphs retain their styles. */
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card,
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card
+  :where(header, section, div, h1, h2, h3, h4, h5, h6, p, span, strong, b, em, a, time, button, label, summary, small, th, td):not(:where(.fa, .fas, .far, .fab, .fal, .fad, .fat, [class^="fa-"], [class*=" fa-"], [data-icon])) { font-family: var(--pvt-card-font) !important; }
 .chat-message.pneuma-chat-card > .message-header,
 .chat-message.pneuma-chat-card .pneuma-card-heading,
 .chat-message.pneuma-chat-card .pvt-section-flow { display: contents; }
@@ -311,8 +316,17 @@
 .chat-message.pneuma-chat-card .pneuma-result-summary :is(.pneuma-hit, .pneuma-miss) { text-transform: uppercase; font-size: 15px; font-weight: 800; letter-spacing: .04em; }
 .chat-message.pneuma-chat-card :is(a, .clickable) { color: var(--pvt-link); }
 .chat-message.pneuma-chat-card :is(a, button, .clickable):focus-visible { outline: 2px solid var(--pvt-accent); outline-offset: 2px; }
-.chat-message.pneuma-chat-card button:not(.pneuma-chat-button) { background: var(--pvt-button-bg); color: var(--pvt-button-ink); border: 1px solid var(--pvt-button-border); border-radius: 2px; box-shadow: none; font: inherit; font-size: 12px; line-height: 1.3; padding: 4px 6px; }
-.chat-message.pneuma-chat-card button:not(.pneuma-chat-button):hover:not(:disabled) { background: var(--pvt-button-hover); }
+.chat-message.pneuma-chat-card button:not(.pneuma-chat-button) { border-radius: 2px; font: inherit; font-size: 12px; line-height: 1.3; padding: 4px 6px; }
+/* Shared palette for ordinary card buttons. CombatTools, the GM scanner and the
+ * damage disclosure provide their own role or control-specific appearance. */
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card button:not(.pneuma-chat-button, .pneuma-open-scanner, .pvt-damage-toggle) {
+  background: var(--pvt-button-bg);
+  color: var(--pvt-button-ink);
+  border: 1px solid var(--pvt-button-border);
+  box-shadow: none;
+  --pneuma-effect-symbol-color: currentColor;
+}
+:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card button:not(.pneuma-chat-button, .pneuma-open-scanner, .pvt-damage-toggle):enabled:hover { background: var(--pvt-button-hover); }
 .chat-message.pneuma-chat-card button:not(.pneuma-chat-button):disabled { opacity: .5; }
 /* SceneTools owns the action and GM access; CSS also covers late insertion.
  * No CombatTools renderer or CSS is required. */
@@ -463,11 +477,11 @@
 }
 .chat-message.pneuma-chat-card .pvt-damage-collapsed::after { content: 'Damage'; font-size: 13px; color: var(--pvt-ink); }
 .pneuma-roll-popover {
-  position: fixed; z-index: 100000; width: max-content; max-width: min(320px, calc(100vw - 16px));
+  position: fixed; z-index: 100000; box-sizing: border-box; width: max-content; max-width: calc(100vw - 16px);
   max-height: min(420px, calc(100vh - 16px)); overflow: auto; pointer-events: none;
-  padding: 10px; border: 1px solid var(--pvt-line, #52606d); border-radius: 3px;
-  background: var(--pvt-bg, #0c141a); color: var(--pvt-ink, #e5eff1);
-  box-shadow: 0 3px 12px #0008; font: 13px/1.4 sans-serif; text-shadow: none;
+  padding: 10px; border: 1px solid color-mix(in srgb, var(--pvt-line, #52606d) 55%, var(--pvt-ink, #e5eff1)); border-radius: 3px;
+  background: color-mix(in srgb, var(--pvt-bg, #0c141a) 94%, var(--pvt-ink, #e5eff1)); color: var(--pvt-ink, #e5eff1);
+  box-shadow: 0 3px 6px #0007, 0 8px 22px #000a; font: 14px/1.4 sans-serif; text-shadow: none;
   text-align: right; font-variant-numeric: tabular-nums;
 }
 #pneuma-roll-popover :is(.rollcard, .rollcard-bottom, .cpr-block) { margin: 0; padding: 0; border: 0 !important; border-radius: 0; clip-path: none !important; background: transparent !important; color: var(--pvt-ink) !important; box-shadow: none; }
@@ -475,7 +489,7 @@
 #pneuma-roll-popover .cpr-block::after { display: none !important; }
 #pneuma-roll-popover :is(.d10-rollcard-data, .d6-rollcard-data, .generic-rollcard-data) { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 #pneuma-roll-popover :is(.d10-data-div, .d6-data-div, .generic-data-div) { margin: 0; padding: 0; text-align: right; }
-#pneuma-roll-popover :is(.text-normal, .text-small, .text-large, .dice-formula) { font-size: 13px; line-height: 1.4; color: var(--pvt-ink); text-shadow: none; text-align: right; }
+#pneuma-roll-popover :is(.text-normal, .text-small, .text-large, .dice-formula) { font-size: inherit; line-height: 1.4; color: var(--pvt-ink); text-shadow: none; text-align: right; }
 #pneuma-roll-popover :is(.d10-dice-div, .d6-dice-div, .generic-dice-div) { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--pvt-line); }
 #pneuma-roll-popover :is(.d10-dice-div, .d6-dice-div, .generic-dice-div) img { width: 42px; height: 42px; max-width: 42px; max-height: 42px; object-fit: contain; border: 0; }
 #pneuma-roll-popover .dice-tooltip { display: block !important; }
@@ -483,8 +497,7 @@
 #pneuma-roll-popover .dice-formula { background: none; border: 0; box-shadow: none; margin: 0 0 5px; padding: 0; }
 #pneuma-roll-popover .pneuma-dice-art-part .part-header { display: none; }
 #pneuma-roll-popover * { text-align: right !important; }
-#pneuma-roll-popover .pneuma-popover-heading { font-weight: 700; font-size: 12px; line-height: 1.3; }
-#pneuma-roll-popover .pneuma-popover-divider { height: 0; margin: 5px 0 6px; border: 0; border-top: 1px solid var(--pvt-line, #52606d); }
+#pneuma-roll-popover .pneuma-popover-heading { font-weight: 700; font-size: 14px; line-height: 1.3; }
 #pneuma-roll-popover :is(.pneuma-inline-roll-details, .pneuma-details-region, .pneuma-applied-details, .dice-tooltip, .tooltip-part, p, pre) { margin: 0; padding: 0; }
 #pneuma-roll-popover .pneuma-calculation-text { white-space: pre-line; }
 #pneuma-roll-popover :is(.dice-rolls, .part-header) { justify-content: flex-end; }
@@ -663,9 +676,8 @@
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-aoe-resolution-target + .pneuma-aoe-resolution-target { margin-top: 2px; padding-top: 2px; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact :is(.pneuma-aoe-damage-target, .pneuma-aoe-effect-target) { padding-block: 1px; }
 
-/* Ammo left; balanced damage dice and total form a right-aligned group. */
-.chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-rollcard-data { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "ammo dice total" "details details details"; column-gap: 4px; align-items: center; }
-.chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-rollcard-data > .pneuma-damage-ammo { grid-area: ammo; margin: 0; text-align: left; overflow-wrap: anywhere; }
+/* Keep the ammo caption outside the native dice grid. */
+.chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .pneuma-damage-ammo:not([hidden]) { display: block; grid-column: 1 / -1; width: 100%; margin: 0; text-align: left; overflow-wrap: normal; word-break: normal; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-dice-div { grid-area: dice; width: 102px; justify-self: end; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-number-div { grid-area: total; }
 .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll > .pvt-section-rail-label { padding-bottom: 0; }
@@ -694,12 +706,17 @@
 }
 :is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .d6-dice-div { grid-area: dice !important; justify-self: start; }
 :is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .d6-number-div { grid-area: total !important; justify-self: end; }
-:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-rollcard-data {
-  grid-template-columns: minmax(0, 1fr) var(--pvt-total-size) !important;
-  grid-template-areas: "ammo ammo" "dice total" "details details" !important;
-}
-:is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .pneuma-damage-ammo { min-width: 0; overflow-wrap: normal; }
 :is(#chat-log, .chat-popout, body) .chat-message.pneuma-chat-card.pneuma-skin-compact .pneuma-resolution-damage-roll .d6-dice-div { justify-self: end; }
 
 /* Native critical-injury descriptions belong below both dice and total. */
 .chat-message.pneuma-chat-card.pneuma-skin-compact .d6-rollcard-data > .rollcard-critinjury-data { grid-area: details; min-width: 0; }
+#pneuma-roll-popover .pvt-roll-table { width: 100%; margin: 0; border-collapse: collapse; background: transparent; border: 0; }
+#pneuma-roll-popover .pvt-roll-table :is(tbody, tr, th, td) { background: transparent; border: 0; color: inherit; }
+#pneuma-roll-popover .pvt-roll-table :is(th, td) { vertical-align: top; padding: 1px 0; }
+#pneuma-roll-popover .pvt-roll-table th { color: var(--pvt-accent, currentColor); vertical-align: middle; white-space: nowrap; writing-mode: horizontal-tb; padding-right: 1em; }
+#pneuma-roll-popover .pvt-roll-table .pvt-roll-item { overflow-wrap: anywhere; padding-right: 0.6em; }
+#pneuma-roll-popover .pvt-roll-table td.pvt-roll-divider { padding: 0; }
+#pneuma-roll-popover .pvt-roll-divider hr { height: 0; margin: 0.35em 0; border: 0; border-top: 1px solid var(--pvt-line, #52606d); background: none; box-shadow: none; }
+#pneuma-roll-popover tbody:last-child > tr > .pvt-roll-divider hr { border-top-width: 3px; }
+#pneuma-roll-popover .pvt-roll-table :is(.d10-dice-div, .d6-dice-div, .generic-dice-div) { border-bottom: 0; padding-bottom: 0; }
+#pneuma-roll-popover .pvt-roll-table tr.pneuma-popover-total > * { font-weight: 700; }

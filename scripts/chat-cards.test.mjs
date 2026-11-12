@@ -442,7 +442,7 @@ try {
   assert.equal(await redesigned.locator('.pneuma-participant-rail .pneuma-chat-portrait').count(),1);
   await redesigned.locator('.d10-number-div').first().hover();
   assert.match(await page.locator('#pneuma-roll-popover').innerText(),/REF/);
-  assert.equal(await page.locator('#pneuma-roll-popover img').count(),0,'visible dice must not repeat in hover');
+  assert.equal(await page.locator('#pneuma-roll-popover img').count(),2,'unknown face artwork remains available in the Roll section');
   assert.doesNotMatch(await page.locator('#pneuma-roll-popover').innerText(),/Result:/);
   await redesigned.locator('.d10-number-div').first().click();
   assert.equal(await redesigned.locator('.d10-data-div').isVisible(),false);
@@ -647,7 +647,7 @@ try {
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     await page.locator('#complete-exchange .pneuma-defense-result .d10-number-div').hover();
     assert.match(await page.locator('#pneuma-roll-popover').innerText(),/DEX \+ 6/);
-    assert.equal(await page.locator('#pneuma-roll-popover img').count(),0,'visible defense dice are not repeated');
+    assert.equal(await page.locator('#pneuma-roll-popover img').count(),2,'defense roll retains its saved face artwork');
     await page.locator('#complete-exchange .pneuma-applied-number').scrollIntoViewIfNeeded();
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     await page.locator('#complete-exchange .pneuma-applied-number').hover();

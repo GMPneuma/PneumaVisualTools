@@ -94,7 +94,7 @@ try {
  await page.evaluate(()=>{
   const root=document.querySelector('#attack-false');
   const section=document.createElement('section');section.className='pneuma-resolution-damage-roll pvt-full-section pvt-section-rail pvt-damage-collapsed';
-  section.innerHTML='<div class="pneuma-resolution-label">Damage</div><div class="pneuma-resolution-body"><div class="pneuma-damage-heading"><span class="pneuma-damage-ammo">Incendiary</span></div><div class="d6-rollcard-data"><div class="d6-dice-div"><img src="'+img+'"></div><div class="d6-number-div">19</div></div></div>';
+  section.innerHTML='<div class="pneuma-resolution-label">Damage</div><div class="pneuma-resolution-body"><div class="pneuma-damage-heading"><span class="pneuma-damage-ammo">Armor-Piercing</span></div><div class="d6-rollcard-data"><div class="d6-dice-div"><img src="'+img+'"></div><div class="d6-number-div">19</div></div></div>';
   root.append(section);window.savedAmmo=section.querySelector('.pneuma-damage-ammo');
   applyChatSkin(root,'compact');
  });
@@ -106,6 +106,8 @@ try {
    group.classList.add('pneuma-balanced-dice');balanceDamageDice(group);
    const rects=[...group.children].map(img=>img.getBoundingClientRect());
    const bounds=group.getBoundingClientRect();
+   const ammo=root.querySelector(".pneuma-damage-ammo").getBoundingClientRect();
+   if(ammo.bottom>bounds.top+1 || ammo.height>30)throw Error("Ammo caption wraps or overlaps dice at "+width+"px");
    if(width>=300 && rects.some(rect=>Math.abs(rect.width-32)>0.1))throw Error(JSON.stringify({width,count,parent:group.parentElement.clientWidth,group:group.clientWidth,faces:rects.map(r=>r.width),size:getComputedStyle(group).getPropertyValue("--pvt-damage-size")}));
    for(let i=0;i<rects.length;i++){
     if(rects[i].right>bounds.right+1)throw Error('Damage die escapes group');
@@ -127,7 +129,7 @@ try {
  assert.deepEqual(critical,[32,32],'Compact critical injury retains readable D6 faces');
  assert.equal(await page.locator('#attack-false .pvt-damage-toggle').count(),0);
  assert.equal(await page.locator('#attack-false .pvt-damage-collapsed').count(),0);
- assert.equal(await page.locator('#attack-false .d6-rollcard-data > .pneuma-damage-ammo').count(),1);
+ assert.equal(await page.locator('#attack-false .pneuma-damage-ammo + .d6-rollcard-data').count(),1);
  await page.evaluate(()=>applyChatSkin(document.querySelector('#attack-false'),'technical'));
  assert.equal(await page.locator('#attack-false .pvt-damage-toggle').count(),1);
  assert.equal(await page.locator('#attack-false .pvt-damage-footer > .pneuma-damage-ammo').count(),1);

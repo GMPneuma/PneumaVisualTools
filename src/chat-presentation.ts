@@ -494,6 +494,73 @@ function arrangeMiniResults(root: HTMLElement): void {
   }
 }
 
+/** CPR saves the individual modifiers as BR-separated text on its subtotal. */
+function groupRollDetails(copy: HTMLElement, table: HTMLTableElement): void {
+  const base: string[] = [];
+  const modifiers: string[] = [];
+  const expanded: string[] = [];
+  for (const region of [copy, ...Array.from(copy.querySelectorAll<HTMLElement>('[class]'))]) {
+    if (!Array.from(region.classList).some(name => name.endsWith('-data-details'))) continue;
+    for (const row of Array.from(region.children)) {
+      if (!row.matches('.text-normal, .text-small')) continue;
+      const tooltip = row.getAttribute('data-tooltip');
+      if (tooltip?.trim()) {
+        expanded.push(...tooltip.split(/<br\s*\/?\s*>/i).map(line => line.trim()).filter(Boolean));
+      } else {
+        const rows = row.matches('.text-nowrap') ? modifiers : base;
+        rows.push(row.textContent?.trim() ?? '');
+      }
+      row.remove();
+    }
+  }
+  modifiers.push(...expanded);
+  for (const [heading, entries] of [['Base', base], ['Modifiers', modifiers]] as const) {
+    if (!entries.length) continue;
+    const section = table.createTBody();
+    for (const entry of entries) {
+      const row = section.insertRow();
+      if (section.rows.length === 1) {
+        const title = document.createElement('th');
+        title.scope = 'rowgroup';
+        title.rowSpan = entries.length;
+        title.textContent = heading;
+        row.append(title);
+      }
+      const line = entry.replace(/\s+/g, ' ').trim();
+      const values = /([+\-\u2212]?\s*\d+(?:\.\d+)?(?:\s*,\s*[+\-\u2212]?\s*\d+(?:\.\d+)?)*)$/.exec(line);
+      const label = row.insertCell();
+      label.className = 'pvt-roll-item';
+      if (!values) {
+        label.colSpan = 2;
+        label.textContent = line;
+        continue;
+      }
+      const name = line.slice(0, values.index).trim().replace(/:$/, '').trimEnd();
+      label.textContent = heading === 'Modifiers' ? name.replace(/\s+\(Attack Bonus\)$/i, '') : name;
+      const amount = row.insertCell();
+      for (const part of values[0].trim().split(/(\s*,\s*)/)) {
+        const value = Number(part.replace(/\s/g, '').replace(/\u2212/g, '-'));
+        const span = document.createElement('span');
+        span.textContent = part;
+        if (heading === 'Modifiers' && value > 0) span.style.color = 'var(--pvt-success)';
+        if (heading === 'Modifiers' && value < 0) span.style.color = 'var(--pvt-failure)';
+        amount.append(span);
+      }
+    }
+  }
+}
+
+function rollSummaryCell(table: HTMLTableElement, heading: string): HTMLTableCellElement {
+  const row = table.createTBody().insertRow();
+  const label = document.createElement('th');
+  label.scope = 'row';
+  label.textContent = heading;
+  row.append(label);
+  const cell = row.insertCell();
+  cell.colSpan = 2;
+  return cell;
+}
+
 /** Compact only the copied tooltip DOM; saved card breakdowns stay intact. */
 function tidyPopoverDetails(copy: HTMLElement): void {
   for (const element of [copy, ...Array.from(copy.querySelectorAll<HTMLElement>('*'))]) {
@@ -615,7 +682,6 @@ export function installRollPopovers(root: HTMLElement): void {
       else scope?.append(undo);
     }
     const dice = scope?.querySelector<HTMLElement>('.d10-dice-div, .d6-dice-div, .generic-dice-div');
-    const diceShown = !!dice && isShown(dice);
     const detailsShown = isShown(details);
     // Every saved total remains inspectable, including base rolls without modifiers.
     const rollLabel = trigger.dataset.pvtRollLabel || trigger.getAttribute('aria-label') || (effect ? isEffectDamage ? 'Damage roll' : 'Resistance roll' : undefined);
@@ -631,7 +697,7 @@ export function installRollPopovers(root: HTMLElement): void {
       // Popup lives under body, outside card selectors. Carry the active palette
       // explicitly; standalone popup CSS owns its compact native-roll surfaces.
       const cardStyle = getComputedStyle(root);
-      for (const key of ['--pvt-bg', '--pvt-panel', '--pvt-ink', '--pvt-muted', '--pvt-line', '--cpr-text-chat-success', '--cpr-text-chat-failure']) popup.style.setProperty(key, cardStyle.getPropertyValue(key));
+      for (const key of ['--pvt-bg', '--pvt-panel', '--pvt-ink', '--pvt-muted', '--pvt-line', '--pvt-accent', '--pvt-success', '--pvt-failure', '--cpr-text-chat-success', '--cpr-text-chat-failure']) popup.style.setProperty(key, cardStyle.getPropertyValue(key));
       popup.style.fontFamily = cardStyle.fontFamily;
       const effectName = effect?.querySelector(':scope > strong, :scope > .pneuma-mini-result-row > strong:not(.pneuma-mini-value)')?.textContent?.trim();
       const shortRollLabel = rollLabel?.replace(/\s*[—.]?\s*show roll details.*$/i, '').trim();
@@ -640,35 +706,60 @@ export function installRollPopovers(root: HTMLElement): void {
         : shortRollLabel
           || (trigger.closest('.pneuma-resolution-evade, .pneuma-defense-result') ? 'Evasion roll'
             : trigger.matches('.d6-number-div') ? 'Damage roll' : 'Roll details');
-      const label = document.createElement('div'); label.className = 'pneuma-popover-heading';
-      label.textContent = description;
-      const divider = document.createElement('hr'); divider.className = 'pneuma-popover-divider';
-      popup.append(label, divider);
+      if (description.toLowerCase() !== 'roll details') {
+        const label = document.createElement('div');
+        label.className = 'pneuma-popover-heading';
+        label.textContent = description;
+        popup.append(label);
+      }
       const body = document.createElement('div'); body.className = 'pneuma-popover-body'; popup.append(body);
       if (effect && !isEffectDamage && shortRollLabel && !/^Resistance roll$/i.test(shortRollLabel) && !details.textContent?.includes(shortRollLabel)) {
         const skill = document.createElement('div'); skill.textContent = shortRollLabel; body.append(skill);
-      }
-      if (!inline && dice && !isShown(dice)) {
-        const hiddenDice = dice.cloneNode(true) as HTMLElement;
-        hiddenDice.classList.remove('hide'); hiddenDice.hidden = false; hiddenDice.style.removeProperty('display');
-        body.append(hiddenDice);
       }
       const copy = details.cloneNode(true) as HTMLElement; copy.classList.remove('pneuma-popover-source');
       if (details.dataset.pneumaRollHtml) copy.innerHTML = details.dataset.pneumaRollHtml;
       normalDamageDice(copy);
       if (copy.querySelector('img')) replaceChatDice(copy);
       copy.querySelectorAll('.d10-number-div, .d6-number-div, .generic-number-div, .dice-total, .rollcard-top').forEach(el => el.remove());
-      if (diceShown) copy.querySelectorAll('.d10-dice-div, .d6-dice-div, .generic-dice-div, .dice-rolls').forEach(el => el.remove());
       for (const el of [copy, ...Array.from(copy.querySelectorAll<HTMLElement>('*'))]) {
         el.removeAttribute('id'); el.classList.remove('hide'); el.hidden = false;
         if (el.style.display === 'none') el.style.removeProperty('display');
         el.removeAttribute('data-action');
       }
+      const table = document.createElement('table');
+      table.className = 'pvt-roll-table';
+      body.append(table);
+      groupRollDetails(copy, table);
       tidyPopoverDetails(copy);
-      body.append(copy);
-      if (!body.textContent?.trim() && !body.querySelector('img')) {
-        if (dice) body.append(dice.cloneNode(true));
-        const total = document.createElement('div'); total.textContent = `Roll total: ${trigger.textContent?.trim()}`; body.append(total);
+      const savedDice = copy.querySelector('.d10-dice-div, .d6-dice-div, .generic-dice-div, .dice-rolls');
+      const rollCell = rollSummaryCell(table, trigger.matches('.pneuma-applied-number') ? 'Details' : 'Roll');
+      if (!savedDice && dice && !inline) {
+        const faces = dice.cloneNode(true) as HTMLElement;
+        faces.classList.remove('hide');
+        faces.hidden = false;
+        faces.style.removeProperty('display');
+        if (isShown(dice)) {
+          // The faces are visible on the card. Repeat their values as text in the breakdown.
+          for (const image of Array.from(faces.querySelectorAll<HTMLImageElement>('img'))) {
+            const path = image.dataset.pvtDieOriginal || image.getAttribute('src') || '';
+            const face = /\/d(?:6|10)_(\d+)(?:_|\.)/.exec(path)?.[1];
+            if (face) image.replaceWith(document.createTextNode(' ' + face + ' '));
+          }
+          for (const icon of Array.from(faces.querySelectorAll('.fa-plus, .fa-minus'))) {
+            icon.replaceWith(document.createTextNode(icon.classList.contains('fa-minus') ? ' − ' : ' + '));
+          }
+        }
+        rollCell.append(faces);
+      }
+      rollCell.append(copy);
+      const total = rollSummaryCell(table, 'Total');
+      total.textContent = trigger.textContent?.trim() ?? '';
+      total.parentElement?.classList.add('pneuma-popover-total');
+      for (const section of Array.from(table.tBodies).slice(1)) {
+        const cell = section.insertRow(0).insertCell();
+        cell.className = 'pvt-roll-divider';
+        cell.colSpan = 3;
+        cell.append(document.createElement('hr'));
       }
       document.body.append(popup); trigger.setAttribute('aria-describedby', popup.id);
       const rect = trigger.getBoundingClientRect(); const box = popup.getBoundingClientRect();
@@ -729,7 +820,7 @@ export function arrangeDamageSections(root: HTMLElement): void {
     const footer = section.querySelector<HTMLElement>('.pvt-damage-footer');
     const roll = section.querySelector<HTMLElement>('.d6-rollcard-data');
     const ammo = section.querySelector<HTMLElement>('.pneuma-damage-ammo');
-    if (ammo && compact && roll && ammo.parentElement !== roll) roll.prepend(ammo);
+    if (ammo && compact && roll && roll.previousElementSibling !== ammo) roll.before(ammo);
     else if (ammo && !compact && footer && ammo.parentElement !== footer) footer.prepend(ammo);
     section.querySelectorAll<HTMLElement>('.pneuma-damage-ammo').forEach(ammo => {
       ammo.hidden = /^basic$/i.test(ammo.textContent?.trim() ?? '');

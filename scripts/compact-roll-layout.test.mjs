@@ -29,7 +29,7 @@ try {
    const root=document.createElement('article');
    root.className='chat-message pneuma-chat-card pneuma-skin-compact';
    root.style.width=width+'px';
-   root.innerHTML='<section class="pneuma-resolution-damage-roll"><div class="d6-rollcard-data"><span class="pneuma-damage-ammo">Armor-Piercing</span><div class="d6-dice-div" style="width:164px;height:80px">6 3 3 4<br>6 2 3 1</div><div class="d6-number-div">28</div><div class="d6-data-div">Critical Damage: 5</div></div></section>';
+   root.innerHTML='<section class="pneuma-resolution-damage-roll"><span class="pneuma-damage-ammo">Armor-Piercing</span><div class="d6-rollcard-data"><div class="d6-dice-div" style="width:164px;height:80px">6 3 3 4<br>6 2 3 1</div><div class="d6-number-div">28</div><div class="d6-data-div">Critical Damage: 5</div></div></section>';
    document.body.replaceChildren(root);
   },width);
   const geometry=await page.evaluate(()=>{

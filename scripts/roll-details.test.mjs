@@ -30,8 +30,8 @@ try {
     await page.locator(selector).hover();
     assert.match(await page.locator('#pneuma-roll-popover').innerText(),expected);
     assert.equal(await page.locator('#pneuma-roll-popover > .pneuma-popover-heading').count(),1);
-    assert.equal(await page.locator('#pneuma-roll-popover > hr').count(),1);
-    assert.ok(await page.locator('#pneuma-roll-popover').evaluate(el=>[el,...el.querySelectorAll('*')].every(node=>getComputedStyle(node).textAlign==='right')),'all nested hover content must align right');
+    assert.equal(await page.locator('#pneuma-roll-popover > hr').count(),0);
+    assert.ok(await page.locator('#pneuma-roll-popover').evaluate(el=>[el,...el.querySelectorAll('*')].every(node=>getComputedStyle(node).textAlign==='right')),'section labels, item names and values align right');
     await page.mouse.move(650,850);
   }
   assert.equal(await page.locator('[data-action="reverseDamage"]').isVisible(),true);
@@ -40,6 +40,36 @@ try {
   assert.match(await page.locator('#pneuma-roll-popover').innerText(),/Resistance die: 7 \+ skill 4/);
   await page.locator('#native-effects .pneuma-effect-resistance summary').press('Escape');
   assert.equal(await page.locator('#pneuma-roll-popover').count(),0);
+  for (const skin of ['technical', 'cyberpunk']) {
+    await page.evaluate(skin => {
+      document.querySelector('#mod-fixture')?.remove();
+      const card = document.createElement('article');
+      card.id = 'mod-fixture';
+      card.className = 'chat-message pneuma-chat-card pneuma-theme-' + skin;
+      card.innerHTML = '<div class="d10-rollcard-data"><div class="d10-dice-div">7</div><div class="d10-number-div">20</div><div class="d10-data-details hide"><div class="text-normal">REF + 6</div><div class="text-normal">Handgun + 5</div><div class="text-normal text-nowrap" data-tooltip="Heavy Pistol (Excellent) (Attack Bonus): +2<br/>Wound: -3<br/>Additional: +2, -1">Total Mods: 0</div><div class="text-normal text-nowrap">LUCK: 2</div></div></div>';
+      document.body.append(card);
+      window.installRollPopovers(card);
+    }, skin);
+    await page.locator('#mod-fixture .d10-number-div').focus();
+    const popup = page.locator('#pneuma-roll-popover');
+    assert.deepEqual(await popup.locator('tr:not(:has(.pvt-roll-divider))').evaluateAll(rows =>
+      rows.map(row => Array.from(row.cells, cell => cell.innerText.trim()))), [
+      ['Base', 'REF', '+ 6'], ['Handgun', '+ 5'], ['Modifiers', 'LUCK', '2'],
+      ['Heavy Pistol (Excellent)', '+2'], ['Wound', '-3'], ['Additional', '+2, -1'], ['Roll', '7'], ['Total', '20']
+    ]);
+    assert.equal(await popup.locator('.pneuma-popover-heading').count(), 0);
+    assert.deepEqual(await popup.locator('.pvt-roll-divider hr').evaluateAll(rules =>
+      rules.map(rule => getComputedStyle(rule).borderTopWidth)), ['1px', '1px', '3px']);
+    const shortWidth = (await popup.boundingBox()).width;
+    await popup.locator('.pvt-roll-item').first().evaluate(cell => {
+      cell.textContent = 'A much longer modifier description for this saved roll';
+    });
+    assert.ok((await popup.boundingBox()).width > shortWidth);
+    assert.deepEqual(await popup.locator('span[style]').evaluateAll(spans => spans.map(span => span.style.color)), [
+      'var(--pvt-success)', 'var(--pvt-success)', 'var(--pvt-failure)', 'var(--pvt-success)', 'var(--pvt-failure)'
+    ]);
+    await page.locator('#mod-fixture .d10-number-div').press('Escape');
+  }
   // Also verify that Combat Tools loading its CSS later cannot restore the
   // cramped Resist prefix or supersede the smaller effect wells.
   await page.addStyleTag({content:await readFile(new URL('../../PneumaCombatTools/src/styles/pneuma-combattools.css',import.meta.url),'utf8')});
@@ -53,7 +83,7 @@ try {
   assert.equal(await page.locator('#pneuma-roll-popover br').count(),1,'keep meaningful line breaks without blank lines');
   assert.equal(await page.locator('#pneuma-roll-popover p').count(),1,'remove blank paragraph wrappers');
   assert.equal((await page.locator('#pneuma-roll-popover').innerText()).match(/Resist Torture\/Drugs/g).length,1,'avoid duplicating the skill label');
-  assert.equal(await page.locator('#pneuma-roll-popover > hr').evaluate(el=>getComputedStyle(el).borderTopWidth),'1px');
+  assert.equal(await page.locator('#pneuma-roll-popover .pvt-roll-divider hr').last().evaluate(el=>getComputedStyle(el).borderTopWidth),'3px');
   assert.ok(await page.locator('#pneuma-roll-popover').evaluate(el=>[el,...el.querySelectorAll('*')].every(node=>getComputedStyle(node).textAlign==='right')));
   assert.equal(await page.locator('#native-resistance').evaluate(el=>el.innerHTML),originalDetails,'saved breakdown must remain intact');
   await page.screenshot({path:new URL('../docs/hover-details-check.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1')});

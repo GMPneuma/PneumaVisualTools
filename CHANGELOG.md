@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.6 - 2026-11-11
+
+- Show base values, individual modifiers, dice and total together in a compact roll hover. Align the rows, use the skin colors for bonuses and penalties, and omit redundant Attack Bonus suffixes.
+- Place Ultra Compact ammo labels above the dice so long names stay readable on grenade damage cards.
+- Use shared chat button colors for pharmaceutical offers and pending effects.
+- Protect skinned chat text from competing font rules while preserving icon fonts.
+
 ## 0.10.5 - 2026-11-01
 
 - Give damage recipients and critical-injury controls full-width rows so injury actions cannot squeeze recipient labels into vertical columns.
