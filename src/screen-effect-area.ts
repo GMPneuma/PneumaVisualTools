@@ -1,5 +1,15 @@
-const mounted=new Map<Element,{host:HTMLDivElement,soft:boolean,onResize?:()=>void}>();
+const mounted=new Map<Element,{host:HTMLDivElement,soft:boolean,height?:number,mask?:string,onResize?:()=>void}>();
 let resize:ResizeObserver|undefined,mutation:MutationObserver|undefined,sidebar:HTMLElement|null=null,frame=0;
+let ancestors: Element[] = [];
+function observeSidebar(): void {
+ const next: Element[] = [];
+ for (let node: Element | null = sidebar ?? document.body; node; node = node.parentElement) next.push(node);
+ if (next.length === ancestors.length && next.every((node, index) => node === ancestors[index])) return;
+ ancestors = next;
+ mutation?.disconnect();
+ // Observe the sidebar and its containers, never the chat-card subtree.
+ for (const node of ancestors) mutation?.observe(node, {childList: node !== sidebar, subtree: !sidebar && node === document.body, attributes:true, attributeFilter:['class','style','hidden']});
+}
 export function screenEffectBounds(){
  const width=innerWidth,element=document.getElementById('sidebar'),rect=element?.getBoundingClientRect();
  const expanded=!!element&&!element.classList.contains('collapsed')&&!!rect&&rect.width>60&&rect.right>=width-80;
@@ -10,12 +20,19 @@ export function screenEffectWidth():number {const bounds=screenEffectBounds();re
 function refresh(){
  frame=0;
  const next=document.getElementById('sidebar');if(next!==sidebar){resize?.disconnect();sidebar=next;if(sidebar)resize?.observe(sidebar);}
+ observeSidebar();
  const bounds=screenEffectBounds();
- for(const {host,soft,onResize} of mounted.values()){
+ for(const entry of mounted.values()){
+  const {host,soft,onResize}=entry;
   const fade=soft?bounds.fade:0;
-  host.style.width=`${bounds.visible+fade}px`;
-  host.style.maskImage=fade?`linear-gradient(to right, #000 0px, #000 ${bounds.visible}px, transparent ${bounds.visible+fade}px)`:'none';
-  onResize?.();
+  const width=`${bounds.visible+fade}px`;
+  const mask=fade?`linear-gradient(to right, #000 0px, #000 ${bounds.visible}px, transparent ${bounds.visible+fade}px)`:'none';
+  // Browsers normalize gradient colors when reading style.maskImage back.
+  const changed=host.style.width!==width || entry.mask!==mask || entry.height!==innerHeight;
+  entry.height=innerHeight;
+  if (host.style.width!==width) host.style.width=width;
+  if (entry.mask!==mask) { host.style.maskImage=mask; entry.mask=mask; }
+  if (changed) onResize?.();
  }
 }
 function schedule(){if(!frame)frame=requestAnimationFrame(refresh);}
@@ -35,12 +52,12 @@ export function mountScreenEffect(layer:HTMLElement|SVGSVGElement,soft=true,onRe
     ? record.target===sidebar||!!sidebar&&record.target instanceof Element&&record.target.contains(sidebar)
     : [...Array.from(record.addedNodes),...Array.from(record.removedNodes)].some(node=>node===sidebar||node instanceof Element&&(node.id==='sidebar'||!!node.querySelector('#sidebar')))))schedule();
   });
-  mutation.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','hidden']});window.addEventListener('resize',schedule);
+  window.addEventListener('resize',schedule);
  }
  refresh();
 }
 export function removeScreenEffect(layer:Element|undefined):void {
  if(!layer)return;
  const entry=mounted.get(layer);if(entry){entry.host.remove();mounted.delete(layer);}else layer.remove();
- if(!mounted.size){resize?.disconnect();mutation?.disconnect();resize=undefined;mutation=undefined;sidebar=null;window.removeEventListener('resize',schedule);cancelAnimationFrame(frame);frame=0;}
+ if(!mounted.size){resize?.disconnect();mutation?.disconnect();resize=undefined;mutation=undefined;sidebar=null;ancestors=[];window.removeEventListener('resize',schedule);cancelAnimationFrame(frame);frame=0;}
 }

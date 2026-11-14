@@ -56,14 +56,17 @@ try{
   window.areaHighlight={renderable:true};canvas.interface={grid:{getHighlightLayer:()=>areaHighlight}};
   canvas.grid={type:1,getVertices:p=>[{x:p.x,y:p.y},{x:p.x+100,y:p.y},{x:p.x+100,y:p.y+100},{x:p.x,y:p.y+100}]};
   window.areaTemplate={document:{hidden:false,flags:{'pneuma-combattools':{areaMessage:'fallback-area'}}},renderable:true,highlightId:'area',_getGridHighlightPositions:()=>[{x:700,y:200}]};
-  canvas.templates={placeables:[areaTemplate]};
+  canvas.templates={placeables:[areaTemplate]};window.templateScans=0;
+  canvas.templates.placeables.filter=function(predicate){templateScans++;return Array.prototype.filter.call(this,predicate);};
   window.areaMsg={id:'fallback-area',visible:true,isContentVisible:true,flags:{'pneuma-combattools':{rollsRevealed:true,aoe:{phase:'responses',attackDiceRevealed:true,kind:'explosive',scene:'s',ammoType:'incendiary',area:{origin:{x:750,y:250}},exchange:{attacker:source.document.uuid,thrownSource:true}}}}};game.messages.push(areaMsg);hooks.createChatMessage.forEach(fn=>fn(areaMsg));
  });
  assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'measurement box hides at animation start');
  await page.waitForTimeout(1500);
  assert.ok(await page.evaluate(()=>{const c=document.querySelector('.pneuma-weapon-effects');return c?.getContext('2d').getImageData(750,250,1,1).data[3]>0;}),'landing burst is visible with native-template fallback and no new Combat Tools API');
  assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'box replaced at impact');
+ const scansAtImpact=await page.evaluate(()=>templateScans);
  await page.waitForTimeout(2100);assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'area stays until resolution, past normal animation duration');
+ assert.equal(await page.evaluate(()=>templateScans),scansAtImpact,'persistent area frames do not rescan templates');
  await page.evaluate(()=>{areaTemplate.renderable=true;areaHighlight.renderable=true;hooks.refreshMeasuredTemplate.forEach(fn=>fn(areaTemplate));});
  assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'native refresh cannot reveal replaced marker');
  await page.evaluate(()=>hooks.canvasTearDown.forEach(fn=>fn()));

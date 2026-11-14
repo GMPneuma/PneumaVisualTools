@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.10 - 2026-11-14
+
+- Batch late chat-card formatting and prevent the formatter from observing its own edits. Reuse unchanged section markers and dice layouts.
+- Exclude chat descendants from screen-effect observation and skip unchanged resize callbacks while preserving viewport and sidebar resizing.
+- Remove template scans from grenade/rocket animation frames and reuse unchanged footprint projections. Persistent areas render at up to 30 FPS and count toward the eight-effect limit; excess areas retain native footprints.
+- Correct card-layout regression fixtures and verify all four chat skins at narrow widths.
+
+Validation: build and focused browser/observer regressions. Live Foundry verification remains pending.
+
 ## 0.10.9 - 2026-11-12
 
 - Reduced the damage-edit pencil to 18 pixels and tucked it at the right edge of the ammo line. Ultra Compact now displays ammunition below the dice and damage total.

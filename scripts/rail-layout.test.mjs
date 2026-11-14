@@ -95,7 +95,8 @@ try {
   const root=document.querySelector('#attack-false');
   const section=document.createElement('section');section.className='pneuma-resolution-damage-roll pvt-full-section pvt-section-rail pvt-damage-collapsed';
   section.innerHTML='<div class="pneuma-resolution-label">Damage</div><div class="pneuma-resolution-body"><div class="pneuma-damage-heading"><span class="pneuma-damage-ammo">Armor-Piercing</span></div><div class="d6-rollcard-data"><div class="d6-dice-div"><img src="'+img+'"></div><div class="d6-number-div">19</div></div></div>';
-  root.append(section);window.savedAmmo=section.querySelector('.pneuma-damage-ammo');
+  // Damage is published inside the resolution card, not beside its participant rail.
+  root.querySelector('.pneuma-resolution-card').append(section);window.savedAmmo=section.querySelector('.pneuma-damage-ammo');
   applyChatSkin(root,'compact');
  });
  for(const width of [260,300,400]) for(const count of [1,2,3,4,5,6,8]) {
@@ -107,7 +108,8 @@ try {
    const rects=[...group.children].map(img=>img.getBoundingClientRect());
    const bounds=group.getBoundingClientRect();
    const ammo=root.querySelector(".pneuma-damage-ammo").getBoundingClientRect();
-   if(ammo.top<bounds.bottom-1 || ammo.height>30)throw Error("Ammo caption wraps or overlaps dice at "+width+"px");
+   if(group.closest('.pneuma-resolution-damage-roll').getBoundingClientRect().width<root.clientWidth-1)throw Error('Damage section must span the full card');
+   if(ammo.top<bounds.bottom-1 || ammo.height>30)throw Error("Ammo caption wraps or overlaps dice: "+JSON.stringify({width,count,ammo:ammo.toJSON(),dice:bounds.toJSON(),parent:group.parentElement.getBoundingClientRect().toJSON()}));
    if(width>=300 && rects.some(rect=>Math.abs(rect.width-32)>0.1))throw Error(JSON.stringify({width,count,parent:group.parentElement.clientWidth,group:group.clientWidth,faces:rects.map(r=>r.width),size:getComputedStyle(group).getPropertyValue("--pvt-damage-size")}));
    for(let i=0;i<rects.length;i++){
     if(rects[i].right>bounds.right+1)throw Error('Damage die escapes group');
@@ -162,5 +164,5 @@ try {
  assert.equal(await page.locator('#attack-false .pneuma-rail-arrow').count(),1);
  await page.locator('#attack-true').screenshot({path:new URL('../docs/ultra-compact-opposed-check.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1')});
  await page.locator('#attack-false').screenshot({path:new URL('../docs/ultra-compact-action-rail-check.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1')});
- console.log('Stacked actor / down arrow / action / target rails, no second arrow, retained portrait sizes, evasion/no-evasion, grapple family, grenade, skill, long names, native controls and idempotence passed in all three skins at 260/300/400px.');
+ console.log('Stacked actor / down arrow / action / target rails, no second arrow, retained portrait sizes, evasion/no-evasion, grapple family, grenade, skill, long names, native controls and idempotence passed in all four skins at 260/300/400px.');
 }finally{await browser.close();}

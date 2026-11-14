@@ -1,5 +1,9 @@
 # Implemented Features
 
+- Local performance fixes: chat presentation batches late card changes per frame and disconnects its card observer while applying its own formatting. Unchanged section markers and dice layouts are reused. The screen-effect observer watches sidebar containers rather than chat descendants, skips unchanged bounds, and retains height-only viewport resizing. Automated browser checks cover all four chat skins; live Foundry verification pending.
+
+- Persistent grenade/rocket visuals no longer rescan templates each animation frame. Template hooks update the affected marker, unchanged projected footprints are reused, and persistent area rendering is limited to 30 frames per second. The eight concurrent attack-effect limit now includes area effects; excess areas retain their native footprints. Active overlays still incur rendering cost until resolved or stopped.
+
 - Damage recipients and critical-injury controls each span the application panel width, preventing adjacent injury controls from squeezing labels and pending-action buttons into vertical columns. Automated browser regression covers 260/300/400px widths; live Foundry verification pending.
 
 - Compact damage cards give the ammunition label a full-width line above the dice, preventing long ammunition names from collapsing into a vertical column. v0.10.4; live Foundry verification pending.

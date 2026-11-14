@@ -329,7 +329,7 @@ export function playWeaponEffect(options:EffectOptions):()=>void {
  const initial:Shot={hit:options.hit,p,gun,mode,rounds,scale:1.38,time:performance.now(),seed:Math.random()*6,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,label:'',sourcePan:0,targetPan:0};
  const placement=options.positions();initial.sourcePan=placement?Math.max(-.85,Math.min(.85,placement.source.x/innerWidth*2-1)):0;initial.targetPan=placement?Math.max(-.85,Math.min(.85,placement.target.x/innerWidth*2-1)):0;
  if(options.resumeArea)initial.time-=gun.travel*initial.scale+1100;
- let areaStarted=false,areaEndedAt:number|undefined;
+ let areaStarted=false,areaEndedAt:number|undefined,lastAreaFrame=-Infinity;
  const lightRounds=new Set<number>();
  let shot:Shot|null=initial;
  setWeaponVolume(options.volume);
@@ -514,7 +514,10 @@ function dataStream(sx:number,sy:number,ex:number,ey:number,progress:number,colo
  ctx.globalAlpha=1;const p=point(Math.min(1,progress));ctx.strokeStyle=color;ctx.strokeRect(p.x-6,p.y-6,12,12);ctx.restore();
 }
 
-function draw(now:number){if(!shot){base();return}const s=shot,g=s.gun,f=g.family,t=(now-s.time)/s.scale,close=['melee','blade','punch','grapple','martial'].includes(f),color=s.p.color;
+function draw(now:number){
+ if(areaStarted&&options.areaPending&&now-lastAreaFrame<1000/30){frame=requestAnimationFrame(draw);return;}
+ lastAreaFrame=now;
+ if(!shot){base();return}const s=shot,g=s.gun,f=g.family,t=(now-s.time)/s.scale,close=['melee','blade','punch','grapple','martial'].includes(f),color=s.p.color;
  const last=s.rounds.at(-1)!,end=last.delay+g.travel+(['grenade','rocket'].includes(f)?1100:650);
  let glow=0,recoil=0;for(const r of s.rounds){const age=t-r.delay-g.travel;if(s.hit&&s.mode!=='suppression'&&age>=0)glow=Math.max(glow,Math.max(0,1-age/400));if(t>=r.delay&&t<r.delay+120)recoil=-((g.recoil||4)*Math.sin((t-r.delay)/120*Math.PI))}
  base();if(done)return;if(!options.lightOnly&&glow>0){ctx.save();ctx.globalAlpha=glow*.25;ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(target.x,target.y,options.targetRadius??28,0,Math.PI*2);ctx.stroke();ctx.restore()}

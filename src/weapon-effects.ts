@@ -14,10 +14,11 @@ interface LiveToken {document:{uuid:string;hidden?:boolean;elevation?:number;par
 interface Viewport {stage?:{worldTransform:{a:number;b:number;c:number;d:number;tx:number;ty:number}};app?:{view:HTMLCanvasElement;renderer:{screen:{width:number;height:number}}}}
 function token(uuid:string):LiveToken|undefined {return (canvas.tokens?.placeables as unknown as LiveToken[]|undefined)?.find(t=>t.document.uuid===uuid)}
 function allowed(t:LiveToken):boolean {return !!game.user?.isGM||(!t.document.hidden&&t.isVisible)}
-function screenProjection():((p:Point)=>Point)|undefined {
+function screenProjection():(((p:Point)=>Point)&{key:string})|undefined {
  const view=canvas as unknown as Viewport,m=view.stage?.worldTransform,app=view.app;if(!m||!app)return;
  const rect=app.view.getBoundingClientRect(),w=app.renderer.screen.width,h=app.renderer.screen.height;if(!(w>0&&h>0))return;
- return p=>({x:rect.left+(m.a*p.x+m.c*p.y+m.tx)*rect.width/w,y:rect.top+(m.b*p.x+m.d*p.y+m.ty)*rect.height/h});
+ return Object.assign((p:Point)=>({x:rect.left+(m.a*p.x+m.c*p.y+m.tx)*rect.width/w,y:rect.top+(m.b*p.x+m.d*p.y+m.ty)*rect.height/h}),
+  {key:[m.a,m.b,m.c,m.d,m.tx,m.ty,rect.left,rect.top,rect.width,rect.height,w,h].join(',')});
 }
 function screen(p:Point):Point|undefined {return screenProjection()?.(p);}
 function world(p:Point):Point|undefined {
@@ -37,9 +38,10 @@ function templateAreaCells(messageId:string):number[][]{
  const native=template as unknown as {_getGridHighlightPositions:()=>Point[]};
  return native._getGridHighlightPositions().map(p=>canvas.grid!.getVertices(p).flatMap(v=>[v.x,v.y]));
 }
-function hideAreaDuringPlayback(messageId:string):{hide:()=>void;restore:()=>void}{
+function hideAreaDuringPlayback(messageId:string):{hide:(template?:MeasuredTemplate)=>void;restore:()=>void}{
  const saved=new Map<MeasuredTemplate,boolean>();
- const hide=()=>{for(const t of areaTemplates(messageId)){
+ const hide=(template?:MeasuredTemplate)=>{for(const t of template?[template]:areaTemplates(messageId)){
+  if(foundry.utils.getProperty(t.document,'flags.pneuma-combattools.areaMessage')!==messageId)continue;
   if(!saved.has(t))saved.set(t,t.renderable);
   t.renderable=false;const highlight=canvas.interface?.grid.getHighlightLayer(t.highlightId);if(highlight)highlight.renderable=false;
  }};
@@ -89,7 +91,7 @@ export function registerWeaponEffects():void {
    const source=token(effect.source),target=effect.target?token(effect.target):undefined;
    if(!source||(!game.user?.isGM&&source.document.hidden)||(effect.target&&(!target||(!game.user?.isGM&&target.document.hidden)))||(effect.scene&&effect.scene!==canvas.scene?.id))continue;
    if(!target&&!effect.point)continue;
-   const visuals=game.settings!.get(MODULE,'weaponAnimations'),sound=game.settings!.get(MODULE,'weaponSounds');if((!visuals&&!sound&&!weaponLightAuthority())||active.size-areaRuns.size>=8)continue;
+   const visuals=game.settings!.get(MODULE,'weaponAnimations'),sound=game.settings!.get(MODULE,'weaponSounds');if((!visuals&&!sound&&!weaponLightAuthority())||active.size>=8)continue;
    if(replay&&!visuals)continue;
    let weapon=effect.weapon,ammo=effect.ammo;
    // Combat Tools hides NPC weapon names only; saved weapon categories remain public.
@@ -115,12 +117,13 @@ export function registerWeaponEffects():void {
    if(document.hidden||(!visuals&&!sound)){void Promise.resolve(light.ready).then(()=>light.stop());continue;}
    let areaDisplay:ReturnType<typeof hideAreaDuringPlayback>|undefined;let areaImpacted=replay;
    const trackable=(t:LiveToken)=>allowed(t)||(lightOnly&&!t.document.hidden);
-   const positions=()=>{areaDisplay?.hide();if(document.hidden)return;if(areaImpacted&&effect.point){const at=screen(effect.point);return at?{source:at,target:at}:undefined;}const liveSource=token(effect.source),liveTarget=effect.target?token(effect.target):undefined;if(document.hidden||!liveSource||!trackable(liveSource)||(effect.target&&(!liveTarget||!trackable(liveTarget))))return;
+   const positions=()=>{if(document.hidden)return;if(areaImpacted&&effect.point){const at=screen(effect.point);return at?{source:at,target:at}:undefined;}const liveSource=token(effect.source),liveTarget=effect.target?token(effect.target):undefined;if(document.hidden||!liveSource||!trackable(liveSource)||(effect.target&&(!liveTarget||!trackable(liveTarget))))return;
     const from=screen(liveSource.center),to=screen(liveTarget?.center??effect.point!);return from&&to?{source:from,target:to}:undefined};
    const initial=positions();if(!initial){light.stop();continue;}
    const sourceEdge=screen({x:source.center.x+source.w/2,y:source.center.y});
    const targetEdge=target?screen({x:target.center.x+target.w/2,y:target.center.y}):undefined;
-   const area=effect.areaMessage?()=>{const project=screenProjection();if(!project)return [];return areaCells.map(cell=>{
+   let projectionKey = '', projectedCells: Point[][] = [];
+   const area=effect.areaMessage?()=>{const project=screenProjection();if(!project)return [];if(project.key===projectionKey)return projectedCells;projectionKey=project.key;return projectedCells=areaCells.map(cell=>{
     const points:Point[]=[];for(let i=0;i<cell.length;i+=2){const p=project({x:cell[i]!,y:cell[i+1]!});if(!p)return [];points.push(p)}return points;
    }).filter(cell=>cell.length>=3);}:undefined;
 
@@ -152,6 +155,10 @@ export function registerWeaponEffects():void {
   if(typeof id!=='string')return;
   const message=messages.get(id);if(message)for(const effect of actionEffects(id,message.flags))areaRuns.get(effect.key)?.();
  });
- Hooks.on('canvasReady',resume);Hooks.on('refreshMeasuredTemplate',()=>{for(const display of displays.values())display.hide()});Hooks.on('updateMeasuredTemplate',()=>{for(const display of displays.values())display.hide()});Hooks.on('canvasTearDown',stop);Hooks.on('deleteChatMessage',(message:ChatMessage)=>{messages.delete(message.id??'');resumable.delete(message.id??'');for(const effect of actionEffects(message.id??'',message.flags)){remember(effect.key);runs.get(effect.key)?.();}});
+ const hideRefreshed = (template:MeasuredTemplate) => {
+  const id=foundry.utils.getProperty(template.document,'flags.pneuma-combattools.areaMessage');
+  if(typeof id==='string')displays.get(id)?.hide(template);
+ };
+ Hooks.on('canvasReady',resume);Hooks.on('refreshMeasuredTemplate',hideRefreshed);Hooks.on('updateMeasuredTemplate',(doc:MeasuredTemplateDocument)=>{if(doc.object)hideRefreshed(doc.object)});Hooks.on('canvasTearDown',stop);Hooks.on('deleteChatMessage',(message:ChatMessage)=>{messages.delete(message.id??'');resumable.delete(message.id??'');for(const effect of actionEffects(message.id??'',message.flags)){remember(effect.key);runs.get(effect.key)?.();}});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else resume()});window.addEventListener('pagehide',stop);
 }

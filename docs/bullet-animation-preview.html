@@ -640,7 +640,7 @@ export function playWeaponEffect(options) {
     initial.targetPan = placement ? Math.max(-.85, Math.min(.85, placement.target.x / innerWidth * 2 - 1)) : 0;
     if (options.resumeArea)
         initial.time -= gun.travel * initial.scale + 1100;
-    let areaStarted = false, areaEndedAt;
+    let areaStarted = false, areaEndedAt, lastAreaFrame = -Infinity;
     const lightRounds = new Set();
     let shot = initial;
     setWeaponVolume(options.volume);
@@ -1143,6 +1143,11 @@ export function playWeaponEffect(options) {
         ctx.restore();
     }
     function draw(now) {
+        if (areaStarted && options.areaPending && now - lastAreaFrame < 1000 / 30) {
+            frame = requestAnimationFrame(draw);
+            return;
+        }
+        lastAreaFrame = now;
         if (!shot) {
             base();
             return;

@@ -43,23 +43,31 @@ try {
  }
  const combatCSS=await readFile(new URL('../../PneumaCombatTools/src/styles/pneuma-combattools.css',import.meta.url),'utf8');
  await page.addStyleTag({content:combatCSS});
- for(const width of [260,300,400]) for(const pending of [false,true]){
-  await page.evaluate(({width,pending})=>{
+ for(const width of [260,300,400]) for(const pending of [false,true]) for(const labelFirst of [false,true]){
+  await page.evaluate(({width,pending,labelFirst})=>{
    const root=document.createElement('article');
    root.className='chat-message pneuma-combat-message pneuma-chat-card pneuma-skin-compact';
    root.style.width=width+'px';
    const content=pending?'<details open><summary>11 - Broken Ribs - application pending</summary><div class="pneuma-critical-details">Critical injury description</div></details>':'<strong>Critical Injury - Selected Token</strong>';
-   root.innerHTML='<div class="message-content pvt-section-flow"><section class="pneuma-resolution-damage-apply pneuma-damage-application pvt-section-rail"><div class="pneuma-damage-application-box"><div class="pneuma-damage-controls"><div class="pneuma-damage-recipient"><a class="pneuma-apply-damage">⚡</a><span class="pneuma-damage-recipient-label">Rage</span></div><div class="pneuma-damage-recipient"><a class="pneuma-apply-damage">⚡</a><span class="pneuma-damage-recipient-label">Selected Token</span></div><div class="pneuma-critical-row"><strong>Critical Injury - Rage</strong><button class="pneuma-apply-critical">♥</button></div><div class="pneuma-critical-row">'+content+'<button class="pneuma-apply-critical">'+(pending?'Finish injury application':'♥')+'</button></div></div></div></section></div>';
+   const recipient=name=>{
+    const label='<span class="pneuma-damage-recipient-label">'+name+'</span>',action='<a class="pneuma-apply-damage">⚡</a>';
+    return '<div class="pneuma-damage-recipient">'+(labelFirst?label+action:action+label)+'</div>';
+   };
+   root.innerHTML='<div class="message-content pvt-section-flow"><section class="pneuma-resolution-damage-apply pneuma-damage-application pvt-section-rail"><div class="pneuma-damage-application-box"><div class="pneuma-damage-controls">'+recipient('Rage')+recipient('Selected Token')+'<div class="pneuma-critical-row"><strong>Critical Injury - Rage</strong><button class="pneuma-apply-critical">♥</button></div><div class="pneuma-critical-row">'+content+'<button class="pneuma-apply-critical">'+(pending?'Finish injury application':'♥')+'</button></div></div></div></section></div>';
    document.body.replaceChildren(root);
-  },{width,pending});
+  },{width,pending,labelFirst});
   const geometry=await page.evaluate(()=>{
    const rows=[...document.querySelector('.pneuma-damage-controls').children].map(n=>n.getBoundingClientRect());
    const labels=[...document.querySelectorAll('.pneuma-damage-recipient-label')].map(n=>n.getBoundingClientRect());
    const button=document.querySelector('.pneuma-critical-row:last-child button').getBoundingClientRect();
    const root=document.querySelector('article');
-   return {stacked:rows.every((r,i)=>!i||r.top>=rows[i-1].bottom-1),readable:labels.every(r=>r.height<50),buttonReadable:button.height<70,fits:root.scrollWidth<=root.clientWidth};
+   const aligned=[...document.querySelectorAll('.pneuma-damage-recipient')].every(row=>{
+    const label=row.querySelector('.pneuma-damage-recipient-label').getBoundingClientRect(),action=row.querySelector('.pneuma-apply-damage').getBoundingClientRect();
+    return label.right<=action.left && label.top<action.bottom && action.top<label.bottom;
+   });
+   return {stacked:rows.every((r,i)=>!i||r.top>=rows[i-1].bottom-1),readable:labels.every(r=>r.height<50),buttonReadable:button.height<70,fits:root.scrollWidth<=root.clientWidth,aligned};
   });
-  assert.deepEqual(geometry,{stacked:true,readable:true,buttonReadable:true,fits:true},'Damage application '+width+' pending='+pending);
+  assert.deepEqual(geometry,{stacked:true,readable:true,buttonReadable:true,fits:true,aligned:true},'Damage application '+width+' pending='+pending+' labelFirst='+labelFirst);
  }
  console.log('Compact dice and ammunition layout passed at 260/300/400px.');
 } finally {await browser.close();}

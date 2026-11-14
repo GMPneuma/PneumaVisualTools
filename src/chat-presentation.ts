@@ -91,44 +91,54 @@ export function arrangeCardSections(root: HTMLElement): void {
   const content = root.querySelector<HTMLElement>(':scope > .message-content');
   if (!content) return;
   const plain = root.classList.contains('pneuma-plain-chat');
+  const markers = ['pvt-opening-row', 'pvt-section-flow', 'pvt-full-section', 'pvt-opening-stack', 'pvt-opposed-divider'];
+  const previous = root.querySelectorAll<HTMLElement>(markers.map(name => '.' + name).join(','));
+  const wanted = new Map<HTMLElement, Set<string>>();
+  const mark = (node: HTMLElement, name: string) => {
+    let names = wanted.get(node);
+    if (!names) wanted.set(node, names = new Set());
+    names.add(name);
+    if (!node.classList.contains(name)) node.classList.add(name);
+  };
+  const property = (node: HTMLElement, name: string, value: string) => {
+    if (node.style.getPropertyValue(name) !== value) node.style.setProperty(name, value);
+  };
   let row = plain ? 1 : 2;
   const opening = (element: HTMLElement) => {
-    element.classList.add('pvt-opening-row');
-    element.style.setProperty('--pvt-row', String(row++));
+    mark(element, 'pvt-opening-row');
+    property(element, '--pvt-row', String(row++));
   };
-  // Re-evaluate after published markup additions; no nodes are reconstructed.
-  root.querySelectorAll<HTMLElement>('.pvt-opening-row').forEach(node => {
-    node.classList.remove('pvt-opening-row'); node.style.removeProperty('--pvt-row');
-  });
-  root.querySelectorAll('.pvt-section-flow, .pvt-full-section, .pvt-opening-stack, .pvt-opposed-divider')
-    .forEach(node => node.classList.remove('pvt-section-flow', 'pvt-full-section', 'pvt-opening-stack', 'pvt-opposed-divider'));
   const sections = content.querySelector<HTMLElement>(':scope > .pneuma-resolution-card, :scope > .pneuma-aoe-card, :scope > .pneuma-scene-effect-card');
   const grapple = content.querySelector<HTMLElement>(':scope > .pneuma-grapple-card');
   if (sections) {
-    content.classList.add('pvt-section-flow'); sections.classList.add('pvt-section-flow');
+    mark(content, 'pvt-section-flow'); mark(sections, 'pvt-section-flow');
     for (const child of Array.from(sections.children)) {
       if (child instanceof HTMLElement && child.matches('.pneuma-resolution-attack, .pneuma-attack-result, .pneuma-resolution-pending, .pneuma-resolution-evade')) opening(child);
     }
   } else if (grapple) {
-    content.classList.add('pvt-section-flow'); opening(grapple);
+    mark(content, 'pvt-section-flow'); opening(grapple);
   } else if (root.classList.contains('pneuma-adhoc-damage')) {
-    content.classList.add('pvt-full-section');
+    mark(content, 'pvt-full-section');
   } else {
     opening(content);
   }
-  root.style.setProperty('--pvt-opening-end', String(row));
+  property(root, '--pvt-opening-end', String(row));
   // Save the primary row for the optional side-by-side density layout.
   const attack = sections?.querySelector<HTMLElement>(':scope > .pneuma-resolution-attack, :scope > .pneuma-attack-result');
   const defense = sections?.querySelector<HTMLElement>(':scope > .pneuma-resolution-evade');
   root.classList.toggle('pvt-opposed-opening', Boolean(attack && defense));
-  if (attack && defense) root.style.setProperty('--pvt-opposed-row', attack.style.getPropertyValue('--pvt-row'));
-  else root.style.removeProperty('--pvt-opposed-row');
-  root.querySelectorAll('.pvt-opening-row').forEach(node => {
-    if (node.querySelector('.pneuma-grapple-rolls, .pneuma-quickhack-roll')) node.classList.add('pvt-opening-stack');
-  });
+  if (attack && defense) property(root, '--pvt-opposed-row', attack.style.getPropertyValue('--pvt-row'));
+  else if (root.style.getPropertyValue('--pvt-opposed-row')) root.style.removeProperty('--pvt-opposed-row');
+  for (const [node, names] of wanted) {
+    if (names.has('pvt-opening-row') && node.querySelector('.pneuma-grapple-rolls, .pneuma-quickhack-roll')) mark(node, 'pvt-opening-stack');
+  }
   // An explicit marker replaces outcome-dependent selectors in theme styles.
   root.querySelectorAll<HTMLElement>('.pneuma-resolution-evade, .pneuma-grapple-rolls > div + div, .pneuma-quickhack-roll + .pneuma-quickhack-roll')
-    .forEach(node => node.classList.add('pvt-opposed-divider'));
+    .forEach(node => mark(node, 'pvt-opposed-divider'));
+  for (const node of Array.from(previous)) {
+    for (const name of markers) if (node.classList.contains(name) && !wanted.get(node)?.has(name)) node.classList.remove(name);
+    if (!wanted.get(node)?.has('pvt-opening-row') && node.style.getPropertyValue('--pvt-row')) node.style.removeProperty('--pvt-row');
+  }
 }
 
 /** Decorated title over the primary roll; the rail owns participant order. */
@@ -347,7 +357,10 @@ let popup: HTMLElement | undefined;
 let owner: HTMLElement | undefined;
 let listening = false;
 let damageDiceObserver: ResizeObserver | undefined;
-const observedCards = new WeakSet<HTMLElement>();
+const observedCards = new WeakMap<HTMLElement, MutationObserver>();
+const queuedCards = new WeakSet<HTMLElement>();
+const diceLayouts = new WeakMap<HTMLElement, {width: number; compact: boolean; dice: HTMLImageElement[]}>();
+const observedDice = new WeakSet<HTMLElement>();
 const installedPopoverTriggers = new WeakSet<HTMLElement>();
 /** Balance rows rather than letting flex-wrap leave a single die on its own.
  * Use available width; smaller areas retain balanced rows. */
@@ -357,10 +370,15 @@ function balanceDamageDice(group: HTMLElement): void {
   if (compact) {
     const fullWidth = !!group.closest('.pneuma-resolution-damage-roll');
     const available = Math.max(34, (group.closest<HTMLElement>('.pneuma-chat-card')?.clientWidth ?? 310) - (fullWidth ? 68 : 100));
-    group.style.width = Math.min(Math.min(6, dice.length) * 34, available) + 'px';
-  } else group.style.removeProperty('width');
+    const targetWidth = Math.min(Math.min(6, dice.length) * 34, available) + 'px';
+    if (group.style.width !== targetWidth) group.style.width = targetWidth;
+  } else if (group.style.width) group.style.removeProperty('width');
   const width = group.clientWidth;
   if (!dice.length || !width) return;
+  const previous = diceLayouts.get(group);
+  if (previous?.width === width && previous.compact === compact && previous.dice.length === dice.length
+    && previous.dice.every((die, index) => die === dice[index])) return;
+  diceLayouts.set(group, {width, compact, dice});
   const capacity = compact ? Math.min(6, dice.length) : Math.max(1, Math.floor((width + 2) / 46));
   const rows = Math.ceil(dice.length / capacity);
   const perRow = Math.floor(dice.length / rows), extra = dice.length % rows;
@@ -607,19 +625,29 @@ export function installRollPopovers(root: HTMLElement): void {
   // MIGRATION: Combat Tools appends effects/application results after render.
   // Observe child-list changes only; never modify message documents or combat state.
   if (!observedCards.has(root)) {
-    observedCards.add(root);
-    new MutationObserver(records => {
-      if (records.some(record => [record.addedNodes, record.removedNodes].some(nodes => Array.from(nodes).some(node => node instanceof Element)))) installRollPopovers(root);
-    }).observe(root, {childList: true, subtree: true});
+    const observer = new MutationObserver(records => {
+      if (queuedCards.has(root) || !records.some(record => [record.addedNodes, record.removedNodes].some(nodes => Array.from(nodes).some(node => node instanceof Element)))) return;
+      queuedCards.add(root);
+      requestAnimationFrame(() => {
+        queuedCards.delete(root);
+        // Our own formatting must not schedule another whole-card pass.
+        observer.disconnect();
+        try { installRollPopovers(root); }
+        finally { observer.observe(root, {childList: true, subtree: true}); }
+      });
+    });
+    observedCards.set(root, observer);
+    observer.observe(root, {childList: true, subtree: true});
   }
   damageDiceObserver ??= new ResizeObserver(entries => {
     for (const entry of entries) {
-      if (!entry.target.isConnected) { damageDiceObserver!.unobserve(entry.target); continue; }
+      if (!entry.target.isConnected) { damageDiceObserver!.unobserve(entry.target); observedDice.delete(entry.target as HTMLElement); continue; }
       balanceDamageDice(entry.target as HTMLElement);
     }
   });
   root.querySelectorAll<HTMLElement>('.d6-dice-div').forEach(group => {
-    group.classList.add('pneuma-balanced-dice'); balanceDamageDice(group); damageDiceObserver!.observe(group);
+    group.classList.add('pneuma-balanced-dice'); balanceDamageDice(group);
+    if (!observedDice.has(group)) { observedDice.add(group); damageDiceObserver!.observe(group); }
   });
   if (!listening) {
     listening = true;
