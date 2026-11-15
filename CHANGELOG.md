@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.11 - 2026-11-15
+
+- Skip off-screen token-effect painting while preserving animation timing and resuming when artwork becomes visible.
+- Ignore unrelated chat-card mutations, batch dice updates, and count sixes once per dice group.
+
+Validation: builds and relevant automated regression checks passed. Live Foundry verification remains pending.
+
 ## 0.10.10 - 2026-11-14
 
 - Batch late chat-card formatting and prevent the formatter from observing its own edits. Reuse unchanged section markers and dice layouts.

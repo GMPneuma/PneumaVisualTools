@@ -16,6 +16,12 @@ export const diceFiles = [
 const failed = new Set<string>();
 const states = new WeakMap<HTMLImageElement, {native: string; candidates: string[]; index: number}>();
 const observed = new WeakSet<HTMLElement>();
+const queued = new WeakSet<HTMLElement>();
+function containsDice(node:Node):boolean {
+  if(!(node instanceof Element))return false;
+  const images=node instanceof HTMLImageElement?[node]:Array.from(node.querySelectorAll<HTMLImageElement>('img[src]'));
+  return images.some(image=>!!systemDie(states.get(image)?.native||image.dataset.pvtDieOriginal||image.getAttribute('src')||''));
+}
 export function diceSets(): DiceSet[] { return game.settings!.get(MODULE, 'chatDiceSets') || []; }
 export function selectedDiceSet(): DiceSet | undefined {
   return diceSets().find(set => set.id === game.settings!.get(MODULE, 'chatDiceSet'));
@@ -52,15 +58,18 @@ function setImage(image: HTMLImageElement, native: string, file: string): void {
 export function replaceChatDice(root: HTMLElement): void {
   root.classList.toggle('pvt-chat-dice', game.settings!.get(MODULE, 'chatDiceEnabled') && game.settings!.get(MODULE, 'chatSkin') !== 'off');
   const images = Array.from(root.querySelectorAll<HTMLImageElement>('img[src]'));
-  const data = images.map(image => ({image, native: states.get(image)?.native || image.dataset.pvtDieOriginal || image.getAttribute('src') || ''}));
-  for (const {image, native} of data) {
-    const die = systemDie(native); if (!die) continue;
+  const data = images.map(image => {
+    const native=states.get(image)?.native||image.dataset.pvtDieOriginal||image.getAttribute('src')||'';
+    return {image,native,die:systemDie(native),group:image.closest('.d6-dice-div')};
+  });
+  const sixes=new Map<Element,number>();
+  for(const {die,group} of data)if(group&&die?.die==='d6'&&die.face===6)sixes.set(group,(sixes.get(group)??0)+1);
+  for (const {image, native,die,group} of data) {
+    if (!die) continue;
     image.dataset.pvtDieOriginal = native; // Copies used by saved-roll popovers retain their original image.
     let file = die.file;
     if (die.die === 'd6' && die.face === 6) {
-      const group = image.closest('.d6-dice-div');
-      const sixes = data.filter(entry => group && group.contains(entry.image) && systemDie(entry.native)?.face === 6).length;
-      if (sixes >= 2) file = 'd6_6_preem';
+      if (group&&(sixes.get(group)??0)>=2) file = 'd6_6_preem';
     }
     setImage(image, native, file);
   }
@@ -79,7 +88,9 @@ export function registerChatDice(): void {
     if (observed.has(root)) return;
     observed.add(root);
     new MutationObserver(records => {
-      if (records.some(record => record.addedNodes.length || record.removedNodes.length)) replaceChatDice(root);
+      if(queued.has(root)||!records.some(record=>[...Array.from(record.addedNodes),...Array.from(record.removedNodes)].some(containsDice)))return;
+      queued.add(root);
+      requestAnimationFrame(()=>{queued.delete(root);if(root.isConnected)replaceChatDice(root);});
     }).observe(root, {childList: true, subtree: true});
   });
 }

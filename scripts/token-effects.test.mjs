@@ -71,3 +71,19 @@ assert.equal(checks,before+100,'100 clock updates evaluate only the timed actor'
 hooks.updateCombat({}, {turn:1});flush();assert.equal(checks,before+101);
 hooks.updateCombat({}, {'flags.pneuma-combattools.flashbangVisuals.new':{}});flush();assert.equal(checks,before+202,'new combat visual flags discover newly affected actors');
 hooks.canvasTearDown();
+
+// Off-screen artwork keeps condition state and elapsed time, but does no painting.
+let paints=0;Graphics.prototype.clear=function(){paints++;};
+canvas.tokens.placeables=[token];canvas.app.renderer={screen:{x:0,y:0,width:800,height:600}};
+let bounds={x:900,y:20,width:100,height:100};token.mesh={getBounds:()=>bounds};
+patterns=['blackLace'];media.matches=false;hooks.canvasReady();flush();
+assert.equal(paints,0);
+for(let i=0;i<100;i++)for(const tick of tickers)tick(1);
+assert.equal(paints,0,'off-screen effects do not paint');
+bounds.x=750;for(const tick of tickers)tick(1);
+assert.equal(paints,1,'partially visible artwork resumes without actor invalidation');
+bounds.x=-100;for(const tick of tickers)tick(1);assert.equal(paints,2,'viewport boundary is included');
+bounds.x=-101;for(const tick of tickers)tick(1);assert.equal(paints,2);
+media.matches=true;hooks.motion();flush();bounds.x=20;hooks.canvasPan();
+assert.equal(paints,3,'reduced-motion effects return on pan without a ticker');
+assert.equal(token.children[0].visible,true);hooks.canvasTearDown();

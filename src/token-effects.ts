@@ -15,6 +15,14 @@ import {tokenPreview,anyTokenPreview} from './effect-preview-state.js';
 import {createTokenFireParticles} from './token-fire-particles.js';
 import {createTokenBlueGlassCloud} from './blue-glass-cloud.js';
 const MODULE='pneuma-visualtools';
+/** Use the artwork bounds because effects are masked to that artwork, including texture scaling. */
+export function tokenEffectOnScreen(token:Token):boolean {
+ const screen=canvas.app?.renderer?.screen;
+ const bounds=token.mesh?.getBounds();
+ if(!screen||!bounds)return true;
+ return bounds.x+bounds.width>=screen.x&&bounds.y+bounds.height>=screen.y
+  &&bounds.x<=screen.x+screen.width&&bounds.y<=screen.y+screen.height;
+}
 declare global {interface SettingConfig {'pneuma-visualtools.tokenEffects':boolean}}
 export function tokenEffectKinds(actor:Actor|undefined,snapshot?:ReturnType<typeof actorEffectSnapshot>):string[] {
  if(!actor)return [];
@@ -39,6 +47,8 @@ export function registerTokenEffects():void {
  function remove(token:Token) {const entry=layers.get(token);if(entry){entry.emp?.destroy();entry.blueGlass?.destroy();entry.fire?.destroy();entry.fog?.destroy();entry.smash?.destroy();entry.dazzle?.destroy();entry.patterns?.forEach(pattern=>pattern.destroy());entry.mask.destroy();token.removeChild(entry.graphic);entry.graphic.destroy();layers.delete(token);}}
  function stop() {for(const token of layers.keys())remove(token);if(ticking){canvas.app?.ticker.remove(tick);ticking=false;}}
  function paint(token:Token,entry:Entry) {
+  entry.graphic.visible=token.isVisible&&token.renderable&&tokenEffectOnScreen(token);
+  if(!entry.graphic.visible)return;
   const g=entry.graphic,w=token.w,h=token.h,r=Math.min(w,h),time=reduced.matches?0:elapsed;
   entry.width=w;entry.height=h;
   g.clear();
@@ -93,7 +103,7 @@ export function registerTokenEffects():void {
  function sync(){queue();}
  function tick(delta:number) {
   elapsed+=Math.min(delta,3)/60;
-  for(const [token,entry] of layers){entry.graphic.visible=token.isVisible;if(token.isVisible&&token.renderable)paint(token,entry);}
+  for(const [token,entry] of layers)paint(token,entry);
  }
  function reconcile(token:Token) {
   if(token.destroyed)return;
@@ -152,10 +162,11 @@ export function registerTokenEffects():void {
  for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,actorChanged);
  Hooks.on('drawToken',(token:Token)=>queue(token));
  Hooks.on('updateToken',(doc:TokenDocument,changes:Record<string,unknown>)=>{if(doc.object&&tokenEffectsChanged(changes))queue(doc.object);});
- Hooks.on('refreshToken',(token:Token)=>{
+  Hooks.on('canvasPan',()=>{for(const [token,entry] of layers)if(reduced.matches)paint(token,entry);});
+  Hooks.on('refreshToken',(token:Token)=>{
   // Attached graphics and their render-time mask already follow position/rotation.
   const entry=layers.get(token);
-  if(entry){entry.graphic.visible=token.isVisible;if(token.isVisible&&(entry.width!==token.w||entry.height!==token.h))paint(token,entry);}
+   if(entry){entry.graphic.visible=token.isVisible&&tokenEffectOnScreen(token);if(token.isVisible&&(reduced.matches||entry.width!==token.w||entry.height!==token.h))paint(token,entry);}
   else if(token.isVisible&&states.get(token)?.key){reconcile(token);tickerState();}
  });
  Hooks.on('destroyToken',(token:Token)=>{pending.delete(token);states.delete(token);remove(token);tickerState();});

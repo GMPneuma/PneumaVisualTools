@@ -50,6 +50,22 @@ try {
   assert.match(await page.locator('#critical').getAttribute('src'),/dice-pneuma-critical_d10_fail.webp$/);
   for(const id of ['six1','six2'])assert.match(await page.locator('#'+id).getAttribute('src'),/d6_6_preem.webp$/);
   assert.equal(await page.locator('#portrait').getAttribute('src'),'portrait.svg');
+  await page.evaluate(()=>{
+    const card=document.querySelector('#card'),query=card.querySelectorAll.bind(card);
+    window.diceScans=0;card.querySelectorAll=function(selector){if(selector==='img[src]')diceScans++;return query(selector);};
+    for(let i=0;i<100;i++){const result=document.createElement('span');result.textContent='Effect applied';card.append(result);}
+  });
+  await page.evaluate(()=>new Promise(requestAnimationFrame));
+  assert.equal(await page.evaluate(()=>diceScans),0,'unrelated card changes never scan dice');
+  await page.evaluate(()=>document.querySelector('#six2').remove());
+  await page.waitForFunction(()=>document.querySelector('#six1').getAttribute('src').endsWith('d6_6.webp'));
+  assert.equal(await page.evaluate(()=>diceScans),1,'removing a six updates the remaining die once');
+  await page.evaluate(()=>{
+    const group=document.querySelector('#six1').parentElement;
+    for(let i=0;i<100;i++){const image=document.createElement('img');image.src='systems/cyberpunk-red-core/icons/dice/black/d6_6.svg';group.append(image);}
+  });
+  await page.waitForFunction(()=>document.querySelector('#six1').getAttribute('src').endsWith('d6_6_preem.webp'));
+  assert.equal(await page.evaluate(()=>diceScans),2,'a burst of dice additions shares one scan');
   assert.equal(await page.locator('#six1').evaluate(el=>el.getBoundingClientRect().width),60,'native-only card constrains D6 replacement');
   await page.evaluate(()=>game.settings.set('pneuma-visualtools','chatDiceEnabled',false));
   assert.match(await page.locator('#normal').getAttribute('src'),/black\/d10_8.svg$/);

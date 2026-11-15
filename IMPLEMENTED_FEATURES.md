@@ -1,5 +1,7 @@
 # Implemented Features
 
+- Token effects skip painting when their artwork bounds are outside the renderer viewport, retaining elapsed animation time and resuming when visible; reduced-motion effects refresh on pan. Chat dice observers ignore unrelated content changes, batch dice changes per frame, and count sixes once per dice group. Live Foundry verification pending.
+
 - Local performance fixes: chat presentation batches late card changes per frame and disconnects its card observer while applying its own formatting. Unchanged section markers and dice layouts are reused. The screen-effect observer watches sidebar containers rather than chat descendants, skips unchanged bounds, and retains height-only viewport resizing. Automated browser checks cover all four chat skins; live Foundry verification pending.
 
 - Persistent grenade/rocket visuals no longer rescan templates each animation frame. Template hooks update the affected marker, unchanged projected footprints are reused, and persistent area rendering is limited to 30 frames per second. The eight concurrent attack-effect limit now includes area effects; excess areas retain their native footprints. Active overlays still incur rendering cost until resolved or stopped.
