@@ -1,3 +1,4 @@
+import {actorEffectSnapshot,withActorEffectSnapshots} from './actor-effect-snapshot.js';
 /** Position and render-only updates do not change actor conditions. Unknown fields invalidate. */
 export function tokenEffectsChanged(changes:Record<string,unknown>):boolean {
  const visual=new Set(['x','y','elevation','rotation','width','height','texture','sort','locked','lockRotation','name','alpha','_regions']);
@@ -33,10 +34,22 @@ export function conditionPublisher(hook:string){
 }
 
 /** Coalesce document bursts while retaining synchronous condition bookkeeping. */
+const pendingRefreshes=new Set<()=>void>();
+let refreshFrame=0;
 export function frameRefresh(work:()=>void) {
- let frame=0;
- const schedule=()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;work();});};
- const cancel=()=>{if(frame)cancelAnimationFrame(frame);frame=0;};
+ const run=()=>work();
+ const schedule=()=>{
+  pendingRefreshes.add(run);
+  if(!refreshFrame)refreshFrame=requestAnimationFrame(()=>{
+   refreshFrame=0;
+   const batch=[...pendingRefreshes];
+   withActorEffectSnapshots(()=>{for(const job of batch){
+    if(!pendingRefreshes.delete(job))continue;
+    try{job();}catch(error){console.error('Pneuma Visual Tools: effect refresh failed',error);}
+   }});
+  });
+ };
+ const cancel=()=>{pendingRefreshes.delete(run);if(!pendingRefreshes.size&&refreshFrame){cancelAnimationFrame(refreshFrame);refreshFrame=0;}};
  return {schedule,cancel};
 }
 
@@ -77,7 +90,7 @@ export function actorRefreshCandidates() {
    if(selected)actors.set(selected.uuid,selected);
    for(const id of watched.keys())if(!live.has(id)&&id!==selected?.uuid)watched.delete(id);
    for(const [id,actor] of actors){
-    const hasEffects=[...(actor.allApplicableEffects?.()??actor.effects??[])].length>0||[...(actor.items??[])].some(item=>[...(item.effects??[])].length>0);
+    const hasEffects=actorEffectSnapshot(actor).all.length>0;
     if(hasEffects&&(live.has(id)||id===selected?.uuid))watched.set(id,actor);else watched.delete(id);
    }
    return actors;

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.15 - 2026-11-16
+
+- Ignore unrelated chat-widget changes when scheduling card formatting and reuse installed hover controls.
+- Stop dice scanning and observation when custom dice or chat skins are disabled; restore native images and resume processing when enabled again.
+- Share actor inventory snapshots within each synchronous effect-refresh batch without retaining them across updates.
+- Remove empty pattern-effect entries and deleted-actor state while preserving active effects and suppression markers.
+- Skip unnecessary screen-effect checks while screen effects are disabled.
+
+Validation: build and targeted chat, dice, resizing, inventory, expiry and effect-lifecycle regressions passed. Live Foundry performance remains unverified. The separate skin-cycle fixture requires a local Foundry source file unavailable in this checkout; direct dice skin-toggle regressions passed.
+
 ## 0.10.14 - 2026-11-16
 
 - Hide empty settings-group headings when Foundry search filters out their settings. Groups with matching descendants remain visible; clearing search restores the headings.

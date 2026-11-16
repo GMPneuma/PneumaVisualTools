@@ -5,6 +5,10 @@ import {createPatternScreen} from './remaining-renderers.js';
 export type PatternKind='choking1'|'choking2'|'radiation'|'gas'|'blackLace'|'boost'|'synthcoke'|'berserker'|'primeTime'|'sixgun'|'timewarp';
 export const patternKinds:PatternKind[]=['choking1','choking2','radiation','gas','blackLace','boost','synthcoke','berserker','primeTime','sixgun','timewarp'];
 const held=new Map<string,Map<PatternKind,{combat?:string,expires:number,fromStatus?:boolean}>>(),cleared=new Map<string,Set<PatternKind>>();
+function prunePatternState():void {
+ for(const [uuid,entries] of held)if(!entries.size)held.delete(uuid);
+ for(const [uuid,kinds] of cleared)if(!kinds.size)cleared.delete(uuid);
+}
 const aliases:Partial<Record<PatternKind,RegExp>>={radiation:/^radiation(?: exposure| \((?:low|high)\))?$/i,gas:/^(gas exposure|tear gas|teargas)$/i};
 function marked(actor:Actor,kind:PatternKind,effects?:ActiveEffect[]):boolean {const match=aliases[kind];return !!match&&(effects??[...(actor.allApplicableEffects?.()??actor.effects)]).some(e=>{
  const duration=e.duration as typeof e.duration & {remaining?:number};
@@ -35,15 +39,17 @@ export function registerRemainingEffects():void {
   for(const [uuid,entries] of held)for(const [kind,entry] of entries)if(!entry.combat&&now>=entry.expires){entries.delete(kind);const set=cleared.get(uuid)??new Set<PatternKind>();set.add(kind);cleared.set(uuid,set);}
   for(const candidate of actors.values())for(const kind of (Object.keys(aliases) as PatternKind[]).filter(kind=>kind!=='gas')){
    const entries=held.get(candidate.uuid)??new Map();held.set(candidate.uuid,entries);
-   if(!marked(candidate,kind)){
+   if(!marked(candidate,kind,actorEffectSnapshot(candidate).native)){
     if(entries.get(kind)?.fromStatus)entries.delete(kind);
     cleared.get(candidate.uuid)?.delete(kind);continue;
    }
    if(entries.has(kind)||cleared.get(candidate.uuid)?.has(kind))continue;
    const combat=game.combats?.find(c=>c.started&&c.combatants.some(m=>m.actor?.uuid===candidate.uuid));entries.set(kind,{combat:combat?.id,expires:now+6,fromStatus:true});
   }
-  const active=new Set(actorPatternKinds(actor??undefined));
-  for(const [kind,screen] of screens)if(!document.hidden&&game.settings!.get('pneuma-visualtools','screenEffects')&&active.has(kind))screen.start();else screen.stop();
+  prunePatternState();
+  const showScreen=!document.hidden&&game.settings!.get('pneuma-visualtools','screenEffects');
+  const active=new Set(showScreen?actorPatternKinds(actor??undefined):[]);
+  for(const [kind,screen] of screens)if(active.has(kind))screen.start();else screen.stop();
   publish(Array.from(held,([uuid,entries])=>[uuid,[...entries]] as const));
  };
  const refresh=frameRefresh(update),sync=refresh.schedule;
@@ -58,6 +64,9 @@ export function registerRemainingEffects():void {
  for(const hook of ['controlToken','deleteToken','updateUser','pneumaVisualToolsScreenEffectsChanged','pneumaCombatToolsFlashbangChanged'])Hooks.on(hook,sync);
  Hooks.on('canvasReady',()=>{candidates.all();sync();});
  Hooks.on('deleteToken',()=>{candidates.all();sync();});
+ const forget=(uuid:string)=>{held.delete(uuid);cleared.delete(uuid);candidates.all();sync();};
+ Hooks.on('deleteActor',(actor:Actor)=>forget(actor.uuid));
+ Hooks.on('deleteToken',(token:TokenDocument)=>{if(!token.actorLink&&token.actor)forget(token.actor.uuid);});
  Hooks.on('updateWorldTime',()=>{candidates.time();sync();});
  Hooks.on('canvasTearDown',candidates.clear);
  for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,(doc:Actor|Item|ActiveEffect)=>{candidates.mark(doc);sync();});

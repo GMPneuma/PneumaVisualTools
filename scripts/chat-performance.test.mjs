@@ -8,7 +8,9 @@ try {
  for(const file of ['chat-cards.css','pneuma-visualtools.css','chat-hub.css','chat-theme.css'])await page.addStyleTag({content:await readFile('dist/'+file,'utf8')});
  await page.addStyleTag({content:await readFile('../PneumaCombatTools/src/styles/pneuma-combattools.css','utf8')});
  await page.evaluate(()=>{
-   window.counts={effects:0,cards:0,resize:0};window.kind='effects';
+   window.counts={effects:0,cards:0,resize:0,diceResize:0};window.kind='effects';
+   const NativeResize=window.ResizeObserver;
+   window.ResizeObserver=class extends NativeResize{constructor(callback){super((entries,observer)=>{counts.diceResize++;callback(entries,observer);});}};
    const NativeObserver=window.MutationObserver;
    window.MutationObserver=class extends NativeObserver{constructor(callback){const kind=window.kind;super((records,observer)=>{counts[kind]++;callback(records,observer);});}};
  });
@@ -23,7 +25,7 @@ try {
      for(let i=0;i<6;i++){
        const card=document.createElement('article');card.className='chat-message pneuma-chat-card pneuma-theme-'+(['technical','compact'].includes(skin)?'technical':'cyberpunk');
        card.classList.toggle('pneuma-skin-compact',skin.startsWith('compact'));
-       card.innerHTML='<section class="pneuma-resolution-damage-roll"><h4 class="pneuma-resolution-label">Damage</h4><div class="d6-rollcard-data"><div class="d6-dice-div"><span>3</span><span>4</span></div><div class="d6-number-div">7</div><div class="d6-data-details hide">3 + 4</div></div></section>';
+       card.innerHTML='<section class="pneuma-resolution-damage-roll"><h4 class="pneuma-resolution-label">Damage</h4><div class="d6-rollcard-data"><div class="d6-dice-div"><img width="44" height="44"><img width="44" height="44"></div><div class="d6-number-div">7</div><div class="d6-data-details hide">3 + 4</div></div></section>';
        document.querySelector('#chat-log').append(card);installRollPopovers(card);
        for(let n=0;n<4;n++)card.insertAdjacentHTML('beforeend','<section class="pneuma-resolution-effects"><h4 class="pneuma-resolution-label">Effects</h4><div class="pneuma-instant-effect"><strong>Poison</strong><span class="pneuma-effect-resistance"><strong>13</strong></span></div></section>');
      }
@@ -35,6 +37,13 @@ try {
    assert.equal(settled.effects,0,'chat subtree changes do not reach the screen-effect observer');
    assert.equal(settled.resize,1,'fixed sidebar size means no repeated effect resize');
    assert.ok(await page.locator('.pneuma-effect-resistance [data-pvt-popover]').count()>0,'late results still receive hover controls');
+   await page.evaluate(()=>{
+     window.formatPasses=0;const original=window.installRollPopovers;
+     window.installRollPopovers=function(root){formatPasses++;return original(root);};
+     for(const card of document.querySelectorAll('.chat-message'))for(let i=0;i<20;i++)card.insertAdjacentHTML('beforeend','<span class="other-module-widget">Updated</span>');
+   });
+   await page.waitForTimeout(100);
+   assert.equal(await page.evaluate(()=>formatPasses),0,'unrelated widgets never reformat cards');
  }
  await page.setViewportSize({width:1200,height:900});
  await page.waitForFunction(()=>counts.resize===2);

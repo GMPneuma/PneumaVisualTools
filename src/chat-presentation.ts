@@ -602,6 +602,24 @@ function tidyPopoverDetails(copy: HTMLElement): void {
   }
 }
 
+// Only structures consumed by the formatter can require another formatting pass.
+// Unrelated chat badges, clocks and module widgets must not reformat the card.
+const lateCardContent=[
+  '.rollcard','.dice-roll','.inline-roll','.d10-rollcard-data','.d6-rollcard-data','.generic-rollcard-data',
+  '.d6-dice-div','.d10-number-div','.d6-number-div','.generic-number-div','.dice-total',
+  '.pneuma-inline-roll','.pneuma-effect-resistance','.pneuma-instant-damage','.pneuma-instant-effect',
+  '.pneuma-aoe-response','.pneuma-damage-applied','.pneuma-damage-applied-row','.pneuma-applied-number',
+  '.pneuma-resolution-card','.pneuma-aoe-card','.pneuma-scene-effect-card','.pneuma-grapple-card',
+  '.pneuma-resolution-attack','.pneuma-attack-result','.pneuma-resolution-pending','.pneuma-resolution-evade',
+  '.pneuma-grapple-rolls','.pneuma-quickhack-roll','.pneuma-damage-heading','.pneuma-damage-ammo',
+  '.pneuma-resolution-damage-roll','.pneuma-resolution-damage-apply','.pneuma-resolution-effects',
+  '.pneuma-damage-result','.pneuma-attached-effects','.pvt-target-controls','[data-action="reverseDamage"]',
+].join(',');
+function relevantCardChange(record:MutationRecord):boolean {
+  const nodes=[...Array.from(record.addedNodes),...Array.from(record.removedNodes)];
+  return nodes.some(node=>node instanceof Element&&(node.matches(lateCardContent)||!!node.querySelector(lateCardContent)))
+    || record.target instanceof Element&&!!record.target.closest('.d6-dice-div, .pneuma-effect-resistance, .pneuma-instant-damage, .pneuma-aoe-response');
+}
 export function installRollPopovers(root: HTMLElement): void {
   // Saved cards may have the former target-controls disclosure. Keep live
   // controls and their handlers while restoring direct GM actions.
@@ -626,10 +644,11 @@ export function installRollPopovers(root: HTMLElement): void {
   // Observe child-list changes only; never modify message documents or combat state.
   if (!observedCards.has(root)) {
     const observer = new MutationObserver(records => {
-      if (queuedCards.has(root) || !records.some(record => [record.addedNodes, record.removedNodes].some(nodes => Array.from(nodes).some(node => node instanceof Element)))) return;
+      if (queuedCards.has(root) || !records.some(relevantCardChange)) return;
       queuedCards.add(root);
       requestAnimationFrame(() => {
         queuedCards.delete(root);
+        if(!root.isConnected){observer.disconnect();observedCards.delete(root);return;}
         // Our own formatting must not schedule another whole-card pass.
         observer.disconnect();
         try { installRollPopovers(root); }
@@ -684,6 +703,8 @@ export function installRollPopovers(root: HTMLElement): void {
         icon.setAttribute('aria-hidden', 'true'); trigger.prepend(icon);
       }
     }
+    // Existing handlers read their live DOM when opened; no detail lookup is needed again.
+    if (installedPopoverTriggers.has(trigger)) continue;
     const scope = inline ?? trigger.closest('.d10-rollcard-data, .d6-rollcard-data, .generic-rollcard-data, .dice-roll, .pneuma-damage-applied, .pneuma-instant-effect, .cpr-block');
     const disclosure = trigger.matches('[data-visible-element]') ? trigger : trigger.querySelector<HTMLElement>('[data-visible-element]');
     const detailClass = disclosure?.dataset.visibleElement;
@@ -696,7 +717,6 @@ export function installRollPopovers(root: HTMLElement): void {
       ?? linkedDetails ?? scope?.querySelector<HTMLElement>('.d10-data-details, .d6-data-details, .generic-data-details, .pneuma-applied-details, .dice-tooltip');
     // Combat Tools uses the same DOM marker for native click disclosures.
     // Only this adapter's actual listener registration proves a hover exists.
-    if (installedPopoverTriggers.has(trigger)) continue;
     if (!details) {
       details = document.createElement('div');
       details.textContent = trigger.getAttribute('aria-label') || `Roll total: ${trigger.textContent?.trim()}`;

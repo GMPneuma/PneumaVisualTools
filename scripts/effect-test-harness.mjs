@@ -12,6 +12,6 @@ export async function installEffectHarness(context,hooks){
  };
  context.Hooks.on=on;context.Hooks.once=on;
 vm.runInContext((await readFile('dist/actor-effect-snapshot.js','utf8')).replace(/export /g,''),context);
- vm.runInContext((await readFile('dist/effect-refresh.js','utf8')).replace(/export /g,''),context);
+ vm.runInContext((await readFile('dist/effect-refresh.js','utf8')).replace(/^import .*;\s*/gm,'').replace(/export /g,''),context);
  return flush;
 }

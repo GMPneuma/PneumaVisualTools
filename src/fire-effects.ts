@@ -1,13 +1,14 @@
 import {frameRefresh,watchScreenTokenVisibility,tokenEffectsChanged} from './effect-refresh.js';
 import {createFlameOverlay} from './fire-overlay.js';
 import {burningStrength} from './fire-status.js';
+import {actorEffectSnapshot} from './actor-effect-snapshot.js';
 const MODULE='pneuma-visualtools';
 export function registerFireEffects():void {
  const flames=createFlameOverlay();let ready=false;
  const update=()=>{if(!ready)return;if(document.hidden||!game.settings!.get(MODULE,'screenEffects')){flames.stop();return}
   const selected=canvas.tokens?.controlled?.filter(token=>token.actor?.isOwner&&token.isVisible);
   const actor=selected?.length===1?selected[0]!.actor:game.user?.character;
-  const strength=burningStrength(actor??undefined);if(strength)flames.start(strength);else flames.stop();
+  const strength=burningStrength(actor??undefined,actor?actorEffectSnapshot(actor).native:undefined);if(strength)flames.start(strength);else flames.stop();
  };
  const refresh=frameRefresh(update),sync=refresh.schedule;
  Hooks.on('canvasTearDown',refresh.cancel);

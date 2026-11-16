@@ -51,3 +51,9 @@ actor.effects=[];hooks.deleteActiveEffect(second);assert.ok(!active.has('radiati
 game.combats=[];module.api.activatePatternEffect(actor,'radiation');flush();hooks.updateActor(actor);
 assert.ok(active.has('radiation'),'explicit timed radiation does not require a status');
 game.time.worldTime+=6;hooks.updateWorldTime();assert.ok(!active.has('radiation'),'explicit radiation still expires');
+assert.equal(vm.runInContext('held.size',context),0,'expired entries are pruned');
+actor.effects=[];hooks.updateActor(actor);
+assert.equal(vm.runInContext('cleared.size',context),0,'empty suppression entries are pruned');
+module.api.activatePatternEffect(actor,'radiation');flush();
+game.user.character=null;hooks.deleteActor(actor);
+assert.equal(vm.runInContext('held.size + cleared.size',context),0,'deleted actors leave no pattern state');

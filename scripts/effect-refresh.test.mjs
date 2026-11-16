@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {actorRefreshCandidates,tokenEffectsChanged,frameRefresh,conditionPublisher,watchScreenTokenVisibility} from '../dist/effect-refresh.js';
+import {actorEffectSnapshot} from '../dist/actor-effect-snapshot.js';
 
 for(const changes of [{x:10,y:20},{rotation:90,width:2,'texture.scaleX':-1},{x:20,flags:{'pneuma-combattools':{movement:{spent:2}}}},{'flags.pneuma-combattools.aoeEscape':{id:'move'}}])assert.equal(tokenEffectsChanged(changes),false);
 for(const changes of [{hidden:true},{actorId:'new'},{delta:{effects:[]}},{'delta.items':[]},{flags:{'pneuma-combattools':{flashbang:{id:'new'}}}},{unknown:true}])assert.equal(tokenEffectsChanged(changes),true);
@@ -36,3 +37,17 @@ assert.deepEqual([...candidates.take(actorB).keys()],[actorB.uuid]);candidates.a
 
 for(const changes of [{_regions:['r']},{flags:{'pneuma-scenetools':{vehicleFootprint:{width:2,height:3}}}}])assert.equal(tokenEffectsChanged(changes),false);
 assert.equal(tokenEffectsChanged({_regions:['r'],delta:{effects:[]}}),true);
+
+let inventoryReads=0;
+const sharedActor={effects:[],get items(){inventoryReads++;return [];}};
+const snapshots=[];
+const first=frameRefresh(()=>snapshots.push(actorEffectSnapshot(sharedActor)));
+const second=frameRefresh(()=>snapshots.push(actorEffectSnapshot(sharedActor)));
+first.schedule();second.schedule();assert.equal(frames.size,1);flush();
+assert.equal(inventoryReads,1,'independent effect controllers share an inventory read');
+assert.equal(snapshots[0],snapshots[1]);
+sharedActor.effects=[{name:'New effect'}];first.schedule();flush();
+assert.equal(inventoryReads,2);assert.equal(snapshots[2].all.length,1,'later updates read fresh data');
+actorEffectSnapshot(sharedActor);assert.equal(inventoryReads,3,'outside batches snapshots are never cached');
+first.schedule();second.schedule();first.cancel();flush();
+assert.equal(snapshots.length,4,'cancelling one controller preserves the other');

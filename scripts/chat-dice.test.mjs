@@ -69,6 +69,19 @@ try {
   assert.equal(await page.locator('#six1').evaluate(el=>el.getBoundingClientRect().width),60,'native-only card constrains D6 replacement');
   await page.evaluate(()=>game.settings.set('pneuma-visualtools','chatDiceEnabled',false));
   assert.match(await page.locator('#normal').getAttribute('src'),/black\/d10_8.svg$/);
+  await page.evaluate(()=>{
+    window.diceScans=0;
+    document.querySelector('#card').insertAdjacentHTML('beforeend','<img id="disabled-late" src="systems/cyberpunk-red-core/icons/dice/black/d10_2.svg">');
+  });
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  assert.equal(await page.evaluate(()=>diceScans),0,'disabled dice perform no scans for late images');
+  assert.match(await page.locator('#disabled-late').getAttribute('src'),/black\/d10_2.svg$/);
+  await page.evaluate(()=>{
+    const card=document.createElement('article');card.className='chat-message';
+    card.innerHTML='<img src="systems/cyberpunk-red-core/icons/dice/black/d10_2.svg">';document.body.append(card);
+    card.querySelectorAll=()=>{throw Error('disabled new card must not be scanned');};
+    hooks.renderChatMessage({},[card]);card.remove();
+  });
   await page.evaluate(async()=>{
     await game.settings.set('pneuma-visualtools','chatDiceSets',[{id:'custom',name:'Custom',folder:'custom',extension:'png'}]);
     await game.settings.set('pneuma-visualtools','chatDiceSet','custom');
@@ -92,6 +105,12 @@ try {
     document.querySelector('#card').insertAdjacentHTML('beforeend','<img id="late" src="systems/cyberpunk-red-core/icons/dice/black/d10_9.svg">');
   });
   await page.waitForFunction(()=>document.querySelector('#late').getAttribute('src').endsWith('dice-pneuma-d10_9.webp'));
+  await page.evaluate(()=>{values.chatSkin='off';hooks.updateSetting({key:'pneuma-visualtools.chatSkin'});window.diceScans=0;document.querySelector('#card').insertAdjacentHTML('beforeend','<img id="skin-late" src="systems/cyberpunk-red-core/icons/dice/black/d10_3.svg">');});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  assert.equal(await page.evaluate(()=>diceScans),0,'skin off disconnects dice processing');
+  assert.match(await page.locator('#late').getAttribute('src'),/black\/d10_9.svg$/);
+  await page.evaluate(()=>{values.chatSkin='technical';hooks.updateSetting({key:'pneuma-visualtools.chatSkin'});});
+  assert.match(await page.locator('#skin-late').getAttribute('src'),/dice-pneuma-d10_3.webp$/,'skin enable restores dice handling');
   // Exercise the menu's native controls and settings handlers independently of
   // Foundry's application chrome/template renderer.
   await page.evaluate(()=>{

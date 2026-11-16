@@ -15,8 +15,18 @@ export const diceFiles = [
 ];
 const failed = new Set<string>();
 const states = new WeakMap<HTMLImageElement, {native: string; candidates: string[]; index: number}>();
-const observed = new WeakSet<HTMLElement>();
+const observed = new WeakMap<HTMLElement,MutationObserver>();
 const queued = new WeakSet<HTMLElement>();
+function diceEnabled():boolean {return game.settings!.get(MODULE,'chatDiceEnabled')&&game.settings!.get(MODULE,'chatSkin')!=='off';}
+function observeDice(root:HTMLElement):void {
+  if(observed.has(root)||!diceEnabled())return;
+  const observer=new MutationObserver(records=>{
+    if(!diceEnabled()||queued.has(root)||!records.some(record=>[...Array.from(record.addedNodes),...Array.from(record.removedNodes)].some(containsDice)))return;
+    queued.add(root);
+    requestAnimationFrame(()=>{queued.delete(root);if(root.isConnected&&diceEnabled())replaceChatDice(root);});
+  });
+  observed.set(root,observer);observer.observe(root,{childList:true,subtree:true});
+}
 function containsDice(node:Node):boolean {
   if(!(node instanceof Element))return false;
   const images=node instanceof HTMLImageElement?[node]:Array.from(node.querySelectorAll<HTMLImageElement>('img[src]'));
@@ -56,7 +66,19 @@ function setImage(image: HTMLImageElement, native: string, file: string): void {
   if (image.getAttribute('src') !== state.candidates[0]) image.setAttribute('src', state.candidates[0]!);
 }
 export function replaceChatDice(root: HTMLElement): void {
-  root.classList.toggle('pvt-chat-dice', game.settings!.get(MODULE, 'chatDiceEnabled') && game.settings!.get(MODULE, 'chatSkin') !== 'off');
+  if(!diceEnabled()){
+    observed.get(root)?.disconnect();observed.delete(root);
+    // Untouched cards need no image scan while the feature is off.
+    if(!root.classList.contains('pvt-chat-dice'))return;
+    root.classList.remove('pvt-chat-dice');
+    root.querySelectorAll<HTMLImageElement>('img[data-pvt-die-original]').forEach(image=>{
+      const native=states.get(image)?.native||image.dataset.pvtDieOriginal!;
+      const state=states.get(image);if(state){state.candidates=[native];state.index=0;}
+      if(image.getAttribute('src')!==native)image.setAttribute('src',native);
+    });
+    return;
+  }
+  root.classList.add('pvt-chat-dice');
   const images = Array.from(root.querySelectorAll<HTMLImageElement>('img[src]'));
   const data = images.map(image => {
     const native=states.get(image)?.native||image.dataset.pvtDieOriginal||image.getAttribute('src')||'';
@@ -76,7 +98,7 @@ export function replaceChatDice(root: HTMLElement): void {
 }
 export function refreshChatDice(): void {
   failed.clear(); // Allow newly uploaded or repaired custom files to be retried.
-  document.querySelectorAll<HTMLElement>('.chat-message, #pneuma-roll-popover').forEach(replaceChatDice);
+  document.querySelectorAll<HTMLElement>('.chat-message, #pneuma-roll-popover').forEach(root=>{replaceChatDice(root);if(root.matches('.chat-message'))observeDice(root);});
 }
 export function registerChatDice(): void {
   game.settings!.register(MODULE, 'chatDiceEnabled', {name: 'Replace chat dice', hint: 'Use the selected chat dice images. Changes apply immediately on this client.', scope: 'client', config: true, type: Boolean, default: true, onChange: refreshChatDice});
@@ -85,12 +107,7 @@ export function registerChatDice(): void {
   Hooks.on('renderChatMessage', (_message, html) => {
     const root = html[0]; if (!root) return;
     replaceChatDice(root);
-    if (observed.has(root)) return;
-    observed.add(root);
-    new MutationObserver(records => {
-      if(queued.has(root)||!records.some(record=>[...Array.from(record.addedNodes),...Array.from(record.removedNodes)].some(containsDice)))return;
-      queued.add(root);
-      requestAnimationFrame(()=>{queued.delete(root);if(root.isConnected)replaceChatDice(root);});
-    }).observe(root, {childList: true, subtree: true});
+    observeDice(root);
   });
+  Hooks.on('updateSetting',(setting:Setting)=>{if(setting.key===`${MODULE}.chatSkin`)refreshChatDice();});
 }
