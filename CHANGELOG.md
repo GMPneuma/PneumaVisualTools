@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.12
+
+- Clear radiation and poison visuals when their source effect is removed or disabled.
+- Respect expired durations and Cyberpunk system suppression for poison and fire.
+- Refresh fire visuals when source Items change or are deleted, and when world time or combat advances.
+- Preserve explicitly triggered timed exposure visuals.
+
 ## 0.10.11 - 2026-11-15
 
 - Skip off-screen token-effect painting while preserving animation timing and resuming when artwork becomes visible.

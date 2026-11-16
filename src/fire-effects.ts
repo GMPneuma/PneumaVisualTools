@@ -15,7 +15,7 @@ export function registerFireEffects():void {
  Hooks.on('pneumaVisualToolsScreenEffectsChanged',sync);
  watchScreenTokenVisibility(sync);
  Hooks.once('ready',()=>{ready=true;sync()});
- for(const hook of ['controlToken','deleteToken','updateActor','createActiveEffect','updateActiveEffect','deleteActiveEffect','updateUser','canvasReady'])Hooks.on(hook,sync);
+ for(const hook of ['controlToken','deleteToken','updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect','updateWorldTime','updateCombat','deleteCombat','updateUser','canvasReady'])Hooks.on(hook,sync);
  Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes))sync();});
  Hooks.on('canvasTearDown',()=>flames.stop());document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});window.addEventListener('pagehide',()=>flames.stop());
 }

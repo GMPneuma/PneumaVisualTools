@@ -37,3 +37,17 @@ for(const [name,id] of [['Radiation (Low)','qrncrx71vi0kvn12'],['Radiation (High
 }
 actor.effects=[{name:'Localized',statuses:new Set(['qrncrx71vi0kvn12']),duration:{}}];hooks.updateActor();assert.ok(active.has('radiation'),'native radiation reaches screen controller');
 assert.ok(vm.runInContext('actorPatternKinds(game.user.character).includes("radiation")',context),'native radiation reaches token triggers');
+const radiation=actor.effects[0];radiation.parent=actor;
+actor.effects=[];hooks.deleteActiveEffect(radiation);
+assert.ok(!active.has('radiation'),'deleting status stops screen radiation immediately');
+assert.ok(!vm.runInContext('actorPatternKinds(game.user.character).includes("radiation")',context),'deleting status clears token radiation too');
+game.combats=[combat];actor.effects=[radiation];hooks.createActiveEffect(radiation);assert.ok(active.has('radiation'),'reapplying starts radiation');
+radiation.disabled=true;hooks.updateActiveEffect(radiation);assert.ok(!active.has('radiation'),'disabled status stops radiation');
+radiation.disabled=false;radiation.system={isSuppressed:true};hooks.updateActiveEffect(radiation);assert.ok(!active.has('radiation'),'system suppression stops radiation');
+radiation.system.isSuppressed=false;hooks.updateActiveEffect(radiation);assert.ok(active.has('radiation'));
+const second={...radiation,parent:actor,statuses:new Set(['vaciaiw08jooz1hf'])};actor.effects=[second];hooks.deleteActiveEffect(radiation);
+assert.ok(active.has('radiation'),'another active radiation status retains visuals');
+actor.effects=[];hooks.deleteActiveEffect(second);assert.ok(!active.has('radiation'));
+game.combats=[];module.api.activatePatternEffect(actor,'radiation');flush();hooks.updateActor(actor);
+assert.ok(active.has('radiation'),'explicit timed radiation does not require a status');
+game.time.worldTime+=6;hooks.updateWorldTime();assert.ok(!active.has('radiation'),'explicit radiation still expires');

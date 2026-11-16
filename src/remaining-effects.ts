@@ -4,11 +4,11 @@ import {actorEffectSnapshot} from './actor-effect-snapshot.js';
 import {createPatternScreen} from './remaining-renderers.js';
 export type PatternKind='choking1'|'choking2'|'radiation'|'gas'|'blackLace'|'boost'|'synthcoke'|'berserker'|'primeTime'|'sixgun'|'timewarp';
 export const patternKinds:PatternKind[]=['choking1','choking2','radiation','gas','blackLace','boost','synthcoke','berserker','primeTime','sixgun','timewarp'];
-const held=new Map<string,Map<PatternKind,{combat?:string,expires:number}>>(),cleared=new Map<string,Set<PatternKind>>();
+const held=new Map<string,Map<PatternKind,{combat?:string,expires:number,fromStatus?:boolean}>>(),cleared=new Map<string,Set<PatternKind>>();
 const aliases:Partial<Record<PatternKind,RegExp>>={radiation:/^radiation(?: exposure| \((?:low|high)\))?$/i,gas:/^(gas exposure|tear gas|teargas)$/i};
 function marked(actor:Actor,kind:PatternKind,effects?:ActiveEffect[]):boolean {const match=aliases[kind];return !!match&&(effects??[...(actor.allApplicableEffects?.()??actor.effects)]).some(e=>{
  const duration=e.duration as typeof e.duration & {remaining?:number};
- if(e.disabled||e.isSuppressed||duration?.remaining!=null&&duration.remaining<=0)return false;
+ if(e.disabled||e.isSuppressed||(e as ActiveEffect & {system?:{isSuppressed?:boolean}}).system?.isSuppressed||duration?.remaining!=null&&duration.remaining<=0)return false;
  if(duration?.seconds!=null&&duration.startTime!=null&&Number(game.time?.worldTime??0)>=duration.startTime+duration.seconds)return false;
  return match.test(game.i18n?.localize(e.name??'')??e.name??'')||[...e.statuses].some(id=>match.test(id.replace(/-/g,' '))||(kind==='radiation'&&['qrncrx71vi0kvn12','vaciaiw08jooz1hf'].includes(id)));
 });}
@@ -35,9 +35,12 @@ export function registerRemainingEffects():void {
   for(const [uuid,entries] of held)for(const [kind,entry] of entries)if(!entry.combat&&now>=entry.expires){entries.delete(kind);const set=cleared.get(uuid)??new Set<PatternKind>();set.add(kind);cleared.set(uuid,set);}
   for(const candidate of actors.values())for(const kind of (Object.keys(aliases) as PatternKind[]).filter(kind=>kind!=='gas')){
    const entries=held.get(candidate.uuid)??new Map();held.set(candidate.uuid,entries);
-   if(!marked(candidate,kind)){cleared.get(candidate.uuid)?.delete(kind);continue;}
+   if(!marked(candidate,kind)){
+    if(entries.get(kind)?.fromStatus)entries.delete(kind);
+    cleared.get(candidate.uuid)?.delete(kind);continue;
+   }
    if(entries.has(kind)||cleared.get(candidate.uuid)?.has(kind))continue;
-   const combat=game.combats?.find(c=>c.started&&c.combatants.some(m=>m.actor?.uuid===candidate.uuid));entries.set(kind,{combat:combat?.id,expires:now+6});
+   const combat=game.combats?.find(c=>c.started&&c.combatants.some(m=>m.actor?.uuid===candidate.uuid));entries.set(kind,{combat:combat?.id,expires:now+6,fromStatus:true});
   }
   const active=new Set(actorPatternKinds(actor??undefined));
   for(const [kind,screen] of screens)if(!document.hidden&&game.settings!.get('pneuma-visualtools','screenEffects')&&active.has(kind))screen.start();else screen.stop();

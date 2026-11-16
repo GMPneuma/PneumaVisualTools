@@ -3,7 +3,7 @@ import {createSubstanceOverlay} from './substance-overlay.js';
 import {createSmashScreenOverlay} from './smash-overlay.js';
 import {actorEffectSnapshot} from './actor-effect-snapshot.js';
 const MODULE='pneuma-visualtools';
-const exposures=new Map<string,{combat:string|undefined,expires:number}>();
+const exposures=new Map<string,{combat:string|undefined,expires:number,fromStatus?:boolean}>();
 const cleared=new Set<string>();
 export function hasPoisonExposure(uuid:string):boolean {return exposures.has(uuid);}
 function activePoison(actor:Actor):boolean {
@@ -11,8 +11,13 @@ function activePoison(actor:Actor):boolean {
  const saved=module?.active?module.api?.hasReportedExposure?.(actor,'poison'):undefined;
  if(saved!==undefined)return saved;
  if(module?.active&&module.api?.hasMonitorExposure?.(actor.uuid,'poison'))return true;
- return [...(actor.allApplicableEffects?.()??actor.effects)].some(effect=>!effect.disabled&&!effect.isSuppressed&&(
-  /\bpoison(?:ed)?\b/i.test(game.i18n?.localize(effect.name??'')??effect.name??'')||[...effect.statuses].some(id=>/^poison(?:ed)?$/i.test(id))));
+ return [...(actor.allApplicableEffects?.()??actor.effects)].some(effect=>{
+  if(effect.disabled||effect.isSuppressed||(effect as ActiveEffect & {system?:{isSuppressed?:boolean}}).system?.isSuppressed)return false;
+  const duration=effect.duration as (typeof effect.duration & {remaining?:number})|undefined;
+  if(duration?.remaining!=null&&duration.remaining<=0)return false;
+  if(duration?.seconds!=null&&duration.startTime!=null&&Number(game.time?.worldTime??0)>=duration.startTime+duration.seconds)return false;
+  return /\bpoison(?:ed)?\b/i.test(game.i18n?.localize(effect.name??'')??effect.name??'')||[...effect.statuses].some(id=>/^poison(?:ed)?$/i.test(id));
+ });
 }
 /** Honor native ActiveEffect expiry without deleting or modifying game conditions. */
 export function hasBlueGlass(actor:Actor|undefined,effects?:ActiveEffect[]):boolean {
@@ -46,10 +51,13 @@ export function registerSubstanceEffects():void {
   for(const [uuid,entry] of exposures)if(!entry.combat&&now>=entry.expires){exposures.delete(uuid);cleared.add(uuid);}
   const actors=candidates.take(actor);
   for(const candidate of actors.values()) {
-   if(!activePoison(candidate)){cleared.delete(candidate.uuid);continue;}
+   if(!activePoison(candidate)){
+    if(exposures.get(candidate.uuid)?.fromStatus)exposures.delete(candidate.uuid);
+    cleared.delete(candidate.uuid);continue;
+   }
    if(cleared.has(candidate.uuid)||exposures.has(candidate.uuid))continue;
    const combat=game.combats?.find(c=>c.started&&c.combatants.some(member=>member.actor?.uuid===candidate.uuid));
-   exposures.set(candidate.uuid,{combat:combat?.id,expires:now+6});
+   exposures.set(candidate.uuid,{combat:combat?.id,expires:now+6,fromStatus:true});
   }
   publish(exposures.entries());
   const visible=!document.hidden&&!!actor;

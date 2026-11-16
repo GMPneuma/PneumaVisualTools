@@ -48,3 +48,23 @@ combat.combatant={actor};hooks.updateCombat(combat,{turn:4});saved=false;hooks.u
 actor.items=[{effects:[{name:'Smash Primary',disabled:false,statuses:new Set(),duration:{}}]}];hooks.updateItem();assert.equal(smashActive,true);actor.items[0].effects[0].name='Smash Addiction';hooks.updateItem();assert.equal(smashActive,false);actor.items[0].effects[0].name='Smash Primary';actor.items[0].effects[0].disabled=true;hooks.updateItem();assert.equal(smashActive,false);
 actor.items=[{effects:[{name:'Synthcoke Addicted Primary',disabled:false,statuses:new Set(),duration:{}}]}];assert.equal(vm.runInContext("hasPrimaryDrug(game.user.character,'Synthcoke','bsixucw55vezxc66')",context),true,'addiction-aware primary is active drug use');actor.items[0].effects[0].name='Synthcoke Addiction';assert.equal(vm.runInContext("hasPrimaryDrug(game.user.character,'Synthcoke','bsixucw55vezxc66')",context),false);
 console.log('Substance exposure, next-turn cleanup, targeting, expiry and toggles passed');
+// Regression: source-driven poison clears immediately; explicit exposure pulses keep their own timer.
+game.modules=undefined;actor.items=[];actor.effects=[];hooks.updateActor();hooks.deleteCombat(combat);hooks.updateActor();
+const poisonSource={name:'Poisoned',statuses:new Set(['poisoned']),disabled:false,duration:{},parent:actor};
+for(const inCombat of [false,true]){
+ game.combats=inCombat?[combat]:[];combat.combatant={actor:other};
+ actor.effects=[poisonSource];hooks.createActiveEffect(poisonSource);assert.equal(active.poison,true);
+ actor.effects=[];hooks.deleteActiveEffect(poisonSource);assert.equal(active.poison,false,'delete clears poison');
+ assert.equal(vm.runInContext('hasPoisonExposure(game.user.character.uuid)',context),false,'token poison clears too');
+ actor.effects=[poisonSource];hooks.createActiveEffect(poisonSource);poisonSource.disabled=true;hooks.updateActiveEffect(poisonSource);assert.equal(active.poison,false);
+ poisonSource.disabled=false;hooks.updateActiveEffect(poisonSource);assert.equal(active.poison,true);
+ poisonSource.system={isSuppressed:true};hooks.updateActiveEffect(poisonSource);assert.equal(active.poison,false);
+ poisonSource.system={};poisonSource.duration={remaining:0};hooks.updateActiveEffect(poisonSource);assert.equal(active.poison,false);
+ poisonSource.duration={seconds:1,startTime:game.time.worldTime};hooks.updateActiveEffect(poisonSource);assert.equal(active.poison,true);
+ game.time.worldTime+=1;hooks.updateWorldTime();assert.equal(active.poison,false,'expiry clears before exposure timer');
+ poisonSource.duration={};hooks.updateActiveEffect(poisonSource);assert.equal(active.poison,true);
+ const second={...poisonSource};actor.effects=[second];hooks.deleteActiveEffect(poisonSource);assert.equal(active.poison,true,'another active source retains poison');
+ actor.effects=[];hooks.deleteActiveEffect(second);assert.equal(active.poison,false);
+}
+game.combats=[];hooks.pneumaCombatToolsExposure(actor.uuid,'poison');hooks.updateActor(actor);assert.equal(active.poison,true,'explicit exposure survives without status');game.time.worldTime+=6;hooks.updateWorldTime();assert.equal(active.poison,false);
+console.log('Poison removal, suppression, expiry, multiple sources and explicit exposure regressions passed');
