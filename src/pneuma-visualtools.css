@@ -91,3 +91,6 @@
 #pneuma-weapon-light-settings .pvt-flash-control .range-value { flex:0 0 28px; text-align:right; }
 #pneuma-weapon-light-settings .pvt-flash-vision { display:flex; align-items:center; gap:5px; font-weight:normal; }
 #pneuma-weapon-light-settings .pvt-flash-vision input { margin:0; }
+
+/* Native search hides rows; omit their empty group headings as well. */
+.pvt-settings-groups > fieldset:not(:has(.form-group:not(.hidden):not([hidden]))) { display: none; }
