@@ -103,3 +103,5 @@ The existing [presentation boundary](docs/combat-header-migration.md) records Vi
 The original first-release blocker is obsolete: the checkout records v0.5.0 in its release commit, changelog and manifests. This cleanup does not reverify public release assets or installation. Outstanding live verification remains in BL-001, BL-002 and BL-005.
 
 Existing features and superseded visual designs remain recorded in [IMPLEMENTED_FEATURES.md](IMPLEMENTED_FEATURES.md).
+
+Settings search correction (v0.10.13, 2026-11-16): grouped native setting rows preserve their category on the immediate parent so Foundry v12 search keeps matching module categories visible. Labels, hints, menu buttons, nested groups, clear-search behavior and draft controls are covered by a browser regression using the native search method. Live Foundry validation remains pending.

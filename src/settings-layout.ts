@@ -40,6 +40,8 @@ export function groupVisualSettings(root: HTMLElement): void {
    row.inert=master==='weaponAnimations' ? row===rows.get('weaponIntensity') ? !!toggle&&!toggle.checked : row===rows.get('weaponVolume') ? !!sounds&&!sounds.checked : false : toggle?!toggle.checked:false;row.classList.toggle('pvt-setting-disabled',row.inert);row.setAttribute('aria-disabled',String(row.inert));});
   group.onchange=sync;sync();
  }
+ // Foundry v12 search reads the category from each row's immediate parent.
+ for(const row of Array.from(wrapper.querySelectorAll<HTMLElement>(".form-group")))row.parentElement!.dataset.category=MODULE;
  const input=root.querySelector<HTMLInputElement>('[name="'+MODULE+'.chatFallbackImage"]');
  if(input && !input.closest('.form-group')?.querySelector('[data-pvt-portrait-picker]')){
   const button=document.createElement('button');button.type='button';button.className='file-picker';button.dataset.pvtPortraitPicker='';button.title='Browse fallback chat portrait';button.setAttribute('aria-label',button.title);button.innerHTML='<i class="fas fa-file-import" aria-hidden="true"></i>';

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.13 - 2026-11-16
+
+- Fix Foundry settings search hiding matching module settings after they are organized into groups. Preserve the native category identifier on each row's immediate container, including nested groups.
+- Add regression coverage using Foundry v12's native search method for labels, hints, clearing search and retaining draft controls. Original layouts reproduce the bug; corrected layouts pass. Live Foundry verification remains pending.
+
 ## 0.10.12
 
 - Clear radiation and poison visuals when their source effect is removed or disabled.

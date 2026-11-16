@@ -1,6 +1,6 @@
 {
   "name": "pneuma-visualtools",
-  "version": "0.10.12",
+  "version": "0.10.13",
   "private": true,
   "type": "module",
   "description": "Visual utilities for Cyberpunk RED in Foundry VTT.",
