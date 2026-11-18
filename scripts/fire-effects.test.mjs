@@ -20,3 +20,15 @@ hooks.createItem(item);assert.equal(active,2);actor.items=[];hooks.deleteItem(it
 actor.items=[item];hooks.createItem(item);assert.equal(active,2);effect.system={isSuppressed:true};hooks.updateItem(item);assert.equal(active,0,'Item suppression refreshes flames');
 effect.system={};hooks.updateItem(item);assert.equal(active,2);item.effects=[];hooks.deleteActiveEffect(effect);assert.equal(active,0);
 console.log('Fire expiry, system suppression and Item deletion regressions passed');
+
+const renderer=vm.createContext({
+ window:{addEventListener(){}},document:{addEventListener(){},createElement:()=>({
+  getContext:()=>({createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})}),
+ })},matchMedia:()=>({addEventListener(){}}),
+});
+const procedural=(await readFile('dist/fire-procedural.js','utf8')).replace(/^import .*;\s*/gm,'').replace(/export /g,'');
+vm.runInContext(procedural+`
+ const flames=createFlameOverlay();
+ Float32Array.prototype.fill=()=>{throw Error('Cleared idle fire field');};
+ flames.stop();flames.stop();
+`,renderer);

@@ -10,7 +10,11 @@ try {
   audio=new OfflineAudioContext(2,48000*6,48000);master=audio.createGain();master.gain.value=.65;master.connect(audio.destination);
   noise=audio.createBuffer(1,48000,48000);let seed=17;const data=noise.getChannelData(0);for(let i=0;i<data.length;i++){seed=(Math.imul(seed,1664525)+1013904223)|0;data[i]=(seed>>>0)/2147483648-1;}
   reportBuffers=undefined;explosionBuffers=undefined;nodes.clear();Object.defineProperty(audio,'state',{get:()=> 'running'});
-  const cancel=playWeaponEffect({weapon:key,hit,mode,ammo,sound:!muted,visuals:false,volume:1,intensity:1,positions:()=>({source:{x:10,y:10},target:{x:500,y:10}})});
+  const create=document.createElement.bind(document),raf=window.requestAnimationFrame;
+  document.createElement=(name,...args)=>{if(name==='canvas')throw Error('Sound-only playback created canvas');return create(name,...args)};
+  window.requestAnimationFrame=()=>{throw Error('Sound-only playback requested a frame')};
+  let cancel;
+  try{cancel=playWeaponEffect({weapon:key,hit,mode,ammo,sound:!muted,visuals:false,volume:1,intensity:1,positions:()=>({source:{x:10,y:10},target:{x:500,y:10}})});}finally{document.createElement=create;window.requestAnimationFrame=raf;}
   if(stop)stopWeaponAudio();const buffer=await audio.startRendering();cancel();let peak=0,energy=0,tail=0,lateTail=0,finalEnergy=0;
   for(let c=0;c<2;c++)for(const [i,v] of buffer.getChannelData(c).entries()){peak=Math.max(peak,Math.abs(v));energy+=v*v;if(i>48000*1.2)tail+=v*v;if(i>48000*3.2)lateTail+=v*v;if(i>48000*5)finalEnergy+=v*v;}
   const reports=[...Object.values(reportBuffers??{}),...Object.values(explosionBuffers??{})];const silentEndpoints=reports.every(b=>Array.from({length:b.numberOfChannels},(_,c)=>b.getChannelData(c).at(-1)).every(v=>v===0));return {peak,energy,tail,lateTail,finalEnergy,silentEndpoints,remaining:nodes.size};

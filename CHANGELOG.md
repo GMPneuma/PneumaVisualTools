@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0 - 2026-11-18
+
+- Skip canvas allocation and animation frames during sound-only weapon playback while preserving sound timing and cleanup.
+- Skip clearing fire simulation buffers when the screen overlay is already stopped.
+
 ## 0.10.15 - 2026-11-16
 
 - Ignore unrelated chat-widget changes when scheduling card formatting and reuse installed hover controls.

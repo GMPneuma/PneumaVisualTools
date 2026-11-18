@@ -315,25 +315,32 @@ function createAreaBurst(){
 }
 
 export function playWeaponEffect(options:EffectOptions):()=>void {
- const drawArea=createAreaBurst();
  const gun=weaponProfiles[options.weapon]??weaponProfiles.pistol!;
  const mode=gun.automatic?options.mode??'single':'single';
  const p=['melee','blade','punch','martial','grapple'].includes(gun.family)?{name:'Physical',color:gun.family==='blade'?'#b6eaff':gun.family==='martial'?'#8ee7ff':'#efbf87',kind:'spark'}:gun.family==='data'?{name:'Data',color:'#66ffe0',kind:'spark'}:options.area&&options.areaAmmo&&grenadeVisuals[options.areaAmmo]?{...grenadeVisuals[options.areaAmmo]!,kind:'spark'}:profiles[options.ammo??'basic']??profiles.basic!;
  const count=mode==='auto'?5:mode==='suppression'?8:1;
  const rounds:Round[]=Array.from({length:count},(_,i)=>({delay:i*(gun.interval??100),offset:Math.sin(i*2.3)*80}));
+ const initial:Shot={hit:options.hit,p,gun,mode,rounds,scale:1.38,time:performance.now(),seed:Math.random()*6,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,label:'',sourcePan:0,targetPan:0};
+ const placement=options.positions();initial.sourcePan=placement?Math.max(-.85,Math.min(.85,placement.source.x/innerWidth*2-1)):0;initial.targetPan=placement?Math.max(-.85,Math.min(.85,placement.target.x/innerWidth*2-1)):0;
+ if(options.resumeArea)initial.time-=gun.travel*initial.scale+1100;
+ setWeaponVolume(options.volume);
+ if(!options.lightOnly&&!options.resumeArea&&options.sound&&audio?.state==='running')rounds.forEach((r,i)=>weaponAudio(initial,r,i));
+ const end=rounds.at(-1)!.delay+gun.travel+(['grenade','rocket'].includes(gun.family)?1100:650);
+ if(!options.visuals){
+  let finished=false;
+  const finish=()=>{if(finished)return;finished=true;clearTimeout(timer);options.onDone?.();};
+  const timer=setTimeout(finish,end*initial.scale);
+  return finish;
+ }
+ const drawArea=createAreaBurst();
  const layer=document.createElement('canvas');layer.setAttribute('aria-hidden','true');layer.className='pneuma-weapon-effects';
  Object.assign(layer.style,{position:'fixed',inset:'0',width:'100vw',height:'100vh',pointerEvents:'none',zIndex:'60',opacity:String(Math.max(0,Math.min(1,options.intensity)))});
  const context=layer.getContext('2d');if(!context){options.onDone?.();return ()=>{}}const ctx=context;
  if(options.visuals&&!options.lightOnly)document.body.append(layer);
  let source:Point={x:0,y:0},target:Point={x:0,y:0},frame=0,done=false;
- const initial:Shot={hit:options.hit,p,gun,mode,rounds,scale:1.38,time:performance.now(),seed:Math.random()*6,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,label:'',sourcePan:0,targetPan:0};
- const placement=options.positions();initial.sourcePan=placement?Math.max(-.85,Math.min(.85,placement.source.x/innerWidth*2-1)):0;initial.targetPan=placement?Math.max(-.85,Math.min(.85,placement.target.x/innerWidth*2-1)):0;
- if(options.resumeArea)initial.time-=gun.travel*initial.scale+1100;
  let areaStarted=false,areaEndedAt:number|undefined,lastAreaFrame=-Infinity;
  const lightRounds=new Set<number>();
  let shot:Shot|null=initial;
- setWeaponVolume(options.volume);
- if(!options.lightOnly&&!options.resumeArea&&options.sound&&audio?.state==='running')rounds.forEach((r,i)=>weaponAudio(initial,r,i));
  function base(){const positions=options.positions();if(!positions){stop();return}source=positions.source;target=positions.target;
  if(options.lightOnly)return;
  if(layer.width!==innerWidth||layer.height!==innerHeight){layer.width=innerWidth;layer.height=innerHeight}
@@ -518,7 +525,6 @@ function draw(now:number){
  if(areaStarted&&options.areaPending&&now-lastAreaFrame<1000/30){frame=requestAnimationFrame(draw);return;}
  lastAreaFrame=now;
  if(!shot){base();return}const s=shot,g=s.gun,f=g.family,t=(now-s.time)/s.scale,close=['melee','blade','punch','grapple','martial'].includes(f),color=s.p.color;
- const last=s.rounds.at(-1)!,end=last.delay+g.travel+(['grenade','rocket'].includes(f)?1100:650);
  let glow=0,recoil=0;for(const r of s.rounds){const age=t-r.delay-g.travel;if(s.hit&&s.mode!=='suppression'&&age>=0)glow=Math.max(glow,Math.max(0,1-age/400));if(t>=r.delay&&t<r.delay+120)recoil=-((g.recoil||4)*Math.sin((t-r.delay)/120*Math.PI))}
  base();if(done)return;if(!options.lightOnly&&glow>0){ctx.save();ctx.globalAlpha=glow*.25;ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(target.x,target.y,options.targetRadius??28,0,Math.PI*2);ctx.stroke();ctx.restore()}
  if(!options.lightOnly&&s.mode==='suppression'){ctx.fillStyle=color+'12';ctx.fillRect(target.x-65,target.y-105,170,210);ctx.strokeStyle=color+'66';ctx.setLineDash([5,6]);ctx.strokeRect(target.x-65,target.y-105,170,210);ctx.setLineDash([])}

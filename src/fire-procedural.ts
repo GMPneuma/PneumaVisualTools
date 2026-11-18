@@ -64,7 +64,13 @@ export function createFlameOverlay():FlameOverlay {
   for(const tile of tiles){const context=tile.getContext('2d')!;context.clearRect(0,0,width,height);context.drawImage(buffer,0,0)}
   if(!reduced.matches)frame=requestAnimationFrame(paint);
  }
- function stop(){cancelAnimationFrame(frame);frame=0;if(layer){removeScreenEffect(layer);for(const tile of tiles){tile.width=0;tile.height=0}tiles.length=0;buffer.width=0;buffer.height=0}layer=undefined;heat.fill(0);next.fill(0);last=0}
+ function stop(){
+  if(!layer)return;
+  cancelAnimationFrame(frame);frame=0;removeScreenEffect(layer);
+  for(const tile of tiles){tile.width=0;tile.height=0}
+  tiles.length=0;buffer.width=0;buffer.height=0;layer=undefined;
+  heat.fill(0);next.fill(0);last=0;
+ }
  function start(level=1){strength=Math.max(1,Math.min(3,level));if(layer){layer.style.opacity=String(.65+strength*.08);return}
   buffer.width=width;buffer.height=height;layer=document.createElement('div');layer.id='pneuma-fire-overlay';layer.setAttribute('aria-hidden','true');
   Object.assign(layer.style,{display:'flex',overflow:'hidden',position:'fixed',bottom:'0',left:'0',width:'100cqw',height:'26vh',maxHeight:'260px',pointerEvents:'none',zIndex:'1',opacity:String(.65+strength*.08)});mountScreenEffect(layer,true,fitTiles);fitTiles();
