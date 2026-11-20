@@ -45,6 +45,16 @@ try {
    await page.waitForTimeout(100);
    assert.equal(await page.evaluate(()=>formatPasses),0,'unrelated widgets never reformat cards');
  }
+ await page.evaluate(()=>{
+   window.measured=[];
+   window.pneumaPerformance={work:(module,handler,card)=>()=>measured.push({module,handler,card})};
+   const card=document.querySelector('.chat-message');
+   card.dataset.messageId='test-card';
+   installRollPopovers(card);
+   card.querySelector('.pneuma-effect-resistance [data-pvt-popover]').dispatchEvent(new MouseEvent('mouseenter'));
+ });
+ const measured=await page.evaluate(()=>window.measured);
+ for(const handler of ['chat.format','chat.hover'])assert.ok(measured.some(m=>m.module==='pneuma-visualtools'&&m.handler===handler&&m.card==='test-card'),handler);
  await page.setViewportSize({width:1200,height:900});
  await page.waitForFunction(()=>counts.resize===2);
  await page.evaluate(()=>document.querySelector('#sidebar').style.width='400px');

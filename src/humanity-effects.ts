@@ -15,7 +15,7 @@ export function registerHumanityEffects():void {
   const value=(actor?.system as {derivedStats?:{humanity?:{value?:unknown}}}|undefined)?.derivedStats?.humanity?.value;
   const stage=humanityStage(value);if(stage)overlay.start(stage);else overlay.stop();
  };
- const refresh=frameRefresh(update),sync=refresh.schedule;
+ const refresh=frameRefresh(update,'humanity-effects'),sync=refresh.schedule;
  Hooks.on('canvasTearDown',refresh.cancel);
  window.addEventListener('pagehide',refresh.cancel);
  Hooks.on('pneumaVisualToolsScreenEffectsChanged',sync);

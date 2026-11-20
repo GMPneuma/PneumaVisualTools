@@ -400,6 +400,42 @@ function balanceDamageDice(group: HTMLElement): void {
   }
 }
 function closePopup(): void { popup?.remove(); popup = undefined; owner?.removeAttribute('aria-describedby'); owner = undefined; }
+
+/** Decode Foundry's saved result only on demand. Keep the source outside the chat DOM. */
+function savedRollOpener(trigger: HTMLElement, display: (details: HTMLElement) => void) {
+  let cached: {data: string; details: Promise<HTMLElement>; failed?: boolean} | undefined;
+  let latest = 0;
+  return (activate = false): boolean => {
+    const data = trigger.dataset.roll;
+    if (!data || (cached?.data === data && cached.failed)) return false;
+    if (cached?.data !== data) {
+      try {
+        const roll = Roll.fromJSON(decodeURIComponent(data));
+        cached = {data, details: roll.getTooltip().then(html => {
+          const source = document.createElement('div');
+          const formula = document.createElement('div'); formula.textContent = roll.formula;
+          const rendered = document.createElement('div'); rendered.innerHTML = html;
+          source.append(formula, rendered);
+          return source;
+        })};
+      } catch { return false; }
+    }
+    const entry = cached;
+    const request = ++latest;
+    closePopup(); owner = trigger;
+    const stillOpen = () => request === latest && owner === trigger && trigger.isConnected && trigger.dataset.roll === data;
+    void entry.details.then(details => {
+      if (stillOpen()) display(details);
+    }, () => {
+      entry.failed = true;
+      if (stillOpen()) {
+        closePopup();
+        if (activate) trigger.click(); // Let Foundry handle the original activation.
+      }
+    });
+    return true;
+  };
+}
 /** Works while Foundry's render hook still owns a detached message element. */
 function isShown(element: Element): boolean {
   for (let node: Element | null = element; node; node = node.parentElement) {
@@ -621,6 +657,10 @@ function relevantCardChange(record:MutationRecord):boolean {
     || record.target instanceof Element&&!!record.target.closest('.d6-dice-div, .pneuma-effect-resistance, .pneuma-instant-damage, .pneuma-aoe-response');
 }
 export function installRollPopovers(root: HTMLElement): void {
+  const finish=globalThis.pneumaPerformance?.work('pneuma-visualtools','chat.format',root.dataset?.messageId);
+  try { installRollPopoversContent(root); } finally { finish?.(); }
+}
+function installRollPopoversContent(root: HTMLElement):void {
   // Saved cards may have the former target-controls disclosure. Keep live
   // controls and their handlers while restoring direct GM actions.
   for (const menu of Array.from(root.querySelectorAll('.pvt-target-controls'))) {
@@ -659,10 +699,12 @@ export function installRollPopovers(root: HTMLElement): void {
     observer.observe(root, {childList: true, subtree: true});
   }
   damageDiceObserver ??= new ResizeObserver(entries => {
+    const finish = globalThis.pneumaPerformance?.work('pneuma-visualtools','chat.diceResize');
     for (const entry of entries) {
       if (!entry.target.isConnected) { damageDiceObserver!.unobserve(entry.target); observedDice.delete(entry.target as HTMLElement); continue; }
       balanceDamageDice(entry.target as HTMLElement);
     }
+    finish?.();
   });
   root.querySelectorAll<HTMLElement>('.d6-dice-div').forEach(group => {
     group.classList.add('pneuma-balanced-dice'); balanceDamageDice(group);
@@ -673,23 +715,7 @@ export function installRollPopovers(root: HTMLElement): void {
     window.addEventListener('scroll', closePopup, {capture: true, passive: true});
     window.addEventListener('resize', closePopup);
   }
-  // Native enriched inline results store the evaluated roll in their DOM.
-  // Rendering its tooltip does not roll again or consult private message flags.
-  for (const link of Array.from(root.querySelectorAll<HTMLElement>('.inline-roll.inline-result[data-roll]'))) {
-    if (link.dataset.pvtPreparing) continue;
-    link.dataset.pvtPreparing = 'true';
-    try {
-      const roll = Roll.fromJSON(decodeURIComponent(link.dataset.roll!));
-      void roll.getTooltip().then(html => {
-        if (!root.isConnected) return;
-        const source = document.createElement('div'); source.className = 'pneuma-popover-source';
-        const formula = document.createElement('div'); formula.textContent = roll.formula; source.append(formula);
-        const rendered = document.createElement('div'); rendered.innerHTML = html; source.append(rendered);
-        link.after(source); link.dataset.pvtInlineSource = 'true'; installRollPopovers(root);
-      }).catch(() => { /* Keep native behavior if the saved roll cannot render. */ });
-    } catch { /* Malformed or unsupported saved rolls remain native. */ }
-  }
-  for (const trigger of Array.from(root.querySelectorAll<HTMLElement>('.d10-number-div, .d6-number-div, .generic-number-div, .dice-total, .pneuma-applied-number, .pneuma-mini-value, .pneuma-inline-roll > summary, [data-pvt-inline-source]'))) {
+  for (const trigger of Array.from(root.querySelectorAll<HTMLElement>('.d10-number-div, .d6-number-div, .generic-number-div, .dice-total, .pneuma-applied-number, .pneuma-mini-value, .pneuma-inline-roll > summary, .inline-roll.inline-result[data-roll]'))) {
     const inline = trigger.closest('.pneuma-inline-roll');
     // The summary owns the entire compact roll; ignore its concealed totals.
     if (inline && trigger.tagName !== 'SUMMARY') continue;
@@ -713,32 +739,33 @@ export function installRollPopovers(root: HTMLElement): void {
     const linkedDetails = detailClass ? Array.from(scope?.querySelectorAll<HTMLElement>('[class]') ?? []).find(el => el.classList.contains(detailClass)) : undefined;
     const controlledId = trigger.getAttribute('aria-controls');
     const controlledDetails = controlledId ? Array.from(root.querySelectorAll<HTMLElement>('[id]')).find(el => el.id === controlledId) : undefined;
-    let details = trigger.dataset.pvtInlineSource ? trigger.nextElementSibling as HTMLElement : inline?.querySelector<HTMLElement>('.pneuma-inline-roll-details') ?? controlledDetails
+    const savedRoll = trigger.matches('.inline-roll.inline-result[data-roll]');
+    let details = savedRoll ? undefined : inline?.querySelector<HTMLElement>('.pneuma-inline-roll-details') ?? controlledDetails
       ?? linkedDetails ?? scope?.querySelector<HTMLElement>('.d10-data-details, .d6-data-details, .generic-data-details, .pneuma-applied-details, .dice-tooltip');
     // Combat Tools uses the same DOM marker for native click disclosures.
     // Only this adapter's actual listener registration proves a hover exists.
-    if (!details) {
+    if (!details && !savedRoll) {
       details = document.createElement('div');
       details.textContent = trigger.getAttribute('aria-label') || `Roll total: ${trigger.textContent?.trim()}`;
       details.className = 'pneuma-popover-source'; trigger.after(details);
     }
     // Keep native undo actionable outside the now-hover-only breakdown.
-    const undo = details.querySelector<HTMLElement>('[data-action="reverseDamage"]');
+    const undo = details?.querySelector<HTMLElement>('[data-action="reverseDamage"]');
     if (undo) {
       undo.title ||= 'Reverse damage'; undo.classList.add('pneuma-damage-undo');
       if (trigger.classList.contains('pneuma-applied-number')) trigger.parentElement?.append(undo);
       else scope?.append(undo);
     }
     const dice = scope?.querySelector<HTMLElement>('.d10-dice-div, .d6-dice-div, .generic-dice-div');
-    const detailsShown = isShown(details);
     // Every saved total remains inspectable, including base rolls without modifiers.
     const rollLabel = trigger.dataset.pvtRollLabel || trigger.getAttribute('aria-label') || (effect ? isEffectDamage ? 'Damage roll' : 'Resistance roll' : undefined);
     installedPopoverTriggers.add(trigger);
     trigger.dataset.pvtPopover = 'true'; trigger.tabIndex = 0; trigger.removeAttribute('title');
     trigger.setAttribute('aria-label', `Roll ${trigger.textContent?.trim()}. Show roll details`);
-    if (!detailsShown) details.classList.add('pneuma-popover-source');
+    if (details && !isShown(details)) details.classList.add('pneuma-popover-source');
     if (inline instanceof HTMLDetailsElement) inline.open = false;
-    const show = () => {
+    const display = (details: HTMLElement) => {
+      const finish = globalThis.pneumaPerformance?.work('pneuma-visualtools','chat.hover',root.dataset.messageId);
       closePopup(); owner = trigger;
       popup = document.createElement('div'); popup.id = 'pneuma-roll-popover'; popup.setAttribute('role', 'tooltip');
       popup.className = 'pneuma-roll-popover';
@@ -813,13 +840,15 @@ export function installRollPopovers(root: HTMLElement): void {
       const rect = trigger.getBoundingClientRect(); const box = popup.getBoundingClientRect();
       popup.style.left = `${Math.max(8, Math.min(rect.right - box.width, innerWidth - box.width - 8))}px`;
       popup.style.top = `${Math.max(8, Math.min(rect.top - box.height - 8, innerHeight - box.height - 8))}px`;
+      finish?.();
     };
-    trigger.addEventListener('mouseenter', show); trigger.addEventListener('focus', show);
+    const show = savedRoll ? savedRollOpener(trigger, display) : () => { display(details!); return true; };
+    trigger.addEventListener('mouseenter', () => show()); trigger.addEventListener('focus', () => show());
     trigger.addEventListener('mouseleave', closePopup); trigger.addEventListener('blur', closePopup);
-    trigger.addEventListener('click', event => { event.preventDefault(); event.stopImmediatePropagation(); show(); }, true);
+    trigger.addEventListener('click', event => { if (show(true)) { event.preventDefault(); event.stopImmediatePropagation(); } }, true);
     trigger.addEventListener('keydown', event => {
       if (event.key === 'Escape') closePopup();
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopImmediatePropagation(); show(); }
+      if ((event.key === 'Enter' || event.key === ' ') && show(true)) { event.preventDefault(); event.stopImmediatePropagation(); }
     }, true);
   }
 }

@@ -66,7 +66,7 @@ export function registerSubstanceEffects():void {
   if(visible&&hasBlueGlass(actor??undefined,effects))glass.start();else glass.stop();
   if(visible&&hasSmash(actor??undefined,effects))smash.start();else smash.stop();
  };
- const refresh=frameRefresh(update),sync=refresh.schedule;
+ const refresh=frameRefresh(update,'substance-effects'),sync=refresh.schedule;
  Hooks.on('canvasTearDown',refresh.cancel);
  window.addEventListener('pagehide',refresh.cancel);
  Hooks.on('pneumaVisualToolsScreenEffectsChanged',sync);
@@ -88,7 +88,7 @@ export function registerSubstanceEffects():void {
  Hooks.on('deleteToken',()=>{candidates.all();sync();});
  Hooks.on('updateWorldTime',()=>{candidates.time();sync();});
  Hooks.on('canvasTearDown',candidates.clear);
- for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,(doc:Actor|Item|ActiveEffect)=>{candidates.mark(doc);sync();});
+ for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,(doc:Actor|Item|ActiveEffect)=>{candidates.mark(doc);sync(doc);});
  Hooks.on('createToken',()=>{candidates.all();sync();});
  Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes)){if('actorId' in changes||'actorLink' in changes)candidates.all();else candidates.mark(_doc);sync();}});
  Hooks.on('canvasTearDown',()=>{poison.stop();glass.stop();smash.stop();});

@@ -31,7 +31,7 @@ export function registerElectricalEffects():void {
   if(visible&&hasEMP(actor??undefined))emp.start();else emp.stop();
   publish(Array.from(held,([uuid,entries])=>[uuid,[...entries]] as const));
  };
- const refresh=frameRefresh(update),sync=refresh.schedule;
+ const refresh=frameRefresh(update,'electrical-effects'),sync=refresh.schedule;
  Hooks.on('canvasTearDown',refresh.cancel);
  window.addEventListener('pagehide',refresh.cancel);
  const activate=(actor:Actor,kind:ElectricalKind)=>{

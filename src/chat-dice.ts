@@ -66,6 +66,10 @@ function setImage(image: HTMLImageElement, native: string, file: string): void {
   if (image.getAttribute('src') !== state.candidates[0]) image.setAttribute('src', state.candidates[0]!);
 }
 export function replaceChatDice(root: HTMLElement): void {
+  const finish=globalThis.pneumaPerformance?.work('pneuma-visualtools','chat.dice',root.dataset?.messageId);
+  try { replaceChatDiceContent(root); } finally { finish?.(); }
+}
+function replaceChatDiceContent(root: HTMLElement):void {
   if(!diceEnabled()){
     observed.get(root)?.disconnect();observed.delete(root);
     // Untouched cards need no image scan while the feature is off.

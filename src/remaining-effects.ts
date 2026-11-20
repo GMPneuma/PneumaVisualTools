@@ -52,7 +52,7 @@ export function registerRemainingEffects():void {
   for(const [kind,screen] of screens)if(active.has(kind))screen.start();else screen.stop();
   publish(Array.from(held,([uuid,entries])=>[uuid,[...entries]] as const));
  };
- const refresh=frameRefresh(update),sync=refresh.schedule;
+ const refresh=frameRefresh(update,'remaining-effects'),sync=refresh.schedule;
  Hooks.on('canvasTearDown',refresh.cancel);
  window.addEventListener('pagehide',refresh.cancel);
  const module=game.modules!.get('pneuma-visualtools') as unknown as {api?:Record<string,unknown>};
@@ -69,7 +69,7 @@ export function registerRemainingEffects():void {
  Hooks.on('deleteToken',(token:TokenDocument)=>{if(!token.actorLink&&token.actor)forget(token.actor.uuid);});
  Hooks.on('updateWorldTime',()=>{candidates.time();sync();});
  Hooks.on('canvasTearDown',candidates.clear);
- for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,(doc:Actor|Item|ActiveEffect)=>{candidates.mark(doc);sync();});
+ for(const hook of ['updateActor','createItem','updateItem','deleteItem','createActiveEffect','updateActiveEffect','deleteActiveEffect'])Hooks.on(hook,(doc:Actor|Item|ActiveEffect)=>{candidates.mark(doc);sync(doc);});
  Hooks.on('createToken',()=>{candidates.all();sync();});
  Hooks.on('updateToken',(_doc:TokenDocument,changes:Record<string,unknown>)=>{if(tokenEffectsChanged(changes)){if('actorId' in changes||'actorLink' in changes)candidates.all();else candidates.mark(_doc);sync();}});
  const stop=()=>{for(const screen of screens.values())screen.stop();};Hooks.on('canvasTearDown',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden){refresh.cancel();update();}else sync();});window.addEventListener('pagehide',stop);

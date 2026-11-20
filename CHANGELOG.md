@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 - 2026-11-20
+
+- Adds detailed timings to Combat Tools 1.0.1 performance recordings for chat rendering and skinning, roll-detail formatting, hover pop-ups, dice replacement and resizing, and batched effect refreshes.
+- Saved inline rolls prepare their tooltip on first interaction and reuse it while the saved roll stays the same. Visual Tools continues to work independently.
+
 ## 1.0.0 - 2026-11-18
 
 - Skip canvas allocation and animation frames during sound-only weapon playback while preserving sound timing and cleanup.

@@ -36,9 +36,22 @@ export function conditionPublisher(hook:string){
 /** Coalesce document bursts while retaining synchronous condition bookkeeping. */
 const pendingRefreshes=new Set<()=>void>();
 let refreshFrame=0;
-export function frameRefresh(work:()=>void) {
- const run=()=>work();
- const schedule=()=>{
+export function frameRefresh(work:()=>void, label="screen visibility") {
+ let pendingCapture:typeof globalThis.pneumaPerformance;
+ const causes=new Set<string>();
+ const run=()=>{
+   const active=globalThis.pneumaPerformance;
+   const finish=active?.work('pneuma-visualtools',label,undefined,active===pendingCapture?[...causes].join(','):undefined);
+   causes.clear();pendingCapture=undefined;
+   try {work();} finally {finish?.();}
+ };
+ const schedule=(source?:unknown)=>{
+   const active=globalThis.pneumaPerformance;
+   if(active){
+     if(pendingCapture!==active){causes.clear();pendingCapture=active;}
+     const uuid=(source as {uuid?:string}|null)?.uuid;
+     if(typeof uuid==="string" && causes.size<16)causes.add(uuid);
+   }
   pendingRefreshes.add(run);
   if(!refreshFrame)refreshFrame=requestAnimationFrame(()=>{
    refreshFrame=0;
@@ -49,7 +62,7 @@ export function frameRefresh(work:()=>void) {
    }});
   });
  };
- const cancel=()=>{pendingRefreshes.delete(run);if(!pendingRefreshes.size&&refreshFrame){cancelAnimationFrame(refreshFrame);refreshFrame=0;}};
+ const cancel=()=>{causes.clear();pendingCapture=undefined;pendingRefreshes.delete(run);if(!pendingRefreshes.size&&refreshFrame){cancelAnimationFrame(refreshFrame);refreshFrame=0;}};
  return {schedule,cancel};
 }
 

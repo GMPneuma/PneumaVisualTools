@@ -27,7 +27,7 @@ export function registerFlashbangEffects():void {
    const animation=pulse.animate([{opacity:1},{opacity:.8,offset:.15},{opacity:0}],{duration:1100,easing:'ease-out'});animation.onfinish=()=>{pulse.remove();if(flash===pulse)flash=undefined;};
   }
  };
- const refresh=frameRefresh(update),sync=refresh.schedule;
+ const refresh=frameRefresh(update,'flashbang-effects'),sync=refresh.schedule;
  Hooks.on('canvasTearDown',refresh.cancel);
  window.addEventListener('pagehide',refresh.cancel);
  watchScreenTokenVisibility(sync);

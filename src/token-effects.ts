@@ -98,7 +98,7 @@ export function registerTokenEffects():void {
  // Condition state is independent of movement and retained while a token is hidden.
  const states=new Map<Token,{key:string;dazzleCreated?:number;timed:boolean}>();
  const pending=new Set<Token>();let all=true;
- const batch=frameRefresh(flush);
+ const batch=frameRefresh(flush,'token-effects');
  function queue(token?:Token) {if(token)pending.add(token);else all=true;batch.schedule();}
  function sync(){queue();}
  function tick(delta:number) {

@@ -1,5 +1,7 @@
 # Implemented Features
 
+- When the Combat Tools Performance Recorder is running on the same client, it times chat rendering, skinning, roll detail formatting and hover display, dice resizing and replacement and batched effect refreshes. Visual Tools can run independently.
+
 - Token effects skip painting when their artwork bounds are outside the renderer viewport, retaining elapsed animation time and resuming when visible; reduced-motion effects refresh on pan. Chat dice observers ignore unrelated content changes, batch dice changes per frame, and count sixes once per dice group. Live Foundry verification pending.
 
 - Local performance fixes: chat presentation batches relevant late card changes per frame, ignores unrelated widgets, and disconnects its card observer while applying its own formatting. Unchanged section markers, installed hover controls and dice layouts are reused. Disabled chat dice restore native images once and disconnect mounted-card observers; re-enabling resumes late-dice handling. Effect controllers share inventory snapshots only within a synchronous refresh batch. Empty pattern-state entries and deleted-actor state are removed while active effects and suppression markers remain intact. The screen-effect observer watches sidebar containers rather than chat descendants, skips unchanged bounds, and retains height-only viewport resizing. Automated browser checks cover all four chat skins, including image resizing; live Foundry verification pending.
@@ -101,6 +103,7 @@ Chat-card skinning, dice replacement, compendium scene previews, native audio to
 - Minimal reads the active CPR card, text, block, panel and semantic outcome variables. Its rail mixes the card surface with 8% black; headers, silhouettes, privacy tabs, result frames and compact results follow the native palette. Effect-icon buttons use charcoal for icon contrast. Hub retains its fixed dark cyan/amber palette.
 - Privacy recipients reveal on hover/focus or click; clicking pins them and Escape closes them. Existing privacy guards are retained; hidden or unavailable content is not reconstructed.
 - Supported totals reveal existing saved breakdowns on hover/focus/click, without expanding the card. Visible dice are not repeated; missing/private data is not inferred. Native inline rolls, applied damage, effect resistance and undo controls are supported.
+- Saved Foundry inline rolls prepare their tooltip on first interaction and reuse it while the link and saved result stay the same.
 - Weapon art uses 21 replaceable 512×256 transparent WebP masks. Visible saved titles or accessible matching item categories choose the asset; concealed generic titles disclose no category.
 - Shared composer geometry follows the selected palette and preserves draft text and the native roll-mode selection.
 - Result hover breakdowns use right-aligned text and tabular numerals in both themes. Hub GM controls share Roll Damage's dark brown surface, amber text and amber border, including an amber-tinted hover state; Minimal retains native control colors.

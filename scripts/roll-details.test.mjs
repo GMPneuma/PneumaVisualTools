@@ -14,6 +14,50 @@ try {
   await page.addStyleTag({content:'.d6-rollcard-data{display:grid;grid-template-areas:"dice total" "details details"}.d6-dice-div{grid-area:dice}.d6-number-div{grid-area:total}'});
   await page.addStyleTag({content:await read('chat-theme.css')});
   await page.addScriptTag({content:source.replace(/export /g,'')});
+  const inlineResults = await page.evaluate(async () => {
+    let parses = 0, tooltips = 0, nativeClicks = 0, finish;
+    window.Roll = {fromJSON(data) {
+      parses++;
+      const formula = JSON.parse(data);
+      return {formula, getTooltip() {
+        tooltips++;
+        return new Promise((resolve, reject) => {
+          finish = () => formula === 'fail' ? reject(Error('unsupported')) : resolve('<div>Saved breakdown</div>');
+        });
+      }};
+    }};
+    const card = document.createElement('article');
+    const link = document.createElement('a');
+    link.className = 'inline-roll inline-result';
+    link.dataset.roll = encodeURIComponent(JSON.stringify('1d10'));
+    link.textContent = '7';
+    card.append(link); document.body.append(card);
+    card.addEventListener('click', () => nativeClicks++);
+    installRollPopovers(card); installRollPopovers(card);
+    const initial = [parses, tooltips, card.children.length];
+    const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+    const popup = () => document.querySelector('#pneuma-roll-popover');
+    link.dispatchEvent(new MouseEvent('mouseenter')); link.focus();
+    link.blur(); finish(); await flush();
+    const dismissed = !popup();
+    link.focus(); await flush();
+    const focused = popup()?.textContent.includes('1d10');
+    link.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape'}));
+    link.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter'})); await flush();
+    const keyboard = popup()?.textContent.includes('Saved breakdown');
+    const cached = [parses, tooltips, card.children.length];
+    link.dataset.roll = encodeURIComponent(JSON.stringify('fail'));
+    link.click(); finish(); await flush();
+    const fallback = nativeClicks === 1 && !popup();
+    const replacement = link.cloneNode(true);
+    replacement.dataset.roll = encodeURIComponent(JSON.stringify('2d6'));
+    link.replaceWith(replacement); installRollPopovers(card);
+    const rerender = [parses, tooltips];
+    replacement.dispatchEvent(new MouseEvent('mouseenter')); card.remove(); finish(); await flush();
+    return {initial,dismissed,focused,keyboard,cached,fallback,rerender,detached:!popup()};
+  });
+  assert.deepEqual(inlineResults, {initial:[0,0,1],dismissed:true,focused:true,keyboard:true,
+    cached:[1,1,1],fallback:true,rerender:[2,2],detached:true});
   await page.evaluate(()=>{
     const roll = (label,details) => `<details class="pneuma-inline-roll"><summary aria-label="${label}">9</summary><div class="pneuma-inline-roll-details">${details}</div></details>`;
     document.body.insertAdjacentHTML('beforeend',`<article id="card" class="chat-message pneuma-chat-card"><section class="pneuma-resolution-damage-roll pvt-full-section"><h4 class="pneuma-resolution-label">Damage</h4><div class="d6-rollcard-data"><div class="d6-dice-div">3 + 4</div><div class="d6-number-div">7</div><div class="d6-data-details hide"></div></div></section><section class="pneuma-resolution-damage-apply pvt-full-section"><h4 class="pneuma-resolution-label">Apply Damage</h4><div class="pneuma-damage-applied"><div class="pneuma-damage-applied-row"><span class="pneuma-applied-number" data-visible-element="receipt">6</span></div><div class="pneuma-applied-details receipt hide">Armor SP 9<a data-action="reverseDamage">Undo</a></div></div></section><section class="pneuma-resolution-effects pvt-full-section"><h4 class="pneuma-resolution-label">Effects</h4><div class="pneuma-instant-effect" data-state="resisted"><strong>Poison DV13</strong>${roll('Resist Torture/Drugs','Die 5 + skill 4')}</div><div class="pneuma-instant-effect pneuma-aoe-inline-effect"><strong>Sleep DV13</strong><details class="pneuma-inline-roll"><summary aria-label="Resist Torture/Drugs" aria-controls="aoe-detail">12</summary></details><div id="aoe-detail" hidden>Die 8 + skill 4</div></div></section></article>`);

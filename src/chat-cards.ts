@@ -53,6 +53,10 @@ function portraitFor(message: ChatMessage): {src: string; actor?: string; token?
 }
 
 export function renderChatCard(message: ChatMessage, root: HTMLElement): void {
+  const finish=globalThis.pneumaPerformance?.work('pneuma-visualtools','chat.skin',message.id ?? undefined);
+  try { renderChatCardContent(message,root); } finally { finish?.(); }
+}
+function renderChatCardContent(message: ChatMessage, root: HTMLElement):void {
   if (game.settings!.get(MODULE_ID, 'chatSkin') === 'off') return;
   const header = root.querySelector<HTMLElement>(".message-header");
   // Never reconstruct a header or content removed by native visibility handling.
@@ -229,6 +233,7 @@ export function registerChatCards(): void {
   });
   Hooks.on("renderChatMessage", (message: ChatMessage, html: JQuery) => {
     if (game.settings!.get(MODULE_ID, "chatCards") && game.settings!.get(MODULE_ID, 'chatSkin') !== 'off' && html[0]) {
+      const finish=globalThis.pneumaPerformance?.work(MODULE_ID,'chat.render',message.id ?? undefined);
       renderChatCard(message, html[0]);
       if (html[0].classList.contains('pneuma-chat-card')) {
         if (!html[0].classList.contains('pneuma-layout-participants')) arrangeChatCard(html[0], message);
@@ -238,6 +243,7 @@ export function registerChatCards(): void {
         });
         installRollPopovers(html[0]);
       }
+      finish?.();
     }
   });
 }

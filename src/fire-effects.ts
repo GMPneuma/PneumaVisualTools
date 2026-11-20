@@ -10,7 +10,7 @@ export function registerFireEffects():void {
   const actor=selected?.length===1?selected[0]!.actor:game.user?.character;
   const strength=burningStrength(actor??undefined,actor?actorEffectSnapshot(actor).native:undefined);if(strength)flames.start(strength);else flames.stop();
  };
- const refresh=frameRefresh(update),sync=refresh.schedule;
+ const refresh=frameRefresh(update,'fire-effects'),sync=refresh.schedule;
  Hooks.on('canvasTearDown',refresh.cancel);
  window.addEventListener('pagehide',refresh.cancel);
  Hooks.on('pneumaVisualToolsScreenEffectsChanged',sync);
