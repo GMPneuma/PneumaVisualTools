@@ -70,13 +70,19 @@ export function registerWeaponEffects():void {
   if(aoe?.phase==='responses'&&!aoe.resolutionComplete)resumable.set(message.id??'',message);
   else resumable.delete(message.id??'');
  };
- const stop=()=>{for(const end of [...active])end();active.clear();stopWeaponAudio()};
+ const stopPlayback=()=>{for(const end of [...active])end()};
+ const stop=()=>{stopPlayback();stopWeaponAudio()};
  const resume=()=>{if(ready&&!document.hidden&&canvas.ready)for(const message of resumable.values())run(message,true)};
- const restart=()=>{stop();resume()};
- game.settings!.register(MODULE,'weaponAnimations',{name:'Show attack effects',hint:'Animate newly resolved Combat Tools attacks, area attacks, grapples, and netrunning actions on the current scene. Respects message visibility and reduced motion.',scope:'client',config:true,type:Boolean,default:true,onChange:restart});
- game.settings!.register(MODULE,'weaponSounds',{name:'Play attack sounds',hint:'Local attack and impact sounds for visible actions. Browser audio unlocks after your first click or keypress. Independent of attack visuals.',scope:'client',config:true,type:Boolean,default:true,onChange:restart});
+ game.settings!.register(MODULE,'weaponAnimations',{name:'Show attack effects',hint:'Animate newly resolved Combat Tools attacks, area attacks, grapples, and netrunning actions on the current scene. Respects message visibility and reduced motion.',scope:'client',config:true,type:Boolean,default:true,onChange:(enabled:boolean)=>{
+  stopPlayback();
+  if(enabled)resume();
+ }});
+ game.settings!.register(MODULE,'weaponSounds',{name:'Play attack sounds',hint:'Local attack and impact sounds for visible actions. Browser audio unlocks after your first click or keypress. Independent of attack visuals.',scope:'client',config:true,type:Boolean,default:true,onChange:(enabled:boolean)=>{if(!enabled)stopWeaponAudio()}});
  game.settings!.register(MODULE,'weaponVolume',{name:'Attack sound volume',hint:'Local effects volume; does not change playlist volume.',scope:'client',config:true,type:Number,default:35,range:{min:0,max:100,step:1},onChange:(value:number)=>setWeaponVolume(value/100)});
- game.settings!.register(MODULE,'weaponIntensity',{name:'Attack visual intensity',hint:'Opacity of attack effects.',scope:'client',config:true,type:Number,default:80,range:{min:10,max:100,step:5},onChange:restart});
+ game.settings!.register(MODULE,'weaponIntensity',{name:'Attack visual intensity',hint:'Opacity of attack effects.',scope:'client',config:true,type:Number,default:80,range:{min:10,max:100,step:5},onChange:(value:number)=>{
+  const opacity=String(Math.max(0,Math.min(1,value/100)));
+  document.querySelectorAll<HTMLCanvasElement>('canvas.pneuma-weapon-effects').forEach(layer=>{layer.style.opacity=opacity});
+ }});
  // Keep the session's history identities: evicting old keys could replay a
  // historic attack when a damage receipt or recovery notice is updated later.
  const remember=(key:string)=>{seen.add(key)};
@@ -138,8 +144,10 @@ export function registerWeaponEffects():void {
    const start=()=>{
     if(cancelled)return;
     if(document.hidden||!canvas.ready||source.document.parent?.id!==canvas.scene?.id||!messages.has(message.id??'')||!message.visible||message.isContentVisible===false||(effect.areaMessage&&!areaPending(message))||!positions()){end();return;}
-   if(!lightOnly&&visuals&&areaCells.length&&effect.areaMessage){areaDisplay=hideAreaDuringPlayback(effect.areaMessage);displays.set(effect.areaMessage,areaDisplay);}
-    playback=playWeaponEffect({weapon,lightOnly,onLightMove:point=>{const at=world(point);if(at)light.move(at);},onLightPulse,resumeArea:replay,areaPending:!lightOnly&&visuals&&areaCells.length&&effect.areaMessage&&['grenade','rocket'].includes(weapon)?()=>{const latest=messages.get(effect.areaMessage!);return !!latest&&areaPending(latest)}:undefined,onAreaImpact:()=>{areaImpacted=true;areaDisplay?.hide()},area:areaCells.length?area:undefined,areaAmmo:effect.areaAmmo,mode:effect.mode,ammo,hit:effect.hit,visuals,sound,volume:game.settings!.get(MODULE,'weaponVolume')/100,intensity:game.settings!.get(MODULE,'weaponIntensity')/100,sourceRadius:sourceEdge?Math.hypot(sourceEdge.x-initial.source.x,sourceEdge.y-initial.source.y):0,targetRadius:targetEdge?Math.hypot(targetEdge.x-initial.target.x,targetEdge.y-initial.target.y):0,positions,onDone:finish});
+    const playSound=game.settings!.get(MODULE,'weaponSounds');
+    if(!visuals&&!playSound){end();return;}
+    if(!lightOnly&&visuals&&areaCells.length&&effect.areaMessage){areaDisplay=hideAreaDuringPlayback(effect.areaMessage);displays.set(effect.areaMessage,areaDisplay);}
+    playback=playWeaponEffect({weapon,lightOnly,onLightMove:point=>{const at=world(point);if(at)light.move(at);},onLightPulse,resumeArea:replay,areaPending:!lightOnly&&visuals&&areaCells.length&&effect.areaMessage&&['grenade','rocket'].includes(weapon)?()=>{const latest=messages.get(effect.areaMessage!);return !!latest&&areaPending(latest)}:undefined,onAreaImpact:()=>{areaImpacted=true;areaDisplay?.hide()},area:areaCells.length?area:undefined,areaAmmo:effect.areaAmmo,mode:effect.mode,ammo,hit:effect.hit,visuals,sound:playSound,volume:game.settings!.get(MODULE,'weaponVolume')/100,intensity:game.settings!.get(MODULE,'weaponIntensity')/100,sourceRadius:sourceEdge?Math.hypot(sourceEdge.x-initial.source.x,sourceEdge.y-initial.source.y):0,targetRadius:targetEdge?Math.hypot(targetEdge.x-initial.target.x,targetEdge.y-initial.target.y):0,positions,onDone:finish});
    };
    if(light.ready)void light.ready.then(start).catch(error=>{end();console.warn('Pneuma Visual Tools: prepared attack playback failed',error);});else start();
   }

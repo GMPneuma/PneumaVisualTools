@@ -24,6 +24,7 @@ try{
  await page.evaluate(()=>{
   window.hooks={};window.Hooks={on:(name,fn)=>{(hooks[name]??=[]).push(fn)},once:(name,fn)=>{(hooks[name]??=[]).push(fn)}};
   window.FormApplication=class {};window.settings={};window.values={};window.game={settings:{registerMenu(){},register:(_m,key,config)=>{settings[key]=config;values[key]=config.default},get:(_m,key)=>values[key]},user:{isGM:true},messages:[],modules:new Map([['pneuma-combattools',{active:true}]])};
+  window.changePreference=(key,value)=>{values[key]=value;settings[key].onChange(value)};
   const actor={isOwner:false,testUserPermission:()=>true,items:new Map()};
   window.source={document:{uuid:'Scene.s.Token.a',parent:{id:'s'}},center:{x:160,y:350},w:60,h:60,isVisible:true,actor};
   window.target={document:{uuid:'Scene.s.Token.b',parent:{id:'s'}},center:{x:750,y:250},w:60,h:60,isVisible:true,actor};
@@ -35,6 +36,8 @@ try{
  await page.evaluate(()=>hooks.ready.forEach(fn=>fn()));await page.click('#unlock');
  await page.evaluate(()=>hooks.updateChatMessage.forEach(fn=>fn(msg)));
  assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'history never animates');
+ await page.evaluate(()=>{for(const enabled of [false,true]){changePreference('weaponAnimations',enabled);changePreference('weaponSounds',enabled)}});
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'idle settings changes start no visual effects');
  await page.evaluate(()=>{msg.id='fresh';hooks.createChatMessage.forEach(fn=>fn(msg));hooks.updateChatMessage.forEach(fn=>fn(msg));});
  assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'repeated writes play once');
  await page.evaluate(()=>hooks.canvasTearDown.forEach(fn=>fn()));assert.equal(await page.locator('.pneuma-weapon-effects').count(),0);
@@ -67,6 +70,19 @@ try{
  const scansAtImpact=await page.evaluate(()=>templateScans);
  await page.waitForTimeout(2100);assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'area stays until resolution, past normal animation duration');
  assert.equal(await page.evaluate(()=>templateScans),scansAtImpact,'persistent area frames do not rescan templates');
+ const keptOverlay=await page.evaluate(()=>{
+  const layer=document.querySelector('.pneuma-weapon-effects');
+  for(const enabled of [false,true,false,true])changePreference('weaponSounds',enabled);
+  changePreference('weaponIntensity',45);
+  return layer===document.querySelector('.pneuma-weapon-effects')&&layer.style.opacity==='0.45';
+ });
+ assert.ok(keptOverlay,'sound and intensity changes preserve the running area animation');
+ assert.equal(await page.evaluate(()=>templateScans),scansAtImpact,'audio and intensity do not revisit area templates');
+ await page.evaluate(()=>{changePreference('weaponIntensity',80);changePreference('weaponAnimations',false);changePreference('weaponSounds',false);changePreference('weaponSounds',true)});
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'audio changes leave disabled visuals off');
+ assert.ok(await page.evaluate(()=>areaTemplate.renderable&&areaHighlight.renderable),'disabling visuals restores the native marker');
+ await page.evaluate(()=>changePreference('weaponAnimations',true));
+ assert.equal(await page.locator('.pneuma-weapon-effects').count(),1,'enabling visuals restores one pending area');
  await page.evaluate(()=>{areaTemplate.renderable=true;areaHighlight.renderable=true;hooks.refreshMeasuredTemplate.forEach(fn=>fn(areaTemplate));});
  assert.equal(await page.evaluate(()=>areaTemplate.renderable||areaHighlight.renderable),false,'native refresh cannot reveal replaced marker');
  await page.evaluate(()=>hooks.canvasTearDown.forEach(fn=>fn()));
@@ -116,7 +132,7 @@ try{
 
  await page.emulateMedia({reducedMotion:'no-preference'});
  await page.evaluate(()=>{
-  values.weaponAnimations=true;values.weaponSounds=false;game.user={id:'gm',isGM:true};game.users={activeGM:{id:'gm'}};
+  values.weaponAnimations=true;values.weaponSounds=true;game.user={id:'gm',isGM:true};game.users={activeGM:{id:'gm'}};
   window.lightDocs=new Map();window.lightPulses=[];canvas.perception={update(){}};
   canvas.scene={id:'s',grid:{distance:2},lights:{has:id=>lightDocs.has(id),find:fn=>[...lightDocs.values()].find(fn),filter:fn=>[...lightDocs.values()].filter(fn)},createEmbeddedDocuments:(_type,rows)=>new Promise(resolve=>{window.releaseLight=()=>{const doc={...rows[0],id:String(lightDocs.size+1),updateSource(changes){Object.assign(this,changes);},async update(changes){if(changes.hidden!==true)throw Error('network update per pulse forbidden');Object.assign(this,changes);},async delete(){lightDocs.delete(this.id);}};doc.object={field:undefined,initializeLightSource(){if(!doc.hidden)lightPulses.push(performance.now());},renderFlags:{set(){}}};lightDocs.set(doc.id,doc);window.latestLight=doc;resolve([doc]);};})};
   window.preparedMessage={...msg,id:'prepared-burst',flags:{'pneuma-combattools':{rollsRevealed:true,exchange:{attacker:source.document.uuid,defender:target.document.uuid,state:'resolved',hit:true,weaponType:'heavySmg',attackMode:'autofire'}}}};
@@ -126,8 +142,9 @@ try{
  await page.evaluate(()=>releaseLight());await page.waitForTimeout(40);
  assert.equal(await page.locator('.pneuma-weapon-effects').count(),0,'do not start before native placeable draws');
  assert.equal(await page.evaluate(()=>latestLight.hidden),true,'prepared light is off');
- await page.evaluate(()=>latestLight.object.field={});
+ await page.evaluate(()=>{changePreference('weaponSounds',false);latestLight.object.field={};});
  await page.waitForSelector('.pneuma-weapon-effects');
+ assert.equal(await page.evaluate(()=>activeSounds()),0,'muting during light preparation keeps the upcoming burst silent');
  await page.waitForFunction(()=>lightPulses.length===5);
  await page.waitForSelector('.pneuma-weapon-effects',{state:'detached'});
  assert.equal(await page.evaluate(()=>latestLight.hidden),true,'restore local OFF state after playback');

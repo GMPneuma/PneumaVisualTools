@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2 - 2026-11-25
+
+- Align Save and Apply at the bottom right in Visual Skinning, Chat Dice Sets, and Attack Flash Lighting.
+- Keep current attack visuals running when sound or intensity settings change, and preserve audio playback when animation settings change.
+
 ## 1.0.1 - 2026-11-20
 
 - Adds detailed timings to Combat Tools 1.0.1 performance recordings for chat rendering and skinning, roll-detail formatting, hover pop-ups, dice replacement and resizing, and batched effect refreshes.

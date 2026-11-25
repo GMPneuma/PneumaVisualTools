@@ -17,7 +17,7 @@ html.pvt-custom-theme .pneuma-theme-technical { --pvt-accent:var(--pvt-custom-ma
 #pvt-theme-customizer .pvt-theme-color input[type="color"] { height:32px; padding:2px; }
 #pvt-theme-customizer .pvt-theme-color input[type="text"] { font-family:monospace; font-size:12px; }
 #pvt-theme-customizer .pvt-theme-status { font-size:11px; }
-#pvt-theme-customizer .pvt-personal-preset { display:grid; grid-template-columns:1fr 70px 110px; gap:6px; margin:8px 0; align-items:center; }
+#pvt-theme-customizer .pvt-personal-preset { display:grid; grid-template-columns:24px minmax(0,1fr) 56px; gap:6px; margin:8px 0; align-items:center; }
 #pvt-theme-customizer .pvt-personal-preset input { width:100%; min-width:0; }
 
 
@@ -27,12 +27,11 @@ html.pvt-custom-theme .pneuma-theme-technical { --pvt-accent:var(--pvt-custom-ma
 #pvt-theme-customizer .pvt-pneuma-presets .pvt-theme-toolbar { flex-direction:column; gap:6px; margin:0; }
 #pvt-theme-customizer .pvt-player-presets { min-width:0; margin:0; padding:8px 10px; border:1px solid var(--color-border-light-primary, #888); border-radius:4px; }
 #pvt-theme-customizer .pvt-player-presets legend { padding:0 5px; font-size:14px; font-weight:bold; }
-#pvt-theme-customizer .pvt-player-presets .pvt-personal-preset { grid-template-columns:minmax(0,1fr) 48px 58px; gap:5px; margin:5px 0; }
+#pvt-theme-customizer .pvt-player-presets .pvt-personal-preset { gap:5px; margin:5px 0; }
 #pvt-theme-customizer .pvt-player-presets button { min-width:0; padding:2px 4px; white-space:nowrap; }
 
 #pvt-theme-customizer .pvt-custom-color-theme { min-width:0; margin:12px 0; padding:14px; border:1px solid var(--color-border-light-primary,#888); border-radius:5px; }
 #pvt-theme-customizer .pvt-custom-color-theme > legend { padding:0 6px; font-size:16px; font-weight:bold; }
-#pvt-theme-customizer .pvt-player-presets .pvt-personal-preset { grid-template-columns:24px minmax(0,1fr) 56px 58px; }
 #pvt-theme-customizer .pvt-player-presets .pvt-preset-swatch { width:24px; height:24px; min-height:0; padding:0; border:1px solid var(--color-border-light-primary,#888); border-radius:3px; }
 #pvt-theme-customizer .pvt-main-accent { margin:16px 0 10px; }
 

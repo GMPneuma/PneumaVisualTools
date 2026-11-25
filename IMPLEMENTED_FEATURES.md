@@ -1,5 +1,7 @@
 # Implemented Features
 
+- The visual skinning, chat dice and attack flash lighting windows place Save and Apply controls in the bottom-right footer.
+
 - When the Combat Tools Performance Recorder is running on the same client, it times chat rendering, skinning, roll detail formatting and hover display, dice resizing and replacement and batched effect refreshes. Visual Tools can run independently.
 
 - Token effects skip painting when their artwork bounds are outside the renderer viewport, retaining elapsed animation time and resuming when visible; reduced-motion effects refresh on pan. Chat dice observers ignore unrelated content changes, batch dice changes per frame, and count sixes once per dice group. Live Foundry verification pending.
@@ -264,6 +266,8 @@ Settings group boxes (2026-10-07, unreleased): native settings groups use border
 Pneuma Cyan correction (2026-10-07, unreleased): preset seed is RGB 100/169/182 (#64a9b6).
 
 Attack settings grouping (2026-10-07, unreleased): Attack Sounds and Volume share the Attack Visuals group box. Visual intensity follows the visual switch; volume follows the independent sound switch.
+
+Changing attack sound leaves active animations running. Visual intensity adjusts their opacity in place. Disabling animations restores the native area markers. Enabling animations restores eligible pending area effects.
 
 Skin names/order (2026-10-07, unreleased): Pneuma Hub, Pneuma Hub - Compact, Cyberpunk Minimal, Cyberpunk Minimal - Compact. OFF is hidden from the settings dropdown but retained in the hotkey cycle and as a valid saved value.
 
